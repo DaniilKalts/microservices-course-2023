@@ -7,7 +7,7 @@
 ## Status
 
 ### Common / Infrastructure
-- [ ] **Configuration:** Load config from environment variables / file
+- [x] **Configuration:** Load config from environment variables / file
 - [ ] **Docker:** Add `Dockerfile` for `user` and `chat` services
 - [ ] **Compose:** Add `docker-compose.yaml` for services and Postgres
 - [ ] **Migrations:** Add shell script for Goose migrations

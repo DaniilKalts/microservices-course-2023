@@ -3,6 +3,8 @@ version: "3"
 vars:
   PROTO_DIR: proto
   GEN_GO_DIR: gen/go
+  MIGRATION_DIR: migrations
+  MIGRATION_DSN: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 
 tasks:
   check-os:
@@ -75,3 +77,29 @@ tasks:
   dev:
     desc: 🏃 Run both services in parallel
     deps: [run-chat, run-user]
+
+  migration-status:
+    desc: 📊 Check migration status
+    silent: true
+    cmds:
+      - goose -dir {{.MIGRATION_DIR}} postgres "{{.MIGRATION_DSN}}" status -v
+
+  migration-new:
+    desc: 🆕 Create new SQL migration (sequential)
+    silent: true
+    requires:
+      vars: [NAME]
+    cmds:
+      - goose -dir {{.MIGRATION_DIR}} -s create "{{.NAME}}" sql
+
+  migration-up:
+    desc: 🆙 Apply migrations
+    silent: true
+    cmds:
+      - goose -dir {{.MIGRATION_DIR}} postgres "{{.MIGRATION_DSN}}" up -v
+
+  migration-down:
+    desc: ⬇️ Rollback migrations
+    silent: true
+    cmds:
+      - goose -dir {{.MIGRATION_DIR}} postgres "{{.MIGRATION_DSN}}" down -v

@@ -16,7 +16,7 @@
 *Directory: `cmd/user`*
 
 **Persistence**
-- [ ] **Migrations:** SQL schema for users
+- [x] **Migrations:** SQL schema for users
 - [ ] **Implementation:** Replace dummy handlers with `squirrel` SQL builder + Postgres
 
 ### Service: `chat`

@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:17.5
+    container_name: microservices-course-2023-postgres
+    restart: unless-stopped
+    env_file:
+      - local.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  chat_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: chat
+    container_name: microservices-course-2023-chat-service
+    volumes:
+      - ./local.env:/app/local.env
+    ports:
+      - "50051:50051"
+    depends_on:
+      - postgres
+
+  user_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: user
+    container_name: microservices-course-2023-user-service
+    volumes:
+      - ./local.env:/app/local.env
+    ports:
+      - "50052:50052"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

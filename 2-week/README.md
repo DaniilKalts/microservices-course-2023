@@ -27,7 +27,7 @@
 - [ ] **Implementation:** Replace dummy handlers with `squirrel` SQL builder + Postgres
 
 ### DevOps
-- [ ] **CI/CD:** Pipeline to build/push images and deploy to remote server
+- [x] **CI/CD:** Pipeline to build/push images and deploy to remote server
 
 ---
 

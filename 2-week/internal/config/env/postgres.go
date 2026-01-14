@@ -16,7 +16,7 @@ const (
 )
 
 type postgresConfig struct {
-	dsn string
+	DSN string
 }
 
 func NewPostgresConfig() (*postgresConfig, error) {
@@ -58,5 +58,5 @@ func NewPostgresConfig() (*postgresConfig, error) {
 		db,
 		sslMode,
 	)
-	return &postgresConfig{dsn: dsn}, nil
+	return &postgresConfig{DSN: dsn}, nil
 }

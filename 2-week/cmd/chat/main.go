@@ -17,11 +17,6 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/2-week/internal/config/env"
 )
 
-const (
-	grpcHostEnvName = "CHAT_GRPC_HOST"
-	grpcPortEnvName = "CHAT_GRPC_PORT"
-)
-
 type server struct {
 	chatv1.UnimplementedChatV1Server
 }
@@ -65,7 +60,7 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
-	grpcConfig, err := env.NewGRPCConfig(grpcHostEnvName, grpcPortEnvName)
+	grpcConfig, err := env.NewGRPCConfig()
 	if err != nil {
 		log.Fatalf("failed to get grpc config: %v", err)
 	}

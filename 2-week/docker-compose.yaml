@@ -16,9 +16,11 @@ services:
       retries: 5
 
   migrator:
+    image: ${MIGRATOR_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-migrator}:${TAG:-latest}
     build:
       context: .
       dockerfile: migrations/Dockerfile
+      target: migrator
     container_name: microservices-course-2023-migrator
     env_file:
       - local.env
@@ -30,6 +32,7 @@ services:
     restart: on-failure
 
   chat_service:
+    image: ${CHAT_SERVICE_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-chat-service}:${TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -46,6 +49,7 @@ services:
         condition: service_completed_successfully
 
   user_service:
+    image: ${USER_SERVICE_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-user-service}:${TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile

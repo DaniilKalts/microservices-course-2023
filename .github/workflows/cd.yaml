@@ -8,36 +8,45 @@ on:
 
 env:
   REGISTRY: "docker.io"
-
+  MIGRATOR_IMAGE_NAME: "daniilkalts2006/microservices-course-2023-migrator"
   CHAT_SERVICE_IMAGE_NAME: "daniilkalts2006/microservices-course-2023-chat-service"
-  CHAT_SERVICE_CONTAINER_NAME: "microservices-course-2023-chat-service"
-
   USER_SERVICE_IMAGE_NAME: "daniilkalts2006/microservices-course-2023-user-service"
-  USER_SERVICE_CONTAINER_NAME: "microservices-course-2023-user-service"
 
 jobs:
   deploy-image:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }} 
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose and env file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "2-week/docker-compose.yaml,2-week/local.env,2-week/migrations"
+          target: "microservices-course-2023"
+          strip_components: 1
+
       - name: Deploy to AWS EC2 instance via SSH action
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          envs: REGISTRY,CHAT_SERVICE_IMAGE_NAME,CHAT_SERVICE_CONTAINER_NAME,USER_SERVICE_IMAGE_NAME,USER_SERVICE_CONTAINER_NAME,GITHUB_SHA
+          envs: REGISTRY,CHAT_SERVICE_IMAGE_NAME,USER_SERVICE_IMAGE_NAME,MIGRATOR_IMAGE_NAME
           script: |
-            TAG_NAME=$(echo ${{ github.event.workflow_run.head_sha }} | head -c7)
-            
-            docker login -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} $REGISTRY
+            TAG=$(echo ${{ github.event.workflow_run.head_sha }} | head -c7)
 
-            docker stop $CHAT_SERVICE_CONTAINER_NAME
-            docker stop $USER_SERVICE_CONTAINER_NAME
+            echo ${{ secrets.REGISTRY_PASSWORD }} | docker login -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin $REGISTRY
 
-            docker rm $CHAT_SERVICE_CONTAINER_NAME
-            docker rm $USER_SERVICE_CONTAINER_NAME
+            cd microservices-course-2023/
 
-            docker run -d --name $CHAT_SERVICE_CONTAINER_NAME -p 50051:50051 $REGISTRY/$CHAT_SERVICE_IMAGE_NAME:$TAG_NAME
-            docker run -d --name $USER_SERVICE_CONTAINER_NAME -p 50052:50052 $REGISTRY/$USER_SERVICE_IMAGE_NAME:$TAG_NAME
+            docker compose pull
+
+            docker compose down --remove-orphans
+
+            docker compose up -d

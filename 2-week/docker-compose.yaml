@@ -42,6 +42,7 @@ services:
       - ./local.env:/app/local.env
     ports:
       - "50051:50051"
+    command: [ "--config-path=/app/local.env" ]
     depends_on:
       postgres:
         condition: service_healthy
@@ -59,6 +60,7 @@ services:
       - ./local.env:/app/local.env
     ports:
       - "50052:50052"
+    command: [ "--config-path=/app/local.env" ]
     depends_on:
       postgres:
         condition: service_healthy

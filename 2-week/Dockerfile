@@ -31,7 +31,7 @@ COPY --from=build-chat /app/grpc-chat-server .
 
 # Run as non-root for security
 USER 1000:1000
-CMD ["./grpc-chat-server"]
+ENTRYPOINT ["./grpc-chat-server"]
 
 # ==========================================
 # STAGE 4: Final User Service Image
@@ -42,4 +42,4 @@ COPY --from=build-user /app/grpc-user-server .
 
 # Run as non-root for security
 USER 1000:1000
-CMD ["./grpc-user-server"]
+ENTRYPOINT ["./grpc-user-server"]

@@ -7,63 +7,59 @@
 ## Status
 
 ### Common / Infrastructure
-- [x] **Configuration:** Load config from environment variables / file
-- [x] **Docker:** Add `Dockerfile` for `user` and `chat` services
-- [x] **Compose:** Add `docker-compose.yaml` for services and Postgres
-- [ ] **Migrations:** Add shell script for Goose migrations
+- [x] **Configuration:** Load config from environment variables / file (`local.env`)
+- [x] **Docker:** Add `Dockerfile` (multi-stage) for `user` and `chat` services
+- [x] **Compose:** Add `docker-compose.yaml` for services, `postgres`, and `migrator`
+- [x] **Migrations:** Add `migrator` service with `goose` and shell script
 
 ### Service: `user`
 *Directory: `cmd/user`*
 
 **Persistence**
-- [x] **Migrations:** SQL schema for users
-- [ ] **Implementation:** Replace dummy handlers with `squirrel` SQL builder + Postgres
+- [x] **Migrations:** SQL schema for users table (`00001_create_users_table.sql`)
+- [x] **Implementation:** Replace dummy handlers with `squirrel` SQL builder + `pgx` driver
 
 ### Service: `chat`
 *Directory: `cmd/chat`*
 
-**Persistence**
-- [ ] **Migrations:** SQL schema for chats and messages
-- [ ] **Implementation:** Replace dummy handlers with `squirrel` SQL builder + Postgres
-
 ### DevOps
-- [x] **CI/CD:** Pipeline to build/push images and deploy to remote server
+- [x] **CI/CD:** GitHub Actions pipeline to build/push images and deploy to remote server via SSH
 
 ---
 
 ## 🚀 How to Run
 
 ### Prerequisites
-- Go 1.21+
 - Docker & Docker Compose
-- [Goose](https://github.com/pressly/goose) (for migrations)
-- [Task](https://taskfile.dev/) (optional)
+- [Goose](https://github.com/pressly/goose) (optional, if running migrations manually)
+- [Task](https://taskfile.dev/) (optional, for convenience)
 
-### 1. Configuration
-Ensure environment variables are set (or use `.env` file):
+### 1. Run Infrastructure & Services (Docker)
+Start the database, apply migrations automatically, and run both services. The services are configured to use `local.env` via the `--config-path` flag.
 ```bash
-cp .env.example .env
+docker compose up -d --build
 ```
+> **Note:** The `migrator` container will wait for Postgres to be ready, apply any pending migrations, and then exit.
 
-### 2. Run Infrastructure (Postgres)
-Start the database container:
-```bash
-docker-compose up -d db
-```
+### 2. Run Locally (Go)
+If you prefer running services outside Docker (e.g., for debugging):
 
-### 3. Apply Migrations
-Run the migration script to set up the database schema:
-```bash
-./migration.sh up
-```
+1. **Start Postgres:**
+   ```bash
+   docker compose up -d postgres
+   ```
 
-### 4. Run Services
-**Local (Go):**
-```bash
-task dev
-```
+2. **Apply Migrations:**
+   ```bash
+   # Using the provided script
+   ./migrations/migrate.sh
+   ```
 
-**Docker:**
-```bash
-docker-compose up --build
-```
+3. **Run Services:**
+   ```bash
+   # User Service (Port 50052)
+   go run cmd/user/main.go --config-path=local.env
+
+   # Chat Service (Port 50051)
+   go run cmd/chat/main.go --config-path=local.env
+   ```

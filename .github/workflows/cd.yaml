@@ -27,7 +27,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          source: "2-week/docker-compose.yaml,2-week/local.env,2-week/migrations"
+          source: "2-week/install-docker-ubuntu.sh,2-week/docker-compose.yaml,2-week/local.env,2-week/migrations"
           target: "microservices-course-2023"
           strip_components: 1
 
@@ -39,14 +39,15 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           envs: REGISTRY,CHAT_SERVICE_IMAGE_NAME,USER_SERVICE_IMAGE_NAME,MIGRATOR_IMAGE_NAME
           script: |
-            TAG=$(echo ${{ github.event.workflow_run.head_sha }} | head -c7)
+            ./install-docker-ubuntu.sh
 
             echo ${{ secrets.REGISTRY_PASSWORD }} | docker login -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin $REGISTRY
 
             cd microservices-course-2023/
 
+            export TAG=$(echo ${{ github.event.workflow_run.head_sha }} | head -c7)
+
             docker compose pull
-
             docker compose down --remove-orphans
+            docker compose up -d --no-build
 
-            docker compose up -d

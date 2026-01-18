@@ -1,0 +1,2 @@
+# Exclude production ENV-specific configuration file
+prod.env

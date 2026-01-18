@@ -85,9 +85,6 @@ func (r *repo) Update(ctx context.Context, id string, userPatch *models.UpdateUs
 	if userPatch.Email != nil {
 		builderUpdate = builderUpdate.Set("email", *userPatch.Email)
 	}
-	if userPatch.PasswordHash != nil {
-		builderUpdate = builderUpdate.Set("password_hash", *userPatch.PasswordHash)
-	}
 
 	builderUpdate = builderUpdate.Set("updated_at", time.Now())
 

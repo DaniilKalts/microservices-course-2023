@@ -10,7 +10,7 @@
 *Directory: `cmd/user`, `internal`*
 
 **Architecture & Patterns**
-- [ ] **Clean Architecture:** Refactor to Handler-Service-Repository layers
+- [x] **Clean Architecture:** Refactor to Handler-Service-Repository layers
     - Implement `Repository` layer (User CRUD)
     - Implement `Service` layer (Business logic)
     - Refactor `Handler` (gRPC) to use Service

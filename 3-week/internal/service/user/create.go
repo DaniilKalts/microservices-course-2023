@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -9,7 +10,11 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/models"
 )
 
-func (s *service) Create(ctx context.Context, user *models.User, password string) (string, error) {
+func (s *service) Create(ctx context.Context, user *models.User, password, passwordConfirm string) (string, error) {
+	if password != passwordConfirm {
+		return "", errors.New("Passwords don't match")
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return "", err

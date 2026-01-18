@@ -7,8 +7,10 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/models"
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/repository"
-	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/repository/user/models"
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/repository/user/converter"
+	repoModels "github.com/DaniilKalts/microservices-course-2023/3-week/internal/repository/user/models"
 )
 
 type repo struct {
@@ -21,13 +23,14 @@ func NewRepository(db *pgxpool.Pool) repository.UserRepository {
 	}
 }
 
-func (r *repo) Create(ctx context.Context, user *models.User) (string, error) {
-	var userID string
+func (r *repo) Create(ctx context.Context, user *models.User, passwordHash string) (string, error) {
+	repoUser := converter.ToRepoFromUser(user)
+	repoUser.PasswordHash = passwordHash
 
 	builderCreate := sq.Insert("users").
 		PlaceholderFormat(sq.Dollar).
 		Columns("id", "name", "email", "password_hash", "role").
-		Values(user.ID, user.Name, user.Email, user.PasswordHash, user.Role).
+		Values(repoUser.ID, repoUser.Name, repoUser.Email, repoUser.PasswordHash, repoUser.Role).
 		Suffix("RETURNING id")
 
 	query, args, err := builderCreate.ToSql()
@@ -35,6 +38,7 @@ func (r *repo) Create(ctx context.Context, user *models.User) (string, error) {
 		return "", err
 	}
 
+	var userID string
 	if err := r.db.QueryRow(ctx, query, args...).Scan(&userID); err != nil {
 		return "", err
 	}
@@ -43,8 +47,6 @@ func (r *repo) Create(ctx context.Context, user *models.User) (string, error) {
 }
 
 func (r *repo) Get(ctx context.Context, id string) (*models.User, error) {
-	var user models.User
-
 	builderSelect := sq.Select("id", "name", "email", "role", "created_at", "updated_at").
 		From("users").
 		PlaceholderFormat(sq.Dollar).
@@ -56,19 +58,20 @@ func (r *repo) Get(ctx context.Context, id string) (*models.User, error) {
 		return nil, err
 	}
 
+	var repoUser repoModels.User
 	err = r.db.QueryRow(ctx, query, args...).Scan(
-		&user.ID,
-		&user.Name,
-		&user.Email,
-		&user.Role,
-		&user.CreatedAt,
-		&user.UpdatedAt,
+		&repoUser.ID,
+		&repoUser.Name,
+		&repoUser.Email,
+		&repoUser.Role,
+		&repoUser.CreatedAt,
+		&repoUser.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	return converter.ToUserFromRepo(&repoUser), nil
 }
 
 func (r *repo) Update(ctx context.Context, id string, userPatch *models.UpdateUserPatch) error {

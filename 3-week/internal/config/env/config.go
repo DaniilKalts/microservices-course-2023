@@ -1,16 +1,15 @@
 package env
 
-type Config interface {
-	GRPC() GRPCConfig
-	Postgres() PostgresConfig
+import (
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/config"
+)
+
+type appConfig struct {
+	grpc     config.GRPCConfig
+	postgres config.PostgresConfig
 }
 
-type AppConfig struct {
-	grpc     GRPCConfig
-	postgres PostgresConfig
-}
-
-func NewConfig() (*AppConfig, error) {
+func NewConfig() (config.Config, error) {
 	grpcConfig, err := NewGRPCConfig()
 	if err != nil {
 		return nil, err
@@ -21,16 +20,16 @@ func NewConfig() (*AppConfig, error) {
 		return nil, err
 	}
 
-	return &AppConfig{
+	return &appConfig{
 		grpc:     grpcConfig,
 		postgres: postgresConfig,
 	}, nil
 }
 
-func (cfg *AppConfig) GRPC() GRPCConfig {
+func (cfg *appConfig) GRPC() config.GRPCConfig {
 	return cfg.grpc
 }
 
-func (cfg *AppConfig) Postgres() PostgresConfig {
+func (cfg *appConfig) Postgres() config.PostgresConfig {
 	return cfg.postgres
 }

@@ -15,17 +15,18 @@ import (
 )
 
 type ServiceProvider interface {
-	GetConfig() env.Config
+	GetConfig() config.Config
 
 	GetPGPool(ctx context.Context) *pgxpool.Pool
 
 	GetUserRepository(ctx context.Context) repository.UserRepository
 	GetUserService(ctx context.Context) service.UserService
+	Close()
 }
 
 type serviceProvider struct {
 	cfgPath string
-	cfg     env.Config
+	cfg     config.Config
 
 	pgPool *pgxpool.Pool
 
@@ -37,7 +38,7 @@ func NewServiceProvider(configPath string) ServiceProvider {
 	return &serviceProvider{cfgPath: configPath}
 }
 
-func (sp *serviceProvider) GetConfig() env.Config {
+func (sp *serviceProvider) GetConfig() config.Config {
 	if sp.cfg == nil {
 		var err error
 		if err = config.Load(sp.cfgPath); err != nil {
@@ -54,7 +55,7 @@ func (sp *serviceProvider) GetConfig() env.Config {
 
 func (sp *serviceProvider) GetPGPool(ctx context.Context) *pgxpool.Pool {
 	if sp.pgPool == nil {
-		pool, err := pgxpool.New(ctx, sp.cfg.Postgres().DSN())
+		pool, err := pgxpool.New(ctx, sp.GetConfig().Postgres().DSN())
 		if err != nil {
 			log.Fatalf("failed to connect to database: %v", err)
 		}
@@ -78,4 +79,10 @@ func (sp *serviceProvider) GetUserService(ctx context.Context) service.UserServi
 		sp.userSvc = userService.NewService(sp.GetUserRepository(ctx))
 	}
 	return sp.userSvc
+}
+
+func (sp *serviceProvider) Close() {
+	if sp.pgPool != nil {
+		sp.pgPool.Close()
+	}
 }

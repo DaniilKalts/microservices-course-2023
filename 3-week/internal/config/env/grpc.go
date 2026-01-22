@@ -4,7 +4,8 @@ import (
 	"errors"
 	"net"
 	"os"
-	"strconv"
+
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/config"
 )
 
 const (
@@ -12,37 +13,28 @@ const (
 	grpcPortEnvName = "USER_GRPC_PORT"
 )
 
-type GRPCConfig interface {
-	Address() string
-}
-
 type grpcConfig struct {
-	Host string
-	Port int
+	host string
+	port string
 }
 
-func NewGRPCConfig() (GRPCConfig, error) {
+func NewGRPCConfig() (config.GRPCConfig, error) {
 	host := os.Getenv(grpcHostEnvName)
 	if len(host) == 0 {
 		return nil, errors.New(grpcHostEnvName + " is not set")
 	}
 
-	portStr := os.Getenv(grpcPortEnvName)
-	if len(portStr) == 0 {
+	port := os.Getenv(grpcPortEnvName)
+	if len(port) == 0 {
 		return nil, errors.New(grpcPortEnvName + " is not set")
 	}
 
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return nil, errors.New(grpcPortEnvName + " is invalid")
-	}
-
 	return &grpcConfig{
-		Host: host,
-		Port: port,
+		host: host,
+		port: port,
 	}, nil
 }
 
 func (cfg *grpcConfig) Address() string {
-	return net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port))
+	return net.JoinHostPort(cfg.host, cfg.port)
 }

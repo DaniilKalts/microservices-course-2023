@@ -19,9 +19,9 @@ func main() {
 
 	ctx := context.Background()
 
-	a := user.NewApp(ctx, configPath)
+	app := user.NewApp(ctx, configPath)
 
-	if err := a.RunServer(); err != nil {
+	if err := app.RunServer(); err != nil {
 		log.Fatalf("failed to run gRPC server: %v", err)
 	}
 }

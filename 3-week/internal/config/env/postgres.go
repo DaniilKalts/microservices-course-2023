@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/config"
 )
 
 const (
@@ -15,10 +17,6 @@ const (
 	postgresSSLModeEnvName  = "POSTGRES_SSLMODE"
 )
 
-type PostgresConfig interface {
-	DSN() string
-}
-
 type postgresConfig struct {
 	host     string
 	port     string
@@ -28,7 +26,7 @@ type postgresConfig struct {
 	sslMode  string
 }
 
-func NewPostgresConfig() (PostgresConfig, error) {
+func NewPostgresConfig() (config.PostgresConfig, error) {
 	host := os.Getenv(postgresHostEnvName)
 	if len(host) == 0 {
 		return nil, errors.New("POSTGRES_HOST is not set")

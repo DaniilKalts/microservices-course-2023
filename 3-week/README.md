@@ -14,7 +14,7 @@
     - Implement `Repository` layer (User CRUD)
     - Implement `Service` layer (Business logic)
     - Refactor `Handler` (gRPC) to use Service
-- [ ] **DI Container:** Implement dependency injection container
+- [x] **DI Container:** Implement dependency injection container
 - [ ] **Transaction Manager:** Add `TxManager` for atomic database operations
 
 ### Service: `chat`

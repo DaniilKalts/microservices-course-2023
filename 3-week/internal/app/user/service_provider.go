@@ -4,20 +4,20 @@ import (
 	"context"
 	"log"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/clients/database"
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/clients/database/postgres"
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/config"
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/config/env"
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/repository"
-	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/service"
 	userRepository "github.com/DaniilKalts/microservices-course-2023/3-week/internal/repository/user"
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/service"
 	userService "github.com/DaniilKalts/microservices-course-2023/3-week/internal/service/user"
 )
 
 type ServiceProvider interface {
 	GetConfig() config.Config
 
-	GetPGPool(ctx context.Context) *pgxpool.Pool
+	GetDBClient(ctx context.Context) database.Client
 
 	GetUserRepository(ctx context.Context) repository.UserRepository
 	GetUserService(ctx context.Context) service.UserService
@@ -28,7 +28,7 @@ type serviceProvider struct {
 	cfgPath string
 	cfg     config.Config
 
-	pgPool *pgxpool.Pool
+	dbClient database.Client
 
 	userSvc  service.UserService
 	userRepo repository.UserRepository
@@ -53,23 +53,20 @@ func (sp *serviceProvider) GetConfig() config.Config {
 	return sp.cfg
 }
 
-func (sp *serviceProvider) GetPGPool(ctx context.Context) *pgxpool.Pool {
-	if sp.pgPool == nil {
-		pool, err := pgxpool.New(ctx, sp.GetConfig().Postgres().DSN())
+func (sp *serviceProvider) GetDBClient(ctx context.Context) database.Client {
+	if sp.dbClient == nil {
+		var err error
+		sp.dbClient, err = postgres.New(ctx, sp.cfg.Postgres().DSN())
 		if err != nil {
 			log.Fatalf("failed to connect to database: %v", err)
 		}
-		if err := pool.Ping(ctx); err != nil {
-			log.Fatalf("ping error: %v", err)
-		}
-		sp.pgPool = pool
 	}
-	return sp.pgPool
+	return sp.dbClient
 }
 
 func (sp *serviceProvider) GetUserRepository(ctx context.Context) repository.UserRepository {
 	if sp.userRepo == nil {
-		sp.userRepo = userRepository.NewRepository(sp.GetPGPool(ctx))
+		sp.userRepo = userRepository.NewRepository(sp.GetDBClient(ctx))
 	}
 	return sp.userRepo
 }
@@ -82,7 +79,7 @@ func (sp *serviceProvider) GetUserService(ctx context.Context) service.UserServi
 }
 
 func (sp *serviceProvider) Close() {
-	if sp.pgPool != nil {
-		sp.pgPool.Close()
+	if sp.dbClient != nil {
+		sp.dbClient.Close()
 	}
 }

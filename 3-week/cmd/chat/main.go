@@ -18,15 +18,13 @@ import (
 var configPath string
 
 func init() {
-	flag.StringVar(&configPath, "config-path", "local.env", "path to config file")
+	flag.StringVar(&configPath, "config-path", ".env", "path to config file")
 }
 
 func main() {
 	flag.Parse()
 
-	if err := config.Load(configPath); err != nil {
-		log.Fatalf("failed to load config: %v", err)
-	}
+	config.Load(configPath)
 
 	grpcConfig, err := env.NewGRPCConfig()
 	if err != nil {

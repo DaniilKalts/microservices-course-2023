@@ -49,5 +49,5 @@ docker compose up -d --build
 
 3. **Run User Service:**
    ```bash
-   go run cmd/user/main.go --config-path=local.env
+   go run cmd/user/main.go --config-path=.env
    ```

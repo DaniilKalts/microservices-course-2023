@@ -4,7 +4,7 @@ services:
     container_name: microservices-course-2023-postgres
     restart: unless-stopped
     env_file:
-      - local.env
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -23,7 +23,7 @@ services:
       target: migrator
     container_name: microservices-course-2023-migrator
     env_file:
-      - local.env
+      - .env
     volumes:
       - ./migrations:/migrations
     depends_on:
@@ -38,11 +38,13 @@ services:
       dockerfile: Dockerfile
       target: chat
     container_name: microservices-course-2023-chat-service
-    volumes:
-      - ./local.env:/app/local.env
+    env_file:
+      - .env
+    environment:
+      - GRPC_HOST=${CHAT_GRPC_HOST}
+      - GRPC_PORT=${CHAT_GRPC_PORT}
     ports:
       - "50051:50051"
-    command: [ "--config-path=/app/local.env" ]
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,11 +58,13 @@ services:
       dockerfile: Dockerfile
       target: user
     container_name: microservices-course-2023-user-service
-    volumes:
-      - ./local.env:/app/local.env
+    env_file:
+      - .env
+    environment:
+      - GRPC_HOST=${USER_GRPC_HOST}
+      - GRPC_PORT=${USER_GRPC_PORT}
     ports:
       - "50052:50052"
-    command: [ "--config-path=/app/local.env" ]
     depends_on:
       postgres:
         condition: service_healthy

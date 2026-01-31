@@ -42,11 +42,9 @@ func NewServiceProvider(configPath string) ServiceProvider {
 
 func (sp *serviceProvider) GetConfig() config.Config {
 	if sp.cfg == nil {
-		var err error
-		if err = config.Load(sp.cfgPath); err != nil {
-			log.Fatalf("failed to load config: %v", err)
-		}
+		config.Load(sp.cfgPath)
 
+		var err error
 		sp.cfg, err = env.NewConfig()
 		if err != nil {
 			log.Fatalf("failed to get env config: %v", err)
@@ -58,7 +56,7 @@ func (sp *serviceProvider) GetConfig() config.Config {
 func (sp *serviceProvider) GetDBClient(ctx context.Context) database.Client {
 	if sp.dbClient == nil {
 		var err error
-		sp.dbClient, err = postgres.New(ctx, sp.cfg.Postgres().DSN())
+		sp.dbClient, err = postgres.New(ctx, sp.GetConfig().Postgres().DSN())
 		if err != nil {
 			log.Fatalf("failed to connect to database: %v", err)
 		}

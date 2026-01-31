@@ -12,8 +12,8 @@ RUN go install github.com/pressly/goose/v3/cmd/goose@latest
 FROM alpine:3.20 AS migrator
 WORKDIR /app
 
-# Install netcat for database connection checking
-RUN apk add --no-cache netcat-openbsd
+# Install postgresql-client for database connection checking (pg_isready)
+RUN apk add --no-cache postgresql-client
 
 # Copy goose binary from builder stage
 COPY --from=builder /go/bin/goose /usr/local/bin/goose

@@ -15,7 +15,7 @@
     - Implement `Service` layer (Business logic)
     - Refactor `Handler` (gRPC) to use Service
 - [x] **DI Container:** Implement dependency injection container
-- [ ] **Transaction Manager:** Add `TxManager` for atomic database operations
+- [x] **Transaction Manager:** Add `TxManager` for atomic database operations
 
 ### Service: `chat`
 *Directory: `cmd/chat`*

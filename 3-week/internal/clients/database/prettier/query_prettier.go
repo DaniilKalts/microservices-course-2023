@@ -35,8 +35,10 @@ func clean(query string) string {
 
 func formatValue(param any) string {
 	switch v := param.(type) {
-	case string, time.Time:
+	case string:
 		return fmt.Sprintf("%q", v)
+	case time.Time:
+		return fmt.Sprintf("%q", v.Format(time.RFC3339Nano))
 	case []byte:
 		return fmt.Sprintf("%q", string(v))
 	default:

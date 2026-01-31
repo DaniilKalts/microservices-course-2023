@@ -8,5 +8,5 @@
    - Store interfaces where they’re implemented: interfaces are centralized (e.g., under a `repository` package), which can be convenient to reference and reduces duplication. In this approach, the `repository` package contains only interfaces, while the actual database CRUD implementations live in entity-specific packages.
 7. Use constants for table names and column names so it’s easy to update queries if a name changes.
 8. The idea behind a pool is to limit the number of resources and reuse them once they become available.
-
-
+9. When you have no idea about naming a method - brainstorm it with the others.
+10. If external package contains a single utility function - it may be better to copy and paste to the codebase, rather than downloading the whole dependency.

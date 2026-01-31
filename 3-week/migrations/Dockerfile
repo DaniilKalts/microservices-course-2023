@@ -1,7 +1,7 @@
 # ==========================================
 # STAGE 1: Build Goose Migration Tool
 # ==========================================
-FROM golang:1.25.5-alpine AS builder
+FROM golang:1.25.6-alpine AS builder
 
 # Install goose migration tool from source
 RUN go install github.com/pressly/goose/v3/cmd/goose@latest

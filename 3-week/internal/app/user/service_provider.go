@@ -6,6 +6,7 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/clients/database/postgres"
+	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/clients/database/transaction"
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/config"
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/config/env"
 	"github.com/DaniilKalts/microservices-course-2023/3-week/internal/repository"
@@ -28,7 +29,8 @@ type serviceProvider struct {
 	cfgPath string
 	cfg     config.Config
 
-	dbClient database.Client
+	dbClient  database.Client
+	txManager database.TxManager
 
 	userSvc  service.UserService
 	userRepo repository.UserRepository
@@ -64,6 +66,13 @@ func (sp *serviceProvider) GetDBClient(ctx context.Context) database.Client {
 	return sp.dbClient
 }
 
+func (sp  *serviceProvider) GetTxManager(ctx context.Context) database.TxManager {
+	if sp.txManager == nil {
+		sp.txManager = transaction.NewTransactionManager(sp.GetDBClient(ctx).DB())
+	}
+	return sp.txManager
+}
+
 func (sp *serviceProvider) GetUserRepository(ctx context.Context) repository.UserRepository {
 	if sp.userRepo == nil {
 		sp.userRepo = userRepository.NewRepository(sp.GetDBClient(ctx))
@@ -73,7 +82,7 @@ func (sp *serviceProvider) GetUserRepository(ctx context.Context) repository.Use
 
 func (sp *serviceProvider) GetUserService(ctx context.Context) service.UserService {
 	if sp.userSvc == nil {
-		sp.userSvc = userService.NewService(sp.GetUserRepository(ctx))
+		sp.userSvc = userService.NewService(sp.GetUserRepository(ctx), sp.GetTxManager(ctx))
 	}
 	return sp.userSvc
 }

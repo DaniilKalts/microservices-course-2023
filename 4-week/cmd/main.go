@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/DaniilKalts/microservices-course-2023/4-week/internal/app/user"
+	"github.com/DaniilKalts/microservices-course-2023/4-week/internal/app"
 )
 
 var configPath string
@@ -18,10 +18,12 @@ func main() {
 	flag.Parse()
 
 	ctx := context.Background()
+	a, err := app.New(ctx, configPath)
+	if err != nil {
+		log.Fatalf("failed to initialize app: %v", err)
+	}
 
-	app := user.NewApp(ctx, configPath)
-
-	if err := app.RunServer(); err != nil {
+	if err = a.Run(ctx); err != nil {
 		log.Fatalf("failed to run gRPC server: %v", err)
 	}
 }

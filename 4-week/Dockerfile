@@ -20,7 +20,7 @@ COPY . .
 
 FROM base AS build-user
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w" -o grpc-user-server ./cmd/user/main.go
+    go build -ldflags="-s -w" -o grpc-user-server ./cmd/main.go
 
 # ==========================================
 # STAGE 3: Final Chat Service Image

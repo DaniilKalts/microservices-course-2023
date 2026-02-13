@@ -68,7 +68,7 @@ tasks:
   run-user:
     desc: 👤 Run User Service
     cmds:
-      - go run ./cmd/user/main.go
+      - go run ./cmd/main.go
 
   dev:
     desc: 🏃 Run both services in parallel

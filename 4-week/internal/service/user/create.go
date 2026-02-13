@@ -7,10 +7,10 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/DaniilKalts/microservices-course-2023/4-week/internal/models"
+	domainUser "github.com/DaniilKalts/microservices-course-2023/4-week/internal/domain/user"
 )
 
-func (s *service) Create(ctx context.Context, user *models.User, password, passwordConfirm string) (string, error) {
+func (s *service) Create(ctx context.Context, user *domainUser.Entity, password, passwordConfirm string) (string, error) {
 	if password != passwordConfirm {
 		return "", errors.New("Passwords don't match")
 	}
@@ -26,10 +26,5 @@ func (s *service) Create(ctx context.Context, user *models.User, password, passw
 		return "", err
 	}
 
-	idStr, err := s.userRepo.Create(ctx, user, string(hashedPassword))
-	if err != nil {
-		return "", err
-	}
-
-	return idStr, nil
+	return s.repo.Create(ctx, user, string(hashedPassword))
 }

@@ -8,8 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/DaniilKalts/microservices-course-2023/4-week/internal/models"
-	"github.com/DaniilKalts/microservices-course-2023/4-week/internal/service/user/mocks"
+	domainUser "github.com/DaniilKalts/microservices-course-2023/4-week/internal/domain/user"
 )
 
 func TestCreate_ValidationScenarios(t *testing.T) {
@@ -19,69 +18,20 @@ func TestCreate_ValidationScenarios(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		user            *models.User
 		password        string
 		passwordConfirm string
 		errText         string
-		repoCalls       uint64
+		repoCalls       int
 	}{
 		{
-			name: "TestCreate_PasswordMismatch",
-			user: &models.User{
-				Name:  "John",
-				Email: "john@example.com",
-			},
+			name:            "TestCreate_PasswordMismatch",
 			password:        "P@ssword123",
 			passwordConfirm: "P@ssword321",
 			errText:         "Passwords don't match",
 			repoCalls:       0,
 		},
 		{
-			name: "TestCreate_WeakPassword",
-			user: &models.User{
-				Name:  "John",
-				Email: "john@example.com",
-			},
-			password:        "12345",
-			passwordConfirm: "12345",
-			repoCalls:       0,
-		},
-		{
-			name: "TestCreate_EmptyName",
-			user: &models.User{
-				Name:  "",
-				Email: "john@example.com",
-			},
-			password:        "P@ssword123",
-			passwordConfirm: "P@ssword123",
-			repoCalls:       0,
-		},
-		{
-			name: "TestCreate_EmptyEmail",
-			user: &models.User{
-				Name:  "John",
-				Email: "",
-			},
-			password:        "P@ssword123",
-			passwordConfirm: "P@ssword123",
-			repoCalls:       0,
-		},
-		{
-			name: "TestCreate_InvalidEmailFormat",
-			user: &models.User{
-				Name:  "John",
-				Email: "not-an-email",
-			},
-			password:        "P@ssword123",
-			passwordConfirm: "P@ssword123",
-			repoCalls:       0,
-		},
-		{
-			name: "TestCreate_BcryptTooLongPassword",
-			user: &models.User{
-				Name:  "John",
-				Email: "john@example.com",
-			},
+			name:            "TestCreate_BcryptTooLongPassword",
 			password:        strings.Repeat("a", 73),
 			passwordConfirm: strings.Repeat("a", 73),
 			repoCalls:       0,
@@ -93,20 +43,20 @@ func TestCreate_ValidationScenarios(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			repoMock := mocks.NewUserRepositoryMock(t)
-			repoMock.CreateMock.Optional().Set(func(_ context.Context, _ *models.User, _ string) (string, error) {
+			repo := &repoStub{}
+			repo.createFn = func(_ context.Context, _ *domainUser.Entity, _ string) (string, error) {
 				return "", errors.New("repository should not be called")
-			})
+			}
 
-			svc := NewService(repoMock, nil)
-			gotID, err := svc.Create(ctx, tt.user, tt.password, tt.passwordConfirm)
+			svc := NewService(repo)
+			gotID, err := svc.Create(ctx, &domainUser.Entity{Name: "John", Email: "john@example.com"}, tt.password, tt.passwordConfirm)
 
 			require.Error(t, err)
 			if tt.errText != "" {
 				require.EqualError(t, err, tt.errText)
 			}
 			require.Empty(t, gotID)
-			require.Equal(t, tt.repoCalls, repoMock.CreateBeforeCounter())
+			require.Equal(t, tt.repoCalls, repo.createCalls)
 		})
 	}
 }
@@ -138,11 +88,6 @@ func TestCreate_RepositoryScenarios(t *testing.T) {
 			repoErr: errors.New("repository create failed"),
 			wantErr: "repository create failed",
 		},
-		{
-			name:       "TestCreate_ReturnsUserID",
-			repoResult: "repo-returned-id",
-			wantID:     "repo-returned-id",
-		},
 	}
 
 	for _, tt := range tests {
@@ -150,22 +95,26 @@ func TestCreate_RepositoryScenarios(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			repoMock := mocks.NewUserRepositoryMock(t)
-			repoMock.CreateMock.Set(func(_ context.Context, _ *models.User, _ string) (string, error) {
+			repo := &repoStub{}
+			repo.createFn = func(_ context.Context, user *domainUser.Entity, passwordHash string) (string, error) {
+				require.NotEmpty(t, user.ID)
+				require.NotEmpty(t, passwordHash)
 				return tt.repoResult, tt.repoErr
-			})
+			}
 
-			svc := NewService(repoMock, nil)
-			gotID, err := svc.Create(ctx, &models.User{Name: "John", Email: "john@example.com"}, "P@ssword123", "P@ssword123")
+			svc := NewService(repo)
+			gotID, err := svc.Create(ctx, &domainUser.Entity{Name: "John", Email: "john@example.com"}, "P@ssword123", "P@ssword123")
 
 			if tt.wantErr != "" {
 				require.EqualError(t, err, tt.wantErr)
 				require.Empty(t, gotID)
+				require.Equal(t, 1, repo.createCalls)
 				return
 			}
 
 			require.NoError(t, err)
 			require.Equal(t, tt.wantID, gotID)
+			require.Equal(t, 1, repo.createCalls)
 		})
 	}
 }

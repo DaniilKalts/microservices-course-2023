@@ -23,6 +23,53 @@
 
 - - -
 
+### User Service Architecture (Per-Service Clean Architecture)
+
+The `user` service now follows a service-first clean architecture layout with explicit layers:
+
+```text
+cmd/user/main.go
+internal/
+  adapters/
+    in/database/postgres/
+      client.go
+      postgres.go
+    out/transport/grpc/user/
+      handler.go
+      mapper.go
+      create.go
+      get.go
+      update.go
+      delete.go
+  app/
+    container.go
+    app.go
+  domain/user/
+    entity.go
+    patch.go
+    role.go
+  repository/user/
+    repository.go
+    model.go
+    mapper.go
+    create.go
+    get.go
+    update.go
+    delete.go
+  repository/repository.go
+  service/service.go
+  service/user/
+    service.go
+    create.go
+    get.go
+    update.go
+    delete.go
+```
+
+Each use case and adapter method lives in its own file.
+
+- - -
+
 ### How to Run
 
 #### Prerequisites

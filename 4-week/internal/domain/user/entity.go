@@ -1,17 +1,8 @@
-package models
+package user
 
-import (
-	"time"
-)
+import "time"
 
-type Role int32
-
-const (
-	RoleUser Role = iota
-	RoleAdmin
-)
-
-type User struct {
+type Entity struct {
 	ID        string
 	Name      string
 	Email     string

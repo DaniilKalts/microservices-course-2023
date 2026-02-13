@@ -5,13 +5,11 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/4-week/internal/service"
 )
 
-type Implementation struct {
+type Handler struct {
 	userv1.UnimplementedUserV1Server
 	userService service.UserService
 }
 
-func NewImplementation(userService service.UserService) *Implementation {
-	return &Implementation{
-		userService: userService,
-	}
+func NewHandler(userService service.UserService) *Handler {
+	return &Handler{userService: userService}
 }

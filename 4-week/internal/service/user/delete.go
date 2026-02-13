@@ -1,9 +1,7 @@
 package user
 
-import (
-	"context"
-)
+import "context"
 
-func (s *service) Delete(ctx context.Context, id string,) error {
-	return s.userRepo.Delete(ctx, id)
+func (s *service) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
 }

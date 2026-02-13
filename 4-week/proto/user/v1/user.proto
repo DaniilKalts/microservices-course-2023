@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package user.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/DaniilKalts/microservices-course-2023/4-week/gen/go/user/v1;userv1";
+
+service UserV1 {
+    rpc Create(CreateRequest) returns (CreateResponse);
+    rpc Get(GetRequest) returns (GetResponse);
+    rpc Update(UpdateRequest) returns (google.protobuf.Empty);
+    rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
+}
+
+enum Role {
+    USER = 0;
+    ADMIN = 1;
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  Role role = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+// Create
+
+message CreateRequest {
+    string name = 1;
+    string email = 2;
+    string password = 3;
+    string password_confirm = 4;
+    Role role = 5;
+}
+
+message CreateResponse {
+    string id = 1;
+}
+
+// Get
+
+message GetRequest {
+    string id = 1;
+}
+
+message GetResponse {
+  User user = 1;
+}
+
+// Update
+
+message UpdateRequest {
+    string id = 1;
+    google.protobuf.StringValue name = 2;
+    google.protobuf.StringValue email = 3;
+}
+
+// Delete
+
+message DeleteRequest {
+    string id = 1;
+}

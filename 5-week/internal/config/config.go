@@ -8,7 +8,12 @@ type GRPCConfig interface {
 	Address() string
 }
 
+type GatewayConfig interface {
+	Address() string
+}
+
 type Config interface {
 	GRPC() GRPCConfig
 	Postgres() PostgresConfig
+	Gateway() GatewayConfig
 }

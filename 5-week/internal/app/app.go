@@ -2,17 +2,21 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 type App struct {
-	c   *Container
-	lis net.Listener
+	c *Container
 }
 
 func New(ctx context.Context, configPath string) (*App, error) {
@@ -25,18 +29,32 @@ func New(ctx context.Context, configPath string) (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	defer func() { _ = a.c.Close() }()
+	defer func() {
+		_ = a.c.Close()
+	}()
 
-	addr := a.c.Cfg.GRPC().Address()
-	lis, err := net.Listen("tcp", addr)
+	grpcAddr := a.c.Cfg.GRPC().Address()
+	grpcListener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
-		return fmt.Errorf("listen %s: %w", addr, err)
+		return fmt.Errorf("listen grpc %s: %w", grpcAddr, err)
 	}
-	a.lis = lis
+
+	gatewayAddr := a.c.Cfg.Gateway().Address()
+
+	httpSrv := &http.Server{
+		Addr:              gatewayAddr,
+		Handler:           a.c.Gateway,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 
 	serveErr := make(chan error, 1)
+
 	go func() {
-		serveErr <- a.c.GRPC.Serve(lis)
+		serveErr <- serveGRPC(a.c.GRPC, grpcListener)
+	}()
+
+	go func() {
+		serveErr <- serveGateway(httpSrv)
 	}()
 
 	stop := make(chan os.Signal, 1)
@@ -45,17 +63,54 @@ func (a *App) Run(ctx context.Context) error {
 
 	select {
 	case err := <-serveErr:
+		a.shutdown(5*time.Second, httpSrv)
 		return err
 	case <-ctx.Done():
-		a.gracefulStopWithTimeout(5 * time.Second)
+		a.shutdown(5*time.Second, httpSrv)
 		return ctx.Err()
 	case <-stop:
-		a.gracefulStopWithTimeout(5 * time.Second)
+		a.shutdown(5*time.Second, httpSrv)
 		return nil
 	}
 }
 
-func (a *App) gracefulStopWithTimeout(d time.Duration) {
+func serveGRPC(server *grpc.Server, lis net.Listener) error {
+	if err := server.Serve(lis); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+		return fmt.Errorf("grpc server: %w", err)
+	}
+
+	return nil
+}
+
+func serveGateway(server *http.Server) error {
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("grpc-gateway server: %w", err)
+	}
+
+	return nil
+}
+
+func (a *App) shutdown(timeout time.Duration, httpSrv *http.Server) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		a.gracefulStopGRPC(timeout)
+	}()
+
+	go func() {
+		defer wg.Done()
+		_ = httpSrv.Shutdown(ctx)
+	}()
+
+	wg.Wait()
+}
+
+func (a *App) gracefulStopGRPC(timeout time.Duration) {
 	done := make(chan struct{})
 	go func() {
 		a.c.GRPC.GracefulStop()
@@ -64,7 +119,7 @@ func (a *App) gracefulStopWithTimeout(d time.Duration) {
 
 	select {
 	case <-done:
-	case <-time.After(d):
+	case <-time.After(timeout):
 		a.c.GRPC.Stop()
 	}
 }

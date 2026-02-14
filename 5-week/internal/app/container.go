@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/http"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -28,7 +30,8 @@ type Container struct {
 	UserRepo repository.UserRepository
 	UserSvc  service.UserService
 
-	GRPC *grpc.Server
+	GRPC    *grpc.Server
+	Gateway http.Handler
 }
 
 func Build(ctx context.Context, configPath string) (*Container, error) {
@@ -48,10 +51,16 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 
 	userRepo := userRepository.NewRepository(db)
 	userSvc := userService.NewService(userRepo)
+	userHandler := userAPI.NewHandler(userSvc)
 
 	grpcServer := grpc.NewServer()
 	reflection.Register(grpcServer)
-	userv1.RegisterUserV1Server(grpcServer, userAPI.NewHandler(userSvc))
+	userv1.RegisterUserV1Server(grpcServer, userHandler)
+
+	gatewayMux := runtime.NewServeMux()
+	if err = userv1.RegisterUserV1HandlerServer(ctx, gatewayMux, userHandler); err != nil {
+		return nil, fmt.Errorf("register grpc-gateway handlers: %w", err)
+	}
 
 	return &Container{
 		Cfg:      cfg,
@@ -60,6 +69,7 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 		UserRepo: userRepo,
 		UserSvc:  userSvc,
 		GRPC:     grpcServer,
+		Gateway:  gatewayMux,
 	}, nil
 }
 

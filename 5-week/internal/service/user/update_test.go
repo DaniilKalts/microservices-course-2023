@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	domainUser "github.com/DaniilKalts/microservices-course-2023/5-week/internal/domain/user"
+	repositoryMocks "github.com/DaniilKalts/microservices-course-2023/5-week/internal/repository/mocks"
 )
 
 func TestUpdate_Success(t *testing.T) {
@@ -22,18 +23,18 @@ func TestUpdate_Success(t *testing.T) {
 	var gotID string
 	var gotPatch *domainUser.UpdatePatch
 
-	repo := &repoStub{}
-	repo.updateFn = func(_ context.Context, updateID string, userPatch *domainUser.UpdatePatch) error {
+	repo := repositoryMocks.NewUserRepositoryMock(t)
+	repo.UpdateMock.Set(func(_ context.Context, updateID string, userPatch *domainUser.UpdatePatch) error {
 		gotID = updateID
 		gotPatch = userPatch
 		return nil
-	}
+	})
 
 	svc := NewService(repo)
 	err := svc.Update(ctx, id, patch)
 
 	require.NoError(t, err)
-	require.Equal(t, 1, repo.updateCalls)
+	require.Equal(t, uint64(1), repo.UpdateAfterCounter())
 	require.Equal(t, id, gotID)
 	require.Same(t, patch, gotPatch)
 }
@@ -75,16 +76,16 @@ func TestUpdate_RepositoryScenarios(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			repo := &repoStub{}
-			repo.updateFn = func(_ context.Context, _ string, _ *domainUser.UpdatePatch) error {
+			repo := repositoryMocks.NewUserRepositoryMock(t)
+			repo.UpdateMock.Set(func(_ context.Context, _ string, _ *domainUser.UpdatePatch) error {
 				return tt.repoErr
-			}
+			})
 
 			svc := NewService(repo)
 			err := svc.Update(ctx, id, tt.patch)
 
 			require.EqualError(t, err, tt.repoErr.Error())
-			require.Equal(t, 1, repo.updateCalls)
+			require.Equal(t, uint64(1), repo.UpdateAfterCounter())
 		})
 	}
 }
@@ -99,11 +100,11 @@ func TestUpdate_PartialPatch_DoesNotOverwriteOtherFields(t *testing.T) {
 
 	var gotPatch *domainUser.UpdatePatch
 
-	repo := &repoStub{}
-	repo.updateFn = func(_ context.Context, _ string, userPatch *domainUser.UpdatePatch) error {
+	repo := repositoryMocks.NewUserRepositoryMock(t)
+	repo.UpdateMock.Set(func(_ context.Context, _ string, userPatch *domainUser.UpdatePatch) error {
 		gotPatch = userPatch
 		return nil
-	}
+	})
 
 	svc := NewService(repo)
 	err := svc.Update(ctx, id, patch)

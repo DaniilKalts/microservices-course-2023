@@ -18,6 +18,7 @@ func main() {
 	flag.Parse()
 
 	ctx := context.Background()
+
 	a, err := app.New(ctx, configPath)
 	if err != nil {
 		log.Fatalf("failed to initialize app: %v", err)
@@ -25,5 +26,5 @@ func main() {
 
 	if err = a.Run(ctx); err != nil {
 		log.Fatalf("failed to run gRPC server: %v", err)
-	}
+	}	
 }

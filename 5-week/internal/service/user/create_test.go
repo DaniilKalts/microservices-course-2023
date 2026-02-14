@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	domainUser "github.com/DaniilKalts/microservices-course-2023/5-week/internal/domain/user"
+	repositoryMocks "github.com/DaniilKalts/microservices-course-2023/5-week/internal/repository/mocks"
 )
 
 func TestCreate_ValidationScenarios(t *testing.T) {
@@ -43,10 +44,10 @@ func TestCreate_ValidationScenarios(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			repo := &repoStub{}
-			repo.createFn = func(_ context.Context, _ *domainUser.Entity, _ string) (string, error) {
+			repo := repositoryMocks.NewUserRepositoryMock(t)
+			repo.CreateMock.Optional().Set(func(_ context.Context, _ *domainUser.Entity, _ string) (string, error) {
 				return "", errors.New("repository should not be called")
-			}
+			})
 
 			svc := NewService(repo)
 			gotID, err := svc.Create(ctx, &domainUser.Entity{Name: "John", Email: "john@example.com"}, tt.password, tt.passwordConfirm)
@@ -56,7 +57,7 @@ func TestCreate_ValidationScenarios(t *testing.T) {
 				require.EqualError(t, err, tt.errText)
 			}
 			require.Empty(t, gotID)
-			require.Equal(t, tt.repoCalls, repo.createCalls)
+			require.Equal(t, uint64(tt.repoCalls), repo.CreateAfterCounter())
 		})
 	}
 }
@@ -95,12 +96,12 @@ func TestCreate_RepositoryScenarios(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			repo := &repoStub{}
-			repo.createFn = func(_ context.Context, user *domainUser.Entity, passwordHash string) (string, error) {
+			repo := repositoryMocks.NewUserRepositoryMock(t)
+			repo.CreateMock.Set(func(_ context.Context, user *domainUser.Entity, passwordHash string) (string, error) {
 				require.NotEmpty(t, user.ID)
 				require.NotEmpty(t, passwordHash)
 				return tt.repoResult, tt.repoErr
-			}
+			})
 
 			svc := NewService(repo)
 			gotID, err := svc.Create(ctx, &domainUser.Entity{Name: "John", Email: "john@example.com"}, "P@ssword123", "P@ssword123")
@@ -108,13 +109,13 @@ func TestCreate_RepositoryScenarios(t *testing.T) {
 			if tt.wantErr != "" {
 				require.EqualError(t, err, tt.wantErr)
 				require.Empty(t, gotID)
-				require.Equal(t, 1, repo.createCalls)
+				require.Equal(t, uint64(1), repo.CreateAfterCounter())
 				return
 			}
 
 			require.NoError(t, err)
 			require.Equal(t, tt.wantID, gotID)
-			require.Equal(t, 1, repo.createCalls)
+			require.Equal(t, uint64(1), repo.CreateAfterCounter())
 		})
 	}
 }

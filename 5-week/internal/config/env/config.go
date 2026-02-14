@@ -7,6 +7,7 @@ import (
 type appConfig struct {
 	grpc     config.GRPCConfig
 	postgres config.PostgresConfig
+	gateway  config.GatewayConfig
 }
 
 func NewConfig() (config.Config, error) {
@@ -20,9 +21,15 @@ func NewConfig() (config.Config, error) {
 		return nil, err
 	}
 
+	gatewayConfig, err := NewGatewayConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &appConfig{
 		grpc:     grpcConfig,
 		postgres: postgresConfig,
+		gateway:  gatewayConfig,
 	}, nil
 }
 
@@ -32,4 +39,8 @@ func (cfg *appConfig) GRPC() config.GRPCConfig {
 
 func (cfg *appConfig) Postgres() config.PostgresConfig {
 	return cfg.postgres
+}
+
+func (cfg *appConfig) Gateway() config.GatewayConfig {
+	return cfg.gateway
 }

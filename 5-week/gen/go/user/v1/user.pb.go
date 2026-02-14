@@ -7,6 +7,7 @@
 package userv1
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -155,13 +156,13 @@ func (x *User) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// Create
 type CreateRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Email           string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Password        string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 	PasswordConfirm string                 `protobuf:"bytes,4,opt,name=password_confirm,json=passwordConfirm,proto3" json:"password_confirm,omitempty"`
-	Role            Role                   `protobuf:"varint,5,opt,name=role,proto3,enum=user.v1.Role" json:"role,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -224,13 +225,6 @@ func (x *CreateRequest) GetPasswordConfirm() string {
 	return ""
 }
 
-func (x *CreateRequest) GetRole() Role {
-	if x != nil {
-		return x.Role
-	}
-	return Role_USER
-}
-
 type CreateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -275,6 +269,7 @@ func (x *CreateResponse) GetId() string {
 	return ""
 }
 
+// List
 type ListResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Users         []*User                `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
@@ -319,50 +314,7 @@ func (x *ListResponse) GetUsers() []*User {
 	return nil
 }
 
-type GetRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetRequest) Reset() {
-	*x = GetRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetRequest) ProtoMessage() {}
-
-func (x *GetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
-func (*GetRequest) Descriptor() ([]byte, []int) {
-	return file_user_v1_user_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *GetRequest) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
+// Get
 type GetResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
@@ -372,7 +324,7 @@ type GetResponse struct {
 
 func (x *GetResponse) Reset() {
 	*x = GetResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[5]
+	mi := &file_user_v1_user_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -384,7 +336,7 @@ func (x *GetResponse) String() string {
 func (*GetResponse) ProtoMessage() {}
 
 func (x *GetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[5]
+	mi := &file_user_v1_user_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -397,7 +349,7 @@ func (x *GetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetResponse.ProtoReflect.Descriptor instead.
 func (*GetResponse) Descriptor() ([]byte, []int) {
-	return file_user_v1_user_proto_rawDescGZIP(), []int{5}
+	return file_user_v1_user_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetResponse) GetUser() *User {
@@ -407,6 +359,51 @@ func (x *GetResponse) GetUser() *User {
 	return nil
 }
 
+type GetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRequest) Reset() {
+	*x = GetRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRequest) ProtoMessage() {}
+
+func (x *GetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
+func (*GetRequest) Descriptor() ([]byte, []int) {
+	return file_user_v1_user_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// Update
 type UpdateRequest struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	Id            string                  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -467,6 +464,7 @@ func (x *UpdateRequest) GetEmail() *wrapperspb.StringValue {
 	return nil
 }
 
+// Delete
 type DeleteRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -515,37 +513,39 @@ var File_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x12user/v1/user.proto\x12\auser.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\"\xd9\x01\n" +
-	"\x04User\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12!\n" +
-	"\x04role\x18\x04 \x01(\x0e2\r.user.v1.RoleR\x04role\x129\n" +
+	"\x12user/v1/user.proto\x12\auser.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x17validate/validate.proto\"\x99\x02\n" +
+	"\x04User\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id\x122\n" +
+	"\x04name\x18\x02 \x01(\tB\x1e\xfaB\x1br\x19\x10\x02\x1822\x13^[^\\x00-\\x1F\\x7F]+$R\x04name\x12 \n" +
+	"\x05email\x18\x03 \x01(\tB\n" +
+	"\xfaB\ar\x05\x18\xfe\x01`\x01R\x05email\x12+\n" +
+	"\x04role\x18\x04 \x01(\x0e2\r.user.v1.RoleB\b\xfaB\x05\x82\x01\x02\x10\x01R\x04role\x129\n" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xa3\x01\n" +
-	"\rCreateRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\x12)\n" +
-	"\x10password_confirm\x18\x04 \x01(\tR\x0fpasswordConfirm\x12!\n" +
-	"\x04role\x18\x05 \x01(\x0e2\r.user.v1.RoleR\x04role\" \n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xe3\x01\n" +
+	"\rCreateRequest\x122\n" +
+	"\x04name\x18\x01 \x01(\tB\x1e\xfaB\x1br\x19\x10\x02\x1822\x13^[^\\x00-\\x1F\\x7F]+$R\x04name\x12 \n" +
+	"\x05email\x18\x02 \x01(\tB\n" +
+	"\xfaB\ar\x05\x18\xfe\x01`\x01R\x05email\x12F\n" +
+	"\bpassword\x18\x03 \x01(\tB*\xfaB'r%\x10\b\x18@2\x1f^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$R\bpassword\x124\n" +
+	"\x10password_confirm\x18\x04 \x01(\tB\t\xfaB\x06r\x04\x10\b\x18@R\x0fpasswordConfirm\" \n" +
 	"\x0eCreateResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"3\n" +
 	"\fListResponse\x12#\n" +
-	"\x05users\x18\x01 \x03(\v2\r.user.v1.UserR\x05users\"\x1c\n" +
+	"\x05users\x18\x01 \x03(\v2\r.user.v1.UserR\x05users\":\n" +
+	"\vGetResponse\x12+\n" +
+	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04user\"&\n" +
 	"\n" +
-	"GetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"0\n" +
-	"\vGetResponse\x12!\n" +
-	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user\"\x85\x01\n" +
-	"\rUpdateRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x120\n" +
-	"\x04name\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueR\x04name\x122\n" +
-	"\x05email\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\x05email\"\x1f\n" +
-	"\rDeleteRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id*\x1b\n" +
+	"GetRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id\"\xc1\x01\n" +
+	"\rUpdateRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id\x12S\n" +
+	"\x04name\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueB!\xfaB\x1er\x1c\x10\x02\x1822\x13^[^\\x00-\\x1F\\x7F]+$\xd0\x01\x01R\x04name\x12A\n" +
+	"\x05email\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueB\r\xfaB\n" +
+	"r\b\x18\xfe\x01\xd0\x01\x01`\x01R\x05email\")\n" +
+	"\rDeleteRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id*\x1b\n" +
 	"\x04Role\x12\b\n" +
 	"\x04USER\x10\x00\x12\t\n" +
 	"\x05ADMIN\x10\x012\x94\x03\n" +
@@ -576,8 +576,8 @@ var file_user_v1_user_proto_goTypes = []any{
 	(*CreateRequest)(nil),          // 2: user.v1.CreateRequest
 	(*CreateResponse)(nil),         // 3: user.v1.CreateResponse
 	(*ListResponse)(nil),           // 4: user.v1.ListResponse
-	(*GetRequest)(nil),             // 5: user.v1.GetRequest
-	(*GetResponse)(nil),            // 6: user.v1.GetResponse
+	(*GetResponse)(nil),            // 5: user.v1.GetResponse
+	(*GetRequest)(nil),             // 6: user.v1.GetRequest
 	(*UpdateRequest)(nil),          // 7: user.v1.UpdateRequest
 	(*DeleteRequest)(nil),          // 8: user.v1.DeleteRequest
 	(*timestamppb.Timestamp)(nil),  // 9: google.protobuf.Timestamp
@@ -588,26 +588,25 @@ var file_user_v1_user_proto_depIdxs = []int32{
 	0,  // 0: user.v1.User.role:type_name -> user.v1.Role
 	9,  // 1: user.v1.User.created_at:type_name -> google.protobuf.Timestamp
 	9,  // 2: user.v1.User.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 3: user.v1.CreateRequest.role:type_name -> user.v1.Role
-	1,  // 4: user.v1.ListResponse.users:type_name -> user.v1.User
-	1,  // 5: user.v1.GetResponse.user:type_name -> user.v1.User
-	10, // 6: user.v1.UpdateRequest.name:type_name -> google.protobuf.StringValue
-	10, // 7: user.v1.UpdateRequest.email:type_name -> google.protobuf.StringValue
-	2,  // 8: user.v1.UserV1.Create:input_type -> user.v1.CreateRequest
-	11, // 9: user.v1.UserV1.List:input_type -> google.protobuf.Empty
-	5,  // 10: user.v1.UserV1.Get:input_type -> user.v1.GetRequest
-	7,  // 11: user.v1.UserV1.Update:input_type -> user.v1.UpdateRequest
-	8,  // 12: user.v1.UserV1.Delete:input_type -> user.v1.DeleteRequest
-	3,  // 13: user.v1.UserV1.Create:output_type -> user.v1.CreateResponse
-	4,  // 14: user.v1.UserV1.List:output_type -> user.v1.ListResponse
-	6,  // 15: user.v1.UserV1.Get:output_type -> user.v1.GetResponse
-	11, // 16: user.v1.UserV1.Update:output_type -> google.protobuf.Empty
-	11, // 17: user.v1.UserV1.Delete:output_type -> google.protobuf.Empty
-	13, // [13:18] is the sub-list for method output_type
-	8,  // [8:13] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	1,  // 3: user.v1.ListResponse.users:type_name -> user.v1.User
+	1,  // 4: user.v1.GetResponse.user:type_name -> user.v1.User
+	10, // 5: user.v1.UpdateRequest.name:type_name -> google.protobuf.StringValue
+	10, // 6: user.v1.UpdateRequest.email:type_name -> google.protobuf.StringValue
+	2,  // 7: user.v1.UserV1.Create:input_type -> user.v1.CreateRequest
+	11, // 8: user.v1.UserV1.List:input_type -> google.protobuf.Empty
+	6,  // 9: user.v1.UserV1.Get:input_type -> user.v1.GetRequest
+	7,  // 10: user.v1.UserV1.Update:input_type -> user.v1.UpdateRequest
+	8,  // 11: user.v1.UserV1.Delete:input_type -> user.v1.DeleteRequest
+	3,  // 12: user.v1.UserV1.Create:output_type -> user.v1.CreateResponse
+	4,  // 13: user.v1.UserV1.List:output_type -> user.v1.ListResponse
+	5,  // 14: user.v1.UserV1.Get:output_type -> user.v1.GetResponse
+	11, // 15: user.v1.UserV1.Update:output_type -> google.protobuf.Empty
+	11, // 16: user.v1.UserV1.Delete:output_type -> google.protobuf.Empty
+	12, // [12:17] is the sub-list for method output_type
+	7,  // [7:12] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_user_v1_user_proto_init() }

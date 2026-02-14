@@ -1,11 +1,11 @@
 syntax = "proto3";
-
 package user.v1;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
+import "validate/validate.proto";
 
 option go_package = "github.com/DaniilKalts/microservices-course-2023/5-week/gen/go/user/v1;userv1";
 
@@ -29,7 +29,7 @@ service UserV1 {
     rpc Update(UpdateRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
             patch: "/v1/users/{id}"
-            body: "*"
+            body: "*" 
         };
     };
     rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
@@ -45,22 +45,41 @@ enum Role {
 }
 
 message User {
-    string id = 1;
-    string name = 2;
-    string email = 3;
-    Role role = 4;
+    string id = 1 [(validate.rules).string.uuid = true];
+    string name = 2 [(validate.rules).string = {
+        min_len: 2,
+        max_len: 50,
+        pattern: "^[^\\x00-\\x1F\\x7F]+$"
+    }];
+    string email = 3 [(validate.rules).string = {
+        email: true,
+        max_len: 254  
+    }];
+    Role role = 4 [(validate.rules).enum.defined_only = true];
     google.protobuf.Timestamp created_at = 5;
     google.protobuf.Timestamp updated_at = 6;
 }
 
 // Create
-
 message CreateRequest {
-    string name = 1;
-    string email = 2;
-    string password = 3;
-    string password_confirm = 4;
-    Role role = 5;
+    string name = 1 [(validate.rules).string = {
+        min_len: 2,
+        max_len: 50,                          
+        pattern: "^[^\\x00-\\x1F\\x7F]+$"    
+    }];
+    string email = 2 [(validate.rules).string = {
+        email: true,
+        max_len: 254                        
+    }];
+    string password = 3 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 64,
+        pattern: "^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$"
+    }];
+    string password_confirm = 4 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 64
+    }];
 }
 
 message CreateResponse {
@@ -68,31 +87,36 @@ message CreateResponse {
 }
 
 // List
-
 message ListResponse {
-  repeated User users = 1;
+    repeated User users = 1;
 }
 
 // Get
-
-message GetRequest {
-    string id = 1;
+message GetResponse {
+    User user = 1 [(validate.rules).message.required = true]; 
 }
 
-message GetResponse {
-  User user = 1;
+message GetRequest {
+    string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // Update
-
 message UpdateRequest {
-    string id = 1;
-    google.protobuf.StringValue name = 2;
-    google.protobuf.StringValue email = 3;
+    string id = 1 [(validate.rules).string.uuid = true];
+    google.protobuf.StringValue name = 2 [(validate.rules).string = {
+        min_len: 2,
+        max_len: 50,
+        pattern: "^[^\\x00-\\x1F\\x7F]+$",  
+        ignore_empty: true                 
+    }];
+    google.protobuf.StringValue email = 3 [(validate.rules).string = {
+        email: true,
+        max_len: 254,   
+        ignore_empty: true
+    }];
 }
 
 // Delete
-
 message DeleteRequest {
-    string id = 1;
+    string id = 1 [(validate.rules).string.uuid = true];
 }

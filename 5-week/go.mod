@@ -17,6 +17,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/envoyproxy/protoc-gen-validate v1.3.0 // indirect
 	github.com/gojuno/minimock/v3 v3.4.7 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.8 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

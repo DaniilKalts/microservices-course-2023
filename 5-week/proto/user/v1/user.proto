@@ -16,6 +16,11 @@ service UserV1 {
             body: "*"
         };
     };
+    rpc List(google.protobuf.Empty) returns (ListResponse) {
+        option (google.api.http) = {
+            get: "/v1/users"
+        };
+    };
     rpc Get(GetRequest) returns (GetResponse) {
         option (google.api.http) = {
             get: "/v1/users/{id}"
@@ -60,6 +65,12 @@ message CreateRequest {
 
 message CreateResponse {
     string id = 1;
+}
+
+// List
+
+message ListResponse {
+  repeated User users = 1;
 }
 
 // Get

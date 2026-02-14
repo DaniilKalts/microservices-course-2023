@@ -44,3 +44,12 @@ func toProtoUser(user *domainUser.Entity) *userv1.User {
 
 	return protoUser
 }
+
+func toProtoUsers(users []domainUser.Entity) []*userv1.User {
+	protoUsers := make([]*userv1.User, 0, len(users))
+	for i := range users {
+		protoUsers = append(protoUsers, toProtoUser(&users[i]))
+	}
+
+	return protoUsers
+}

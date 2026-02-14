@@ -34,17 +34,17 @@ func (a *App) Run(ctx context.Context) error {
 	}()
 
 	grpcAddr := a.c.Cfg.GRPC().Address()
-	grpcListener, err := net.Listen("tcp", grpcAddr)
-	if err != nil {
-		return fmt.Errorf("listen grpc %s: %w", grpcAddr, err)
-	}
-
 	gatewayAddr := a.c.Cfg.Gateway().Address()
 
 	httpSrv := &http.Server{
 		Addr:              gatewayAddr,
 		Handler:           a.c.Gateway,
 		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	grpcListener, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		return fmt.Errorf("listen grpc %s: %w", grpcAddr, err)
 	}
 
 	serveErr := make(chan error, 1)

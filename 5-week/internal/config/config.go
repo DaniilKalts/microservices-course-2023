@@ -1,11 +1,11 @@
 package config
 
-type PostgresConfig interface {
-	DSN() string
-}
-
 type GRPCConfig interface {
 	Address() string
+}
+
+type PostgresConfig interface {
+	DSN() string
 }
 
 type GatewayConfig interface {
@@ -13,7 +13,7 @@ type GatewayConfig interface {
 }
 
 type Config interface {
-	GRPC() GRPCConfig
 	Postgres() PostgresConfig
+	GRPC() GRPCConfig
 	Gateway() GatewayConfig
 }

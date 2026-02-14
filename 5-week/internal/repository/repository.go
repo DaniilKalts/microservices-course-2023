@@ -7,9 +7,9 @@ import (
 )
 
 //go:generate minimock -i UserRepository -o ./mocks -s _mock.go
-
 type UserRepository interface {
 	Create(ctx context.Context, user *domainUser.Entity, passwordHash string) (string, error)
+	List(ctx context.Context) ([]domainUser.Entity, error)
 	Get(ctx context.Context, id string) (*domainUser.Entity, error)
 	Update(ctx context.Context, id string, patch *domainUser.UpdatePatch) error
 	Delete(ctx context.Context, id string) error

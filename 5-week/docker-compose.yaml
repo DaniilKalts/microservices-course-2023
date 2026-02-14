@@ -31,6 +31,25 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  api:
+    image: ${MIGRATOR_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-api}:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: microservices-course-2023-api
+    env_file:
+      - .env
+    environment:
+      - GRPC_HOST=${GRPC_USER_HOST}
+      - GRPC_PORT=${GRPC_USER_PORT}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+
   # chat_service:
   #   image: ${CHAT_SERVICE_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-chat-service}:${TAG:-latest}
   #   build:
@@ -51,25 +70,25 @@ services:
   #     migrator:
   #       condition: service_completed_successfully
 
-  user_service:
-    image: ${USER_SERVICE_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-user-service}:${TAG:-latest}
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: user
-    container_name: microservices-course-2023-user-service
-    env_file:
-      - .env
-    environment:
-      - GRPC_HOST=${USER_GRPC_HOST}
-      - GRPC_PORT=${USER_GRPC_PORT}
-    ports:
-      - "50052:50052"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      migrator:
-        condition: service_completed_successfully
+  # user_service:
+  #   image: ${USER_SERVICE_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-user-service}:${TAG:-latest}
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: user
+  #   container_name: microservices-course-2023-user-service
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - GRPC_HOST=${USER_GRPC_HOST}
+  #     - GRPC_PORT=${USER_GRPC_PORT}
+  #   ports:
+  #     - "50052:50052"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     migrator:
+  #       condition: service_completed_successfully
 
 volumes:
   postgres_data:

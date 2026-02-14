@@ -40,6 +40,13 @@ type UserRepositoryMock struct {
 	beforeGetCounter uint64
 	GetMock          mUserRepositoryMockGet
 
+	funcList          func(ctx context.Context) (ea1 []domainUser.Entity, err error)
+	funcListOrigin    string
+	inspectFuncList   func(ctx context.Context)
+	afterListCounter  uint64
+	beforeListCounter uint64
+	ListMock          mUserRepositoryMockList
+
 	funcUpdate          func(ctx context.Context, id string, patch *domainUser.UpdatePatch) (err error)
 	funcUpdateOrigin    string
 	inspectFuncUpdate   func(ctx context.Context, id string, patch *domainUser.UpdatePatch)
@@ -64,6 +71,9 @@ func NewUserRepositoryMock(t minimock.Tester) *UserRepositoryMock {
 
 	m.GetMock = mUserRepositoryMockGet{mock: m}
 	m.GetMock.callArgs = []*UserRepositoryMockGetParams{}
+
+	m.ListMock = mUserRepositoryMockList{mock: m}
+	m.ListMock.callArgs = []*UserRepositoryMockListParams{}
 
 	m.UpdateMock = mUserRepositoryMockUpdate{mock: m}
 	m.UpdateMock.callArgs = []*UserRepositoryMockUpdateParams{}
@@ -1132,6 +1142,318 @@ func (m *UserRepositoryMock) MinimockGetInspect() {
 	}
 }
 
+type mUserRepositoryMockList struct {
+	optional           bool
+	mock               *UserRepositoryMock
+	defaultExpectation *UserRepositoryMockListExpectation
+	expectations       []*UserRepositoryMockListExpectation
+
+	callArgs []*UserRepositoryMockListParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// UserRepositoryMockListExpectation specifies expectation struct of the UserRepository.List
+type UserRepositoryMockListExpectation struct {
+	mock               *UserRepositoryMock
+	params             *UserRepositoryMockListParams
+	paramPtrs          *UserRepositoryMockListParamPtrs
+	expectationOrigins UserRepositoryMockListExpectationOrigins
+	results            *UserRepositoryMockListResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// UserRepositoryMockListParams contains parameters of the UserRepository.List
+type UserRepositoryMockListParams struct {
+	ctx context.Context
+}
+
+// UserRepositoryMockListParamPtrs contains pointers to parameters of the UserRepository.List
+type UserRepositoryMockListParamPtrs struct {
+	ctx *context.Context
+}
+
+// UserRepositoryMockListResults contains results of the UserRepository.List
+type UserRepositoryMockListResults struct {
+	ea1 []domainUser.Entity
+	err error
+}
+
+// UserRepositoryMockListOrigins contains origins of expectations of the UserRepository.List
+type UserRepositoryMockListExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmList *mUserRepositoryMockList) Optional() *mUserRepositoryMockList {
+	mmList.optional = true
+	return mmList
+}
+
+// Expect sets up expected params for UserRepository.List
+func (mmList *mUserRepositoryMockList) Expect(ctx context.Context) *mUserRepositoryMockList {
+	if mmList.mock.funcList != nil {
+		mmList.mock.t.Fatalf("UserRepositoryMock.List mock is already set by Set")
+	}
+
+	if mmList.defaultExpectation == nil {
+		mmList.defaultExpectation = &UserRepositoryMockListExpectation{}
+	}
+
+	if mmList.defaultExpectation.paramPtrs != nil {
+		mmList.mock.t.Fatalf("UserRepositoryMock.List mock is already set by ExpectParams functions")
+	}
+
+	mmList.defaultExpectation.params = &UserRepositoryMockListParams{ctx}
+	mmList.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmList.expectations {
+		if minimock.Equal(e.params, mmList.defaultExpectation.params) {
+			mmList.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmList.defaultExpectation.params)
+		}
+	}
+
+	return mmList
+}
+
+// ExpectCtxParam1 sets up expected param ctx for UserRepository.List
+func (mmList *mUserRepositoryMockList) ExpectCtxParam1(ctx context.Context) *mUserRepositoryMockList {
+	if mmList.mock.funcList != nil {
+		mmList.mock.t.Fatalf("UserRepositoryMock.List mock is already set by Set")
+	}
+
+	if mmList.defaultExpectation == nil {
+		mmList.defaultExpectation = &UserRepositoryMockListExpectation{}
+	}
+
+	if mmList.defaultExpectation.params != nil {
+		mmList.mock.t.Fatalf("UserRepositoryMock.List mock is already set by Expect")
+	}
+
+	if mmList.defaultExpectation.paramPtrs == nil {
+		mmList.defaultExpectation.paramPtrs = &UserRepositoryMockListParamPtrs{}
+	}
+	mmList.defaultExpectation.paramPtrs.ctx = &ctx
+	mmList.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmList
+}
+
+// Inspect accepts an inspector function that has same arguments as the UserRepository.List
+func (mmList *mUserRepositoryMockList) Inspect(f func(ctx context.Context)) *mUserRepositoryMockList {
+	if mmList.mock.inspectFuncList != nil {
+		mmList.mock.t.Fatalf("Inspect function is already set for UserRepositoryMock.List")
+	}
+
+	mmList.mock.inspectFuncList = f
+
+	return mmList
+}
+
+// Return sets up results that will be returned by UserRepository.List
+func (mmList *mUserRepositoryMockList) Return(ea1 []domainUser.Entity, err error) *UserRepositoryMock {
+	if mmList.mock.funcList != nil {
+		mmList.mock.t.Fatalf("UserRepositoryMock.List mock is already set by Set")
+	}
+
+	if mmList.defaultExpectation == nil {
+		mmList.defaultExpectation = &UserRepositoryMockListExpectation{mock: mmList.mock}
+	}
+	mmList.defaultExpectation.results = &UserRepositoryMockListResults{ea1, err}
+	mmList.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmList.mock
+}
+
+// Set uses given function f to mock the UserRepository.List method
+func (mmList *mUserRepositoryMockList) Set(f func(ctx context.Context) (ea1 []domainUser.Entity, err error)) *UserRepositoryMock {
+	if mmList.defaultExpectation != nil {
+		mmList.mock.t.Fatalf("Default expectation is already set for the UserRepository.List method")
+	}
+
+	if len(mmList.expectations) > 0 {
+		mmList.mock.t.Fatalf("Some expectations are already set for the UserRepository.List method")
+	}
+
+	mmList.mock.funcList = f
+	mmList.mock.funcListOrigin = minimock.CallerInfo(1)
+	return mmList.mock
+}
+
+// When sets expectation for the UserRepository.List which will trigger the result defined by the following
+// Then helper
+func (mmList *mUserRepositoryMockList) When(ctx context.Context) *UserRepositoryMockListExpectation {
+	if mmList.mock.funcList != nil {
+		mmList.mock.t.Fatalf("UserRepositoryMock.List mock is already set by Set")
+	}
+
+	expectation := &UserRepositoryMockListExpectation{
+		mock:               mmList.mock,
+		params:             &UserRepositoryMockListParams{ctx},
+		expectationOrigins: UserRepositoryMockListExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmList.expectations = append(mmList.expectations, expectation)
+	return expectation
+}
+
+// Then sets up UserRepository.List return parameters for the expectation previously defined by the When method
+func (e *UserRepositoryMockListExpectation) Then(ea1 []domainUser.Entity, err error) *UserRepositoryMock {
+	e.results = &UserRepositoryMockListResults{ea1, err}
+	return e.mock
+}
+
+// Times sets number of times UserRepository.List should be invoked
+func (mmList *mUserRepositoryMockList) Times(n uint64) *mUserRepositoryMockList {
+	if n == 0 {
+		mmList.mock.t.Fatalf("Times of UserRepositoryMock.List mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmList.expectedInvocations, n)
+	mmList.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmList
+}
+
+func (mmList *mUserRepositoryMockList) invocationsDone() bool {
+	if len(mmList.expectations) == 0 && mmList.defaultExpectation == nil && mmList.mock.funcList == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmList.mock.afterListCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmList.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// List implements mm_repository.UserRepository
+func (mmList *UserRepositoryMock) List(ctx context.Context) (ea1 []domainUser.Entity, err error) {
+	mm_atomic.AddUint64(&mmList.beforeListCounter, 1)
+	defer mm_atomic.AddUint64(&mmList.afterListCounter, 1)
+
+	mmList.t.Helper()
+
+	if mmList.inspectFuncList != nil {
+		mmList.inspectFuncList(ctx)
+	}
+
+	mm_params := UserRepositoryMockListParams{ctx}
+
+	// Record call args
+	mmList.ListMock.mutex.Lock()
+	mmList.ListMock.callArgs = append(mmList.ListMock.callArgs, &mm_params)
+	mmList.ListMock.mutex.Unlock()
+
+	for _, e := range mmList.ListMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ea1, e.results.err
+		}
+	}
+
+	if mmList.ListMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmList.ListMock.defaultExpectation.Counter, 1)
+		mm_want := mmList.ListMock.defaultExpectation.params
+		mm_want_ptrs := mmList.ListMock.defaultExpectation.paramPtrs
+
+		mm_got := UserRepositoryMockListParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmList.t.Errorf("UserRepositoryMock.List got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmList.ListMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmList.t.Errorf("UserRepositoryMock.List got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmList.ListMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmList.ListMock.defaultExpectation.results
+		if mm_results == nil {
+			mmList.t.Fatal("No results are set for the UserRepositoryMock.List")
+		}
+		return (*mm_results).ea1, (*mm_results).err
+	}
+	if mmList.funcList != nil {
+		return mmList.funcList(ctx)
+	}
+	mmList.t.Fatalf("Unexpected call to UserRepositoryMock.List. %v", ctx)
+	return
+}
+
+// ListAfterCounter returns a count of finished UserRepositoryMock.List invocations
+func (mmList *UserRepositoryMock) ListAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmList.afterListCounter)
+}
+
+// ListBeforeCounter returns a count of UserRepositoryMock.List invocations
+func (mmList *UserRepositoryMock) ListBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmList.beforeListCounter)
+}
+
+// Calls returns a list of arguments used in each call to UserRepositoryMock.List.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmList *mUserRepositoryMockList) Calls() []*UserRepositoryMockListParams {
+	mmList.mutex.RLock()
+
+	argCopy := make([]*UserRepositoryMockListParams, len(mmList.callArgs))
+	copy(argCopy, mmList.callArgs)
+
+	mmList.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListDone returns true if the count of the List invocations corresponds
+// the number of defined expectations
+func (m *UserRepositoryMock) MinimockListDone() bool {
+	if m.ListMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListMock.invocationsDone()
+}
+
+// MinimockListInspect logs each unmet expectation
+func (m *UserRepositoryMock) MinimockListInspect() {
+	for _, e := range m.ListMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to UserRepositoryMock.List at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListCounter := mm_atomic.LoadUint64(&m.afterListCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListMock.defaultExpectation != nil && afterListCounter < 1 {
+		if m.ListMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to UserRepositoryMock.List at\n%s", m.ListMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to UserRepositoryMock.List at\n%s with params: %#v", m.ListMock.defaultExpectation.expectationOrigins.origin, *m.ListMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcList != nil && afterListCounter < 1 {
+		m.t.Errorf("Expected call to UserRepositoryMock.List at\n%s", m.funcListOrigin)
+	}
+
+	if !m.ListMock.invocationsDone() && afterListCounter > 0 {
+		m.t.Errorf("Expected %d calls to UserRepositoryMock.List at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListMock.expectedInvocations), m.ListMock.expectedInvocationsOrigin, afterListCounter)
+	}
+}
+
 type mUserRepositoryMockUpdate struct {
 	optional           bool
 	mock               *UserRepositoryMock
@@ -1515,6 +1837,8 @@ func (m *UserRepositoryMock) MinimockFinish() {
 
 			m.MinimockGetInspect()
 
+			m.MinimockListInspect()
+
 			m.MinimockUpdateInspect()
 		}
 	})
@@ -1542,5 +1866,6 @@ func (m *UserRepositoryMock) minimockDone() bool {
 		m.MinimockCreateDone() &&
 		m.MinimockDeleteDone() &&
 		m.MinimockGetDone() &&
+		m.MinimockListDone() &&
 		m.MinimockUpdateDone()
 }

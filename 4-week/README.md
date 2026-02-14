@@ -1,105 +1,110 @@
-# Week 4 Homework (Unit Tests: User Service + API)
+# Week 4 Homework (User Service)
 
-**Goal:** Add unit tests for the **User** service and **User** gRPC API layers.
+**Goal:** Finalize the **User** service implementation: keep clean architecture boundaries, and cover business logic with unit tests.
 
 - - -
 
 ### Status
 
-#### Service: `user`
-*Directory: `cmd/user`, `internal`*
-
-**This week: Unit Tests**
-- [x] **Service layer tests:** `internal/service/user`
-  - Cover success + error paths (validation, repository errors)
-  - Use mocks/fakes for repository and transaction manager
-  - Prefer table-driven tests
-- [ ] **API layer tests:** `internal/api/grpc/user`
-  - Verify request mapping -> service calls -> response mapping
-  - Cover service error propagation
-  - Use a mocked `service.UserService`
-- [ ] **Invoke unit tests:** run `go test ./...`
-- [ ] **Invoke coverage:** run `go test ./... -coverprofile=coverage.out` and review `go tool cover -func=coverage.out`
+**To-do:** 
+- [x] Organize the service using architecture layers (`adapters`, `app`, `domain`, `repository`, `service`)
+- [x] Add unit tests for user service use cases (`create`, `get`, `update`, `delete`)
+- [x] Add Task-based commands for test and coverage workflows
 
 - - -
 
-### User Service Architecture (Per-Service Clean Architecture)
-
-The `user` service now follows a service-first clean architecture layout with explicit layers:
+### Project Structure
 
 ```text
-cmd/user/main.go
+cmd/
+  main.go
 internal/
   adapters/
     in/database/postgres/
-      client.go
-      postgres.go
     out/transport/grpc/user/
-      handler.go
-      mapper.go
-      create.go
-      get.go
-      update.go
-      delete.go
   app/
-    container.go
-    app.go
+  clients/database/
+  config/
   domain/user/
-    entity.go
-    patch.go
-    role.go
-  repository/user/
+  repository/
     repository.go
-    model.go
-    mapper.go
-    create.go
-    get.go
-    update.go
-    delete.go
-  repository/repository.go
-  service/service.go
-  service/user/
+    user/
+  service/
     service.go
-    create.go
-    get.go
-    update.go
-    delete.go
+    user/
+      create.go
+      create_test.go
+      delete.go
+      delete_test.go
+      get.go
+      get_test.go
+      update.go
+      update_test.go
+migrations/
+proto/
+gen/
+Taskfile.yaml
+docker-compose.yaml
 ```
 
-Each use case and adapter method lives in its own file.
+Notes:
+- Unit tests currently live in `internal/service/user`.
 
 - - -
 
-### How to Run
+### 🚀 How to Run
 
-#### Prerequisites
-- Docker & Docker Compose
-- [Goose](https://github.com/pressly/goose) (optional)
-- [Task](https://taskfile.dev/) (optional)
+### Prerequisites
+- Go 1.25+
+- Docker and Docker Compose
+- [Task](https://taskfile.dev/) (recommended)
 
-#### 1. Run Infrastructure & Service (Docker)
+### 1. Run Infrastructure & Services (Docker)
+
 ```bash
 docker compose up -d --build
 ```
 
-#### 2. Run Locally (Go)
+### 2. Run Locally (Go)
 
-1. **Start Postgres:**
-   ```bash
-   docker compose up -d postgres
-   ```
+1. **Start PostgreSQL:**
 
-2. **Apply Migrations:**
-   ```bash
-   ./migrations/migrate.sh
-   ```
-
-3. **Run User Service:**
-   ```bash
-   go run cmd/user/main.go --config-path=.env
-   ```
-
-#### 3. Run Unit Tests
 ```bash
-go test ./...
+docker compose up -d postgres
 ```
+
+2. **Apply migrations:**
+
+```bash
+./migrations/migrate.sh
+```
+
+3. **Run service:**
+
+```bash
+go run ./cmd/main.go
+```
+
+- - -
+
+### Testing With Task
+
+Install tooling (protobuf plugins, minimock, gotestsum):
+
+```bash
+task install-deps
+```
+
+Run user service tests:
+
+```bash
+task test
+```
+
+Run user service tests with HTML coverage report:
+
+```bash
+task test-coverage-html
+```
+
+Coverage artifacts are generated under `.task/tests/` and are ignored by git.

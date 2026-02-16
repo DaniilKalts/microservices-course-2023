@@ -11,7 +11,7 @@ func toDomainFromCreate(req *userv1.CreateRequest) *domainUser.Entity {
 	return &domainUser.Entity{
 		Name:  req.GetName(),
 		Email: req.GetEmail(),
-		Role:  domainUser.Role(req.GetRole()),
+		Role:  domainUser.RoleUser,
 	}
 }
 

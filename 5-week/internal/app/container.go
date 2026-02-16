@@ -11,6 +11,7 @@ import (
 
 	userv1 "github.com/DaniilKalts/microservices-course-2023/5-week/gen/go/user/v1"
 	"github.com/DaniilKalts/microservices-course-2023/5-week/internal/adapters/in/database/postgres"
+	grpcInterceptor "github.com/DaniilKalts/microservices-course-2023/5-week/internal/adapters/out/transport/grpc/interceptor"
 	userAPI "github.com/DaniilKalts/microservices-course-2023/5-week/internal/adapters/out/transport/grpc/user"
 	"github.com/DaniilKalts/microservices-course-2023/5-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/5-week/internal/clients/database/transaction"
@@ -53,7 +54,11 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 	userSvc := userService.NewService(userRepo)
 	userHandler := userAPI.NewHandler(userSvc)
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			grpcInterceptor.ValidationInterceptor(),
+		),
+	)
 	reflection.Register(grpcServer)
 	userv1.RegisterUserV1Server(grpcServer, userHandler)
 

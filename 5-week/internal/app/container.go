@@ -25,57 +25,103 @@ import (
 
 type Container struct {
 	Cfg config.Config
-	DB  database.Client
-	Tx  database.TxManager
 
-	UserRepo repository.UserRepository
-	UserSvc  service.UserService
+	DB database.Client
+	Tx database.TxManager
+
+	UserRepo    repository.UserRepository
+	UserSvc     service.UserService
+	userHandler userv1.UserV1Server
 
 	GRPC    *grpc.Server
 	Gateway http.Handler
 }
 
 func Build(ctx context.Context, configPath string) (*Container, error) {
+	container := &Container{}
+
+	if err := container.initConfig(configPath); err != nil {
+		return nil, err
+	}
+	if err := container.initDatabase(ctx); err != nil {
+		return nil, err
+	}
+
+	container.initTxManager()
+	container.initUserRepository()
+	container.initUserService()
+	container.initUserHandler()
+	container.initGRPC()
+
+	if err := container.initGateway(ctx); err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
+func (c *Container) initConfig(configPath string) error {
 	config.Load(configPath)
 
 	cfg, err := env.NewConfig()
 	if err != nil {
-		return nil, fmt.Errorf("load env config: %w", err)
+		return fmt.Errorf("load env config: %w", err)
 	}
 
-	db, err := postgres.New(ctx, cfg.Postgres().DSN())
+	c.Cfg = cfg
+
+	return nil
+}
+
+func (c *Container) initDatabase(ctx context.Context) error {
+	db, err := postgres.New(ctx, c.Cfg.Postgres().DSN())
 	if err != nil {
-		return nil, fmt.Errorf("connect postgres: %w", err)
+		return fmt.Errorf("connect postgres: %w", err)
 	}
 
-	tx := transaction.NewTransactionManager(db.DB())
+	c.DB = db
 
-	userRepo := userRepository.NewRepository(db)
-	userSvc := userService.NewService(userRepo)
-	userHandler := userAPI.NewHandler(userSvc)
+	return nil
+}
 
+func (c *Container) initTxManager() {
+	c.Tx = transaction.NewTransactionManager(c.DB.DB())
+}
+
+func (c *Container) initUserRepository() {
+	c.UserRepo = userRepository.NewRepository(c.DB)
+}
+
+func (c *Container) initUserService() {
+	c.UserSvc = userService.NewService(c.UserRepo)
+}
+
+func (c *Container) initUserHandler() {
+	c.userHandler = userAPI.NewHandler(c.UserSvc)
+}
+
+func (c *Container) initGRPC() {
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpcInterceptor.ValidationInterceptor(),
 		),
 	)
-	reflection.Register(grpcServer)
-	userv1.RegisterUserV1Server(grpcServer, userHandler)
 
+	reflection.Register(grpcServer)
+	userv1.RegisterUserV1Server(grpcServer, c.userHandler)
+
+	c.GRPC = grpcServer
+}
+
+func (c *Container) initGateway(ctx context.Context) error {
 	gatewayMux := runtime.NewServeMux()
-	if err = userv1.RegisterUserV1HandlerServer(ctx, gatewayMux, userHandler); err != nil {
-		return nil, fmt.Errorf("register grpc-gateway handlers: %w", err)
+	if err := userv1.RegisterUserV1HandlerServer(ctx, gatewayMux, c.userHandler); err != nil {
+		return fmt.Errorf("register grpc-gateway handlers: %w", err)
 	}
 
-	return &Container{
-		Cfg:      cfg,
-		DB:       db,
-		Tx:       tx,
-		UserRepo: userRepo,
-		UserSvc:  userSvc,
-		GRPC:     grpcServer,
-		Gateway:  gatewayMux,
-	}, nil
+	c.Gateway = gatewayMux
+
+	return nil
 }
 
 func (c *Container) Close() error {

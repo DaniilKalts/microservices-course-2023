@@ -8,6 +8,7 @@ package userv1
 
 import (
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
+	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -513,7 +514,7 @@ var File_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x12user/v1/user.proto\x12\auser.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x17validate/validate.proto\"\x99\x02\n" +
+	"\x12user/v1/user.proto\x12\auser.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x17validate/validate.proto\"\x99\x02\n" +
 	"\x04User\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id\x122\n" +
 	"\x04name\x18\x02 \x01(\tB\x1e\xfaB\x1br\x19\x10\x02\x1822\x13^[^\\x00-\\x1F\\x7F]+$R\x04name\x12 \n" +
@@ -554,7 +555,9 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x04List\x12\x16.google.protobuf.Empty\x1a\x15.user.v1.ListResponse\"\x11\x82\xd3\xe4\x93\x02\v\x12\t/v1/users\x12H\n" +
 	"\x03Get\x12\x13.user.v1.GetRequest\x1a\x14.user.v1.GetResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/v1/users/{id}\x12S\n" +
 	"\x06Update\x12\x16.user.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*2\x0e/v1/users/{id}\x12P\n" +
-	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\x16\x82\xd3\xe4\x93\x02\x10*\x0e/v1/users/{id}BOZMgithub.com/DaniilKalts/microservices-course-2023/5-week/gen/go/user/v1;userv1b\x06proto3"
+	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\x16\x82\xd3\xe4\x93\x02\x10*\x0e/v1/users/{id}B\xe9\x01\x92A\x96\x01\x12\\\n" +
+	"\bChat API\x12'RESTful gateway API for real-time chat.\" \n" +
+	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.0\x1a\x0elocalhost:8000*\x02\x01\x022\x10application/json:\x10application/jsonZMgithub.com/DaniilKalts/microservices-course-2023/5-week/gen/go/user/v1;userv1b\x06proto3"
 
 var (
 	file_user_v1_user_proto_rawDescOnce sync.Once

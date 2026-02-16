@@ -5,9 +5,27 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "validate/validate.proto";
 
 option go_package = "github.com/DaniilKalts/microservices-course-2023/5-week/gen/go/user/v1;userv1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "Chat API"
+        version: "1.0.0"
+        description: "RESTful gateway API for real-time chat."
+        contact: {
+            name: "Daniil Kalts"
+            email: "gopher@gmail.com"
+        }
+    }
+    host: "localhost:8000"
+    schemes: HTTP
+    schemes: HTTPS
+    consumes: "application/json"
+    produces: "application/json"
+};
 
 service UserV1 {
     rpc Create(CreateRequest) returns (CreateResponse) {

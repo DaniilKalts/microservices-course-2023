@@ -6,7 +6,7 @@ vars:
   GEN_OPENAPI_DIR: gen/openapi
   SWAGGER_UI_DIR: third_party/swagger-ui
   GEN_SWAGGER_UI_STATIK_DIR: internal/adapters/in/transport/http
-  GEN_SWAGGER_UI_STATIK_PACKAGE: swaggerui
+  GEN_SWAGGER_UI_STATIK_PACKAGE: swagger
   GRPC_GATEWAY_VERSION: v2.27.7
   MIGRATION_DIR: migrations
   MIGRATION_DSN: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
@@ -68,7 +68,7 @@ tasks:
     generates:
       - gen/go/**/*.go
       - gen/openapi/**/*.swagger.json
-      - internal/adapters/in/transport/http/swaggerui/statik.go
+      - internal/adapters/in/transport/http/swagger/statik.go
     silent: true
     cmds:
       - echo "🔨 Generating Go code from protos..."
@@ -124,7 +124,7 @@ tasks:
     cmds:
       - |
         export PATH="$(go env GOPATH)/bin:$PATH"
-        gotestsum -- ./internal/service/user
+        gotestsum -- ./internal/...
 
   test-coverage-html:
     desc: 📈 Run user tests with HTML coverage report via gotestsum
@@ -134,7 +134,7 @@ tasks:
       - mkdir -p .task/tests
       - |
         export PATH="$(go env GOPATH)/bin:$PATH"
-        gotestsum -- -coverprofile=.task/tests/coverage.out ./internal/service/user
+        gotestsum -- -coverprofile=.task/tests/coverage.out ./internal/...
       - go tool cover -html=.task/tests/coverage.out -o .task/tests/coverage.html
 
   # ========================================

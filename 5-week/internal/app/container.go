@@ -11,6 +11,7 @@ import (
 
 	userv1 "github.com/DaniilKalts/microservices-course-2023/5-week/gen/go/user/v1"
 	"github.com/DaniilKalts/microservices-course-2023/5-week/internal/adapters/in/database/postgres"
+	"github.com/DaniilKalts/microservices-course-2023/5-week/internal/adapters/in/transport/http/swagger"
 	grpcInterceptor "github.com/DaniilKalts/microservices-course-2023/5-week/internal/adapters/out/transport/grpc/interceptor"
 	userAPI "github.com/DaniilKalts/microservices-course-2023/5-week/internal/adapters/out/transport/grpc/user"
 	"github.com/DaniilKalts/microservices-course-2023/5-week/internal/clients/database"
@@ -21,6 +22,12 @@ import (
 	userRepository "github.com/DaniilKalts/microservices-course-2023/5-week/internal/repository/user"
 	"github.com/DaniilKalts/microservices-course-2023/5-week/internal/service"
 	userService "github.com/DaniilKalts/microservices-course-2023/5-week/internal/service/user"
+)
+
+const (
+	swaggerBasePath       = "/swagger"
+	swaggerOpenAPIFile    = "gen/openapi/user/v1/user.swagger.json"
+	swaggerRedirectTarget = swaggerBasePath + "/"
 )
 
 type Container struct {
@@ -119,7 +126,18 @@ func (c *Container) initGateway(ctx context.Context) error {
 		return fmt.Errorf("register grpc-gateway handlers: %w", err)
 	}
 
-	c.Gateway = gatewayMux
+	swaggerHandler, err := swagger.NewHandler(swaggerOpenAPIFile)
+	if err != nil {
+		return fmt.Errorf("init swagger-ui handler: %w", err)
+	}
+
+	handler := http.NewServeMux()
+
+	handler.Handle("/", gatewayMux)
+	handler.Handle(swaggerBasePath+"/", http.StripPrefix(swaggerBasePath, swaggerHandler))
+	handler.Handle(swaggerBasePath, http.RedirectHandler(swaggerRedirectTarget, http.StatusMovedPermanently))
+
+	c.Gateway = handler
 
 	return nil
 }

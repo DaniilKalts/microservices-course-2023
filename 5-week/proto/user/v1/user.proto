@@ -30,29 +30,29 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 service UserV1 {
     rpc Create(CreateRequest) returns (CreateResponse) {
         option (google.api.http) = {
-            post: "/v1/users"
+            post: "/api/v1/users"
             body: "*"
         };
     };
     rpc List(google.protobuf.Empty) returns (ListResponse) {
         option (google.api.http) = {
-            get: "/v1/users"
+            get: "/api/v1/users"
         };
     };
     rpc Get(GetRequest) returns (GetResponse) {
         option (google.api.http) = {
-            get: "/v1/users/{id}"
+            get: "/api/v1/users/{id}"
         };
     };
     rpc Update(UpdateRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            patch: "/v1/users/{id}"
+            patch: "/api/v1/users/{id}"
             body: "*" 
         };
     };
     rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            delete: "/v1/users/{id}"
+            delete: "/api/v1/users/{id}"
         };
     };
 }

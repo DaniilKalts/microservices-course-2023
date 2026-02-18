@@ -26,7 +26,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/users": {
+    "/api/v1/users": {
       "get": {
         "operationId": "UserV1_List",
         "responses": {
@@ -78,7 +78,7 @@
         ]
       }
     },
-    "/v1/users/{id}": {
+    "/api/v1/users/{id}": {
       "get": {
         "operationId": "UserV1_Get",
         "responses": {

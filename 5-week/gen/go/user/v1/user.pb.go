@@ -549,13 +549,13 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id*\x1b\n" +
 	"\x04Role\x12\b\n" +
 	"\x04USER\x10\x00\x12\t\n" +
-	"\x05ADMIN\x10\x012\x94\x03\n" +
-	"\x06UserV1\x12O\n" +
-	"\x06Create\x12\x16.user.v1.CreateRequest\x1a\x17.user.v1.CreateResponse\"\x14\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/v1/users\x12H\n" +
-	"\x04List\x12\x16.google.protobuf.Empty\x1a\x15.user.v1.ListResponse\"\x11\x82\xd3\xe4\x93\x02\v\x12\t/v1/users\x12H\n" +
-	"\x03Get\x12\x13.user.v1.GetRequest\x1a\x14.user.v1.GetResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/v1/users/{id}\x12S\n" +
-	"\x06Update\x12\x16.user.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*2\x0e/v1/users/{id}\x12P\n" +
-	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\x16\x82\xd3\xe4\x93\x02\x10*\x0e/v1/users/{id}B\xe9\x01\x92A\x96\x01\x12\\\n" +
+	"\x05ADMIN\x10\x012\xa8\x03\n" +
+	"\x06UserV1\x12S\n" +
+	"\x06Create\x12\x16.user.v1.CreateRequest\x1a\x17.user.v1.CreateResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/api/v1/users\x12L\n" +
+	"\x04List\x12\x16.google.protobuf.Empty\x1a\x15.user.v1.ListResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/users\x12L\n" +
+	"\x03Get\x12\x13.user.v1.GetRequest\x1a\x14.user.v1.GetResponse\"\x1a\x82\xd3\xe4\x93\x02\x14\x12\x12/api/v1/users/{id}\x12W\n" +
+	"\x06Update\x12\x16.user.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*2\x12/api/v1/users/{id}\x12T\n" +
+	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\x1a\x82\xd3\xe4\x93\x02\x14*\x12/api/v1/users/{id}B\xe9\x01\x92A\x96\x01\x12\\\n" +
 	"\bChat API\x12'RESTful gateway API for real-time chat.\" \n" +
 	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.0\x1a\x0elocalhost:8000*\x02\x01\x022\x10application/json:\x10application/jsonZMgithub.com/DaniilKalts/microservices-course-2023/5-week/gen/go/user/v1;userv1b\x06proto3"
 

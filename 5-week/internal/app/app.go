@@ -15,6 +15,11 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	gatewayReadHeaderTimeout = 5 * time.Second
+	shutdownTimeout          = 5 * time.Second
+)
+
 type App struct {
 	c *Container
 }
@@ -34,44 +39,43 @@ func (a *App) Run(ctx context.Context) error {
 	}()
 
 	grpcAddr := a.c.Cfg.GRPC().Address()
-	gatewayAddr := a.c.Cfg.Gateway().Address()
-
-	httpSrv := &http.Server{
-		Addr:              gatewayAddr,
-		Handler:           a.c.Gateway,
-		ReadHeaderTimeout: 5 * time.Second,
-	}
-
 	grpcListener, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		return fmt.Errorf("listen grpc %s: %w", grpcAddr, err)
 	}
 
-	serveErr := make(chan error, 1)
+	gatewayAddr := a.c.Cfg.Gateway().Address()
+	gatewayServer := &http.Server{
+		Addr:              gatewayAddr,
+		Handler:           a.c.Gateway,
+		ReadHeaderTimeout: gatewayReadHeaderTimeout,
+	}
+
+	serveErr := make(chan error, 2)
 
 	go func() {
 		serveErr <- serveGRPC(a.c.GRPC, grpcListener)
 	}()
 
 	go func() {
-		serveErr <- serveGateway(httpSrv)
+		serveErr <- serveGateway(gatewayServer)
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 	defer signal.Stop(stop)
 
+	var runErr error
 	select {
-	case err := <-serveErr:
-		a.shutdown(5*time.Second, httpSrv)
-		return err
+	case runErr = <-serveErr:
 	case <-ctx.Done():
-		a.shutdown(5*time.Second, httpSrv)
-		return ctx.Err()
+		runErr = ctx.Err()
 	case <-stop:
-		a.shutdown(5*time.Second, httpSrv)
-		return nil
 	}
+
+	a.shutdown(shutdownTimeout, gatewayServer)
+
+	return runErr
 }
 
 func serveGRPC(server *grpc.Server, lis net.Listener) error {
@@ -90,8 +94,8 @@ func serveGateway(server *http.Server) error {
 	return nil
 }
 
-func (a *App) shutdown(timeout time.Duration, httpSrv *http.Server) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+func (a *App) shutdown(timeout time.Duration, gatewayServer *http.Server) {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	var wg sync.WaitGroup
@@ -104,7 +108,7 @@ func (a *App) shutdown(timeout time.Duration, httpSrv *http.Server) {
 
 	go func() {
 		defer wg.Done()
-		_ = httpSrv.Shutdown(ctx)
+		_ = gatewayServer.Shutdown(shutdownCtx)
 	}()
 
 	wg.Wait()
@@ -117,9 +121,12 @@ func (a *App) gracefulStopGRPC(timeout time.Duration) {
 		close(done)
 	}()
 
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
 	select {
 	case <-done:
-	case <-time.After(timeout):
+	case <-timer.C:
 		a.c.GRPC.Stop()
 	}
 }

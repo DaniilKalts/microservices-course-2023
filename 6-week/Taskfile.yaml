@@ -1,0 +1,167 @@
+version: "3"
+
+vars:
+  PROTO_DIR: proto
+  GEN_GO_DIR: gen/go
+  GEN_OPENAPI_DIR: gen/openapi
+  SWAGGER_UI_DIR: third_party/swagger-ui
+  GEN_SWAGGER_UI_STATIK_DIR: internal/adapters/in/transport/http
+  GEN_SWAGGER_UI_STATIK_PACKAGE: swagger
+  GRPC_GATEWAY_VERSION: v2.27.7
+  MIGRATION_DIR: migrations
+  MIGRATION_DSN: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
+tasks:
+  # ========================================
+  # Environment checks
+  # ========================================
+  check-os:
+    silent: true
+    cmds:
+      - |
+        {{if eq OS "windows"}}
+          echo "🪟 Windows detected? 🐧 sudo switch-to-linux --now!"
+        {{end}}
+
+  # ========================================
+  # Tooling and code generation
+  # ========================================
+  install-deps:
+    desc: 🛠️ Install protobuf toolchain, statik, minimock, and gotestsum
+    deps: [check-os]
+    silent: true
+    cmds:
+      - echo "📦 Checking dependencies..."
+      - |
+        if ! command -v protoc >/dev/null 2>&1;
+        then
+          echo "❌ Error: protoc not found."
+          echo "👉 Install it with one of:"
+          echo "   Arch:          sudo pacman -S protobuf"
+          echo "   Ubuntu/Debian: sudo apt-get update && sudo apt-get install -y protobuf-compiler"
+          echo "   macOS (brew):  brew install protobuf"
+          exit 1
+        fi
+      - echo "✅ protoc found"
+      - echo "⬇️  Installing Go plugins and testing tools..."
+      - |
+        go install \
+            github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@{{.GRPC_GATEWAY_VERSION}} \
+            github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@{{.GRPC_GATEWAY_VERSION}}
+      - |
+        go install \
+            google.golang.org/protobuf/cmd/protoc-gen-go \
+            google.golang.org/grpc/cmd/protoc-gen-go-grpc
+      - go install github.com/envoyproxy/protoc-gen-validate@latest
+      - go install github.com/rakyll/statik@latest
+      - go install github.com/gojuno/minimock/v3/cmd/minimock@latest
+      - go install gotest.tools/gotestsum@latest
+      - echo "🎉 All dependencies installed!"
+
+  generate:
+    desc: 🚀 Generate Go protobuf/grpc/gateway stubs and Swagger for all .proto files
+    deps: [install-deps]
+    sources:
+      - proto/**/*.proto
+      - third_party/proto/**/*.proto
+      - third_party/swagger-ui/**
+    generates:
+      - gen/go/**/*.go
+      - gen/openapi/**/*.swagger.json
+      - internal/adapters/in/transport/http/swagger/statik.go
+    silent: true
+    cmds:
+      - echo "🔨 Generating Go code from protos..."
+      - mkdir -p "{{.GEN_GO_DIR}}"
+      - mkdir -p "{{.GEN_OPENAPI_DIR}}"
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        PROTO_FILES="$(find "{{.PROTO_DIR}}" -type f -name '*.proto' -print)"
+
+        if [ -z "$PROTO_FILES" ]; then
+          echo "⚠️  No .proto files found under '{{.PROTO_DIR}}'"
+          exit 1
+        fi
+
+        protoc \
+          -I "{{.PROTO_DIR}}" \
+          -I "third_party/proto" \
+          --go_out="{{.GEN_GO_DIR}}" --go_opt=paths=source_relative \
+          --go-grpc_out="{{.GEN_GO_DIR}}" --go-grpc_opt=paths=source_relative \
+          --grpc-gateway_out="{{.GEN_GO_DIR}}" --grpc-gateway_opt=paths=source_relative \
+          --openapiv2_out="{{.GEN_OPENAPI_DIR}}" --openapiv2_opt=logtostderr=true \
+          --validate_out="lang=go,paths=source_relative:{{.GEN_GO_DIR}}" \
+          $PROTO_FILES
+      - echo "📦 Packing Swagger UI static files into Go source..."
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        statik \
+          -src="{{.SWAGGER_UI_DIR}}" \
+          -dest="{{.GEN_SWAGGER_UI_STATIK_DIR}}" \
+          -p "{{.GEN_SWAGGER_UI_STATIK_PACKAGE}}" \
+          -f
+      - echo "✨ Generation complete!"
+
+  # ========================================
+  # Service run tasks
+  # ========================================
+  run-user:
+    desc: 👤 Run User Service
+    cmds:
+      - go run ./cmd/main.go
+
+  dev:
+    desc: 🏃 Run both services in parallel
+    deps: [run-user]
+
+  # ========================================
+  # Testing
+  # ========================================
+  test:
+    desc: 🧪 Run user service tests with gotestsum
+    deps: [install-deps]
+    silent: true
+    cmds:
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        gotestsum -- ./internal/...
+
+  test-coverage-html:
+    desc: 📈 Run user tests with HTML coverage report via gotestsum
+    deps: [install-deps]
+    silent: true
+    cmds:
+      - mkdir -p .task/tests
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        gotestsum -- -coverprofile=.task/tests/coverage.out ./internal/...
+      - go tool cover -html=.task/tests/coverage.out -o .task/tests/coverage.html
+
+  # ========================================
+  # Database migrations
+  # ========================================
+  migration-status:
+    desc: 📊 Check migration status
+    silent: true
+    cmds:
+      - goose -dir {{.MIGRATION_DIR}} postgres "{{.MIGRATION_DSN}}" status -v
+
+  migration-new:
+    desc: 🆕 Create new SQL migration (sequential)
+    silent: true
+    requires:
+      vars: [NAME]
+    cmds:
+      - goose -dir {{.MIGRATION_DIR}} -s create "{{.NAME}}" sql
+
+  migration-up:
+    desc: 🆙 Apply migrations
+    silent: true
+    cmds:
+      - goose -dir {{.MIGRATION_DIR}} postgres "{{.MIGRATION_DSN}}" up -v
+
+  migration-down:
+    desc: ⬇️ Rollback migrations
+    silent: true
+    cmds:
+      - goose -dir {{.MIGRATION_DIR}} postgres "{{.MIGRATION_DSN}}" down -v

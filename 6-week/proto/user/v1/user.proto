@@ -1,0 +1,140 @@
+syntax = "proto3";
+package user.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/DaniilKalts/microservices-course-2023/6-week/gen/go/user/v1;userv1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "Chat API"
+        version: "1.0.0"
+        description: "RESTful gateway API for real-time chat."
+        contact: {
+            name: "Daniil Kalts"
+            email: "gopher@gmail.com"
+        }
+    }
+    host: "localhost:8000"
+    schemes: HTTP
+    schemes: HTTPS
+    consumes: "application/json"
+    produces: "application/json"
+};
+
+service UserV1 {
+    rpc Create(CreateRequest) returns (CreateResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users"
+            body: "*"
+        };
+    };
+    rpc List(google.protobuf.Empty) returns (ListResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users"
+        };
+    };
+    rpc Get(GetRequest) returns (GetResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users/{id}"
+        };
+    };
+    rpc Update(UpdateRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            patch: "/api/v1/users/{id}"
+            body: "*" 
+        };
+    };
+    rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/users/{id}"
+        };
+    };
+}
+
+enum Role {
+    USER = 0;
+    ADMIN = 1;
+}
+
+message User {
+    string id = 1 [(validate.rules).string.uuid = true];
+    string name = 2 [(validate.rules).string = {
+        min_len: 2,
+        max_len: 50,
+        pattern: "^[^\\x00-\\x1F\\x7F]+$"
+    }];
+    string email = 3 [(validate.rules).string = {
+        email: true,
+        max_len: 254  
+    }];
+    Role role = 4 [(validate.rules).enum.defined_only = true];
+    google.protobuf.Timestamp created_at = 5;
+    google.protobuf.Timestamp updated_at = 6;
+}
+
+// Create
+message CreateRequest {
+    string name = 1 [(validate.rules).string = {
+        min_len: 2,
+        max_len: 50,                          
+        pattern: "^[^\\x00-\\x1F\\x7F]+$"    
+    }];
+    string email = 2 [(validate.rules).string = {
+        email: true,
+        max_len: 254                        
+    }];
+    string password = 3 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 64,
+        pattern: "^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$"
+    }];
+    string password_confirm = 4 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 64
+    }];
+}
+
+message CreateResponse {
+    string id = 1;
+}
+
+// List
+message ListResponse {
+    repeated User users = 1;
+}
+
+// Get
+message GetResponse {
+    User user = 1 [(validate.rules).message.required = true]; 
+}
+
+message GetRequest {
+    string id = 1 [(validate.rules).string.uuid = true];
+}
+
+// Update
+message UpdateRequest {
+    string id = 1 [(validate.rules).string.uuid = true];
+    google.protobuf.StringValue name = 2 [(validate.rules).string = {
+        min_len: 2,
+        max_len: 50,
+        pattern: "^[^\\x00-\\x1F\\x7F]+$",  
+        ignore_empty: true                 
+    }];
+    google.protobuf.StringValue email = 3 [(validate.rules).string = {
+        email: true,
+        max_len: 254,   
+        ignore_empty: true
+    }];
+}
+
+// Delete
+message DeleteRequest {
+    string id = 1 [(validate.rules).string.uuid = true];
+}

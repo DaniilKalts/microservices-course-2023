@@ -1,4 +1,5 @@
 version: "3"
+method: none
 
 vars:
   ENV_FILE: '{{default ".env" .ENV_FILE}}'
@@ -7,7 +8,7 @@ vars:
   # Protobuf and generation
   # - - -
   PROTO_DIR: proto
-  GEN_GO_DIR: gen/go
+  GEN_GRPC_DIR: gen/grpc
   GEN_OPENAPI_DIR: gen/openapi
   SWAGGER_UI_DIR: third_party/swagger-ui
   GEN_SWAGGER_UI_STATIK_DIR: internal/adapters/in/transport/http
@@ -21,9 +22,15 @@ vars:
   MIGRATION_DSN: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 
   # - - -
+  # Build artifacts
+  # - - -
+  BUILD_DIR: build
+  BUILD_TESTS_DIR: "{{.BUILD_DIR}}/tests"
+
+  # - - -
   # TLS (development)
   # - - -
-  TLS_DIR: .task/tls
+  TLS_DIR: "{{.BUILD_DIR}}/tls"
   TLS_CERT_FILE: "{{.TLS_DIR}}/server.crt"
   TLS_KEY_FILE: "{{.TLS_DIR}}/server.key"
 
@@ -82,13 +89,13 @@ tasks:
       - third_party/proto/**/*.proto
       - third_party/swagger-ui/**
     generates:
-      - gen/go/**/*.go
+      - gen/grpc/**/*.go
       - gen/openapi/**/*.swagger.json
       - internal/adapters/in/transport/http/swagger/statik.go
     silent: true
     cmds:
       - echo "🔨 Generating Go code from protos..."
-      - mkdir -p "{{.GEN_GO_DIR}}"
+      - mkdir -p "{{.GEN_GRPC_DIR}}"
       - mkdir -p "{{.GEN_OPENAPI_DIR}}"
       - |
         export PATH="$(go env GOPATH)/bin:$PATH"
@@ -102,11 +109,11 @@ tasks:
         protoc \
           -I "{{.PROTO_DIR}}" \
           -I "third_party/proto" \
-          --go_out="{{.GEN_GO_DIR}}" --go_opt=paths=source_relative \
-          --go-grpc_out="{{.GEN_GO_DIR}}" --go-grpc_opt=paths=source_relative \
-          --grpc-gateway_out="{{.GEN_GO_DIR}}" --grpc-gateway_opt=paths=source_relative \
+          --go_out="{{.GEN_GRPC_DIR}}" --go_opt=paths=source_relative \
+          --go-grpc_out="{{.GEN_GRPC_DIR}}" --go-grpc_opt=paths=source_relative \
+          --grpc-gateway_out="{{.GEN_GRPC_DIR}}" --grpc-gateway_opt=paths=source_relative \
           --openapiv2_out="{{.GEN_OPENAPI_DIR}}" --openapiv2_opt=logtostderr=true \
-          --validate_out="lang=go,paths=source_relative:{{.GEN_GO_DIR}}" \
+          --validate_out="lang=go,paths=source_relative:{{.GEN_GRPC_DIR}}" \
           $PROTO_FILES
       - echo "📦 Packing Swagger UI static files into Go source..."
       - |
@@ -135,16 +142,27 @@ tasks:
   # - - -
 
   tls:generate:
-    desc: 🔐 Generate dev TLS cert and key
+    desc: 🔐 Generate dev TLS cert and key from ENV_FILE
     silent: true
     cmds:
       - mkdir -p "{{.TLS_DIR}}"
       - |
+        if [ -f "{{.ENV_FILE}}" ]; then
+          set -a
+          . "{{.ENV_FILE}}"
+          set +a
+        fi
+
+        : "${TLS_CERT_CN:?TLS_CERT_CN is not set}"
+        : "${TLS_CERT_SAN_DNS:?TLS_CERT_SAN_DNS is not set}"
+        : "${TLS_CERT_SAN_IP:?TLS_CERT_SAN_IP is not set}"
+
+        TLS_SAN="DNS:${TLS_CERT_SAN_DNS},IP:${TLS_CERT_SAN_IP}"
         openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 365 \
           -keyout "{{.TLS_KEY_FILE}}" \
           -out "{{.TLS_CERT_FILE}}" \
-          -subj "/CN=localhost" \
-          -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+          -subj "/CN=${TLS_CERT_CN}" \
+          -addext "subjectAltName=${TLS_SAN}"
       - chmod 600 "{{.TLS_KEY_FILE}}"
 
   tls:verify:
@@ -159,7 +177,7 @@ tasks:
 
   dev:tls:
     desc: 🏃 Run service locally (TLS toggled in ENV_FILE)
-    deps: [tls:dev, tls:check]
+    deps: [tls:generate, tls:verify]
     cmds:
       - go run ./cmd/main.go -config-path "{{.ENV_FILE}}"
 
@@ -180,11 +198,30 @@ tasks:
     deps: [install-deps]
     silent: true
     cmds:
-      - mkdir -p .task/tests
+      - mkdir -p "{{.BUILD_TESTS_DIR}}"
       - |
         export PATH="$(go env GOPATH)/bin:$PATH"
-        gotestsum -- -coverprofile=.task/tests/coverage.out ./internal/...
-      - go tool cover -html=.task/tests/coverage.out -o .task/tests/coverage.html
+        gotestsum -- -coverprofile="{{.BUILD_TESTS_DIR}}/coverage.out" ./internal/...
+      - go tool cover -html="{{.BUILD_TESTS_DIR}}/coverage.out" -o "{{.BUILD_TESTS_DIR}}/coverage.html"
+
+  # - - -
+  # Cleanup
+  # - - -
+  clean:gen:
+    desc: 🧹 Remove generated source code artifacts
+    silent: true
+    cmds:
+      - rm -rf "{{.GEN_GRPC_DIR}}" "{{.GEN_OPENAPI_DIR}}" "{{.GEN_SWAGGER_UI_STATIK_DIR}}/{{.GEN_SWAGGER_UI_STATIK_PACKAGE}}/statik.go"
+
+  clean:build:
+    desc: 🧽 Remove build/runtime artifacts
+    silent: true
+    cmds:
+      - rm -rf "{{.BUILD_DIR}}"
+
+  clean:
+    desc: ♻️ Remove generated and build artifacts
+    deps: [clean:gen, clean:build]
 
   # - - -
   # Database migrations

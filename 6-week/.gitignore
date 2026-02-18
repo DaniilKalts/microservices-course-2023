@@ -1,4 +1,5 @@
-# Exclude ENV configuration file
+# Exclude Environment Variables
 .env
 
-.task/
+# Exclude Build Artifacts
+build/

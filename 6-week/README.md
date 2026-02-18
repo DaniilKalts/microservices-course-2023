@@ -48,8 +48,11 @@ migrations/
 proto/
   user/v1/user.proto
 gen/
-  go/user/v1/
+  grpc/user/v1/
   openapi/user/v1/
+build/
+  tests/
+  tls/
 Taskfile.yaml
 Dockerfile
 docker-compose.yaml
@@ -104,4 +107,12 @@ docker compose up -d postgres
 
 ```bash
 go run ./cmd/main.go
+```
+
+### Cleanup Tasks
+
+```bash
+task clean:gen    # remove generated source (gen/grpc, gen/openapi, statik.go)
+task clean:build  # remove build artifacts (build/tls, build/tests)
+task clean        # run all cleanup tasks
 ```

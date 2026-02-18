@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	userv1 "github.com/DaniilKalts/microservices-course-2023/6-week/gen/go/user/v1"
+	userv1 "github.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/user/v1"
 )
 
 func (h *Handler) Get(ctx context.Context, req *userv1.GetRequest) (*userv1.GetResponse, error) {

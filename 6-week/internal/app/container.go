@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	userv1 "github.com/DaniilKalts/microservices-course-2023/6-week/gen/go/user/v1"
+	userv1 "github.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/user/v1"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/in/database/postgres"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/in/transport/http/swagger"
 	grpcInterceptor "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/interceptor"

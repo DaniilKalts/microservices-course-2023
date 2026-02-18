@@ -1,6 +1,11 @@
 version: "3"
 
 vars:
+  ENV_FILE: '{{default ".env" .ENV_FILE}}'
+
+  # - - -
+  # Protobuf and generation
+  # - - -
   PROTO_DIR: proto
   GEN_GO_DIR: gen/go
   GEN_OPENAPI_DIR: gen/openapi
@@ -8,13 +13,24 @@ vars:
   GEN_SWAGGER_UI_STATIK_DIR: internal/adapters/in/transport/http
   GEN_SWAGGER_UI_STATIK_PACKAGE: swagger
   GRPC_GATEWAY_VERSION: v2.27.7
+
+  # - - -
+  # Database
+  # - - -
   MIGRATION_DIR: migrations
   MIGRATION_DSN: "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 
+  # - - -
+  # TLS (development)
+  # - - -
+  TLS_DIR: .task/tls
+  TLS_CERT_FILE: "{{.TLS_DIR}}/server.crt"
+  TLS_KEY_FILE: "{{.TLS_DIR}}/server.key"
+
 tasks:
-  # ========================================
+  # - - -
   # Environment checks
-  # ========================================
+  # - - -
   check-os:
     silent: true
     cmds:
@@ -23,9 +39,9 @@ tasks:
           echo "🪟 Windows detected? 🐧 sudo switch-to-linux --now!"
         {{end}}
 
-  # ========================================
+  # - - -
   # Tooling and code generation
-  # ========================================
+  # - - -
   install-deps:
     desc: 🛠️ Install protobuf toolchain, statik, minimock, and gotestsum
     deps: [check-os]
@@ -102,21 +118,54 @@ tasks:
           -f
       - echo "✨ Generation complete!"
 
-  # ========================================
+  # - - -
   # Service run tasks
-  # ========================================
+  # - - -
   run-user:
     desc: 👤 Run User Service
     cmds:
-      - go run ./cmd/main.go
+      - go run ./cmd/main.go -config-path "{{.ENV_FILE}}"
 
   dev:
     desc: 🏃 Run both services in parallel
     deps: [run-user]
 
-  # ========================================
+  # - - -
+  # TLS (development)
+  # - - -
+
+  tls:generate:
+    desc: 🔐 Generate dev TLS cert and key
+    silent: true
+    cmds:
+      - mkdir -p "{{.TLS_DIR}}"
+      - |
+        openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 365 \
+          -keyout "{{.TLS_KEY_FILE}}" \
+          -out "{{.TLS_CERT_FILE}}" \
+          -subj "/CN=localhost" \
+          -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+      - chmod 600 "{{.TLS_KEY_FILE}}"
+
+  tls:verify:
+    desc: ✅ Verify dev TLS cert and key
+    silent: true
+    cmds:
+      - test -f "{{.TLS_CERT_FILE}}"
+      - test -f "{{.TLS_KEY_FILE}}"
+      - openssl x509 -in "{{.TLS_CERT_FILE}}" -noout -subject -issuer -dates -ext subjectAltName
+      - openssl x509 -noout -modulus -in "{{.TLS_CERT_FILE}}" | openssl md5
+      - openssl rsa -noout -modulus -in "{{.TLS_KEY_FILE}}" | openssl md5
+
+  dev:tls:
+    desc: 🏃 Run service locally (TLS toggled in ENV_FILE)
+    deps: [tls:dev, tls:check]
+    cmds:
+      - go run ./cmd/main.go -config-path "{{.ENV_FILE}}"
+
+  # - - -
   # Testing
-  # ========================================
+  # - - -
   test:
     desc: 🧪 Run user service tests with gotestsum
     deps: [install-deps]
@@ -137,9 +186,9 @@ tasks:
         gotestsum -- -coverprofile=.task/tests/coverage.out ./internal/...
       - go tool cover -html=.task/tests/coverage.out -o .task/tests/coverage.html
 
-  # ========================================
+  # - - -
   # Database migrations
-  # ========================================
+  # - - -
   migration-status:
     desc: 📊 Check migration status
     silent: true

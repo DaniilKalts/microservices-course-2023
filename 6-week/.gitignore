@@ -1,4 +1,4 @@
-# Exclude production ENV-specific configuration file
-prod.env
+# Exclude ENV configuration file
+.env
 
 .task/

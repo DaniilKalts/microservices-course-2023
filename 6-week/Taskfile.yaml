@@ -34,6 +34,13 @@ vars:
   TLS_CERT_FILE: "{{.TLS_DIR}}/server.crt"
   TLS_KEY_FILE: "{{.TLS_DIR}}/server.key"
 
+  # - - -
+  # JWT (development)
+  # - - -
+  JWT_DIR: "{{.BUILD_DIR}}/jwt"
+  JWT_PRIVATE_KEY_FILE: "{{.JWT_DIR}}/rs256_private.pem"
+  JWT_PUBLIC_KEY_FILE: "{{.JWT_DIR}}/rs256_public.pem"
+
 tasks:
   # - - -
   # Environment checks
@@ -52,6 +59,16 @@ tasks:
   install-deps:
     desc: 🛠️ Install protobuf toolchain, statik, minimock, and gotestsum
     deps: [check-os]
+    status:
+      - command -v protoc >/dev/null 2>&1
+      - test -x "$(go env GOPATH)/bin/protoc-gen-go"
+      - test -x "$(go env GOPATH)/bin/protoc-gen-go-grpc"
+      - test -x "$(go env GOPATH)/bin/protoc-gen-grpc-gateway"
+      - test -x "$(go env GOPATH)/bin/protoc-gen-openapiv2"
+      - test -x "$(go env GOPATH)/bin/protoc-gen-validate"
+      - test -x "$(go env GOPATH)/bin/statik"
+      - test -x "$(go env GOPATH)/bin/minimock"
+      - test -x "$(go env GOPATH)/bin/gotestsum"
     silent: true
     cmds:
       - echo "📦 Checking dependencies..."
@@ -83,7 +100,7 @@ tasks:
 
   generate:
     desc: 🚀 Generate Go protobuf/grpc/gateway stubs and Swagger for all .proto files
-    deps: [install-deps]
+    deps: [install-deps, jwt:generate]
     sources:
       - proto/**/*.proto
       - third_party/proto/**/*.proto
@@ -145,26 +162,47 @@ tasks:
     desc: 🔐 Generate dev TLS cert and key from ENV_FILE
     silent: true
     cmds:
-      - mkdir -p "{{.TLS_DIR}}"
       - |
+        TLS_CERT_PATH="{{.TLS_CERT_FILE}}"
+        TLS_KEY_PATH="{{.TLS_KEY_FILE}}"
+
         if [ -f "{{.ENV_FILE}}" ]; then
           set -a
           . "{{.ENV_FILE}}"
           set +a
         fi
 
+        if [ -n "${TLS_CERT_FILE}" ]; then
+          TLS_CERT_PATH="${TLS_CERT_FILE}"
+        fi
+
+        if [ -n "${TLS_KEY_FILE}" ]; then
+          TLS_KEY_PATH="${TLS_KEY_FILE}"
+        fi
+
+        if [ -f "${TLS_CERT_PATH}" ] && [ -f "${TLS_KEY_PATH}" ]; then
+          echo "🔐 TLS cert and key already exist, skip generation"
+          exit 0
+        fi
+
         : "${TLS_CERT_CN:?TLS_CERT_CN is not set}"
         : "${TLS_CERT_SAN_DNS:?TLS_CERT_SAN_DNS is not set}"
         : "${TLS_CERT_SAN_IP:?TLS_CERT_SAN_IP is not set}"
 
+        mkdir -p "$(dirname "${TLS_CERT_PATH}")"
+        mkdir -p "$(dirname "${TLS_KEY_PATH}")"
+
         TLS_SAN="DNS:${TLS_CERT_SAN_DNS},IP:${TLS_CERT_SAN_IP}"
+        echo "🔐 Generating TLS cert and key..."
         openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 365 \
-          -keyout "{{.TLS_KEY_FILE}}" \
-          -out "{{.TLS_CERT_FILE}}" \
+          -keyout "${TLS_KEY_PATH}" \
+          -out "${TLS_CERT_PATH}" \
           -subj "/CN=${TLS_CERT_CN}" \
-          -addext "subjectAltName=${TLS_SAN}"
-      - chmod 644 "{{.TLS_CERT_FILE}}"
-      - chmod 644 "{{.TLS_KEY_FILE}}"
+          -addext "subjectAltName=${TLS_SAN}" >/dev/null 2>&1
+
+        chmod 644 "${TLS_CERT_PATH}"
+        chmod 600 "${TLS_KEY_PATH}"
+        echo "✅ TLS cert and key generated"
 
   tls:verify:
     desc: ✅ Verify dev TLS cert and key
@@ -176,11 +214,91 @@ tasks:
       - openssl x509 -noout -modulus -in "{{.TLS_CERT_FILE}}" | openssl md5
       - openssl rsa -noout -modulus -in "{{.TLS_KEY_FILE}}" | openssl md5
 
-  dev:tls:
-    desc: 🏃 Run service locally (TLS toggled in ENV_FILE)
-    deps: [tls:generate, tls:verify]
+  # - - -
+  # JWT (development)
+  # - - -
+
+  jwt:generate:
+    desc: 🔑 Generate RS256 JWT private/public keys
+    silent: true
     cmds:
-      - go run ./cmd/main.go -config-path "{{.ENV_FILE}}"
+      - |
+        JWT_PRIVATE_KEY_PATH="{{.JWT_PRIVATE_KEY_FILE}}"
+        JWT_PUBLIC_KEY_PATH="{{.JWT_PUBLIC_KEY_FILE}}"
+
+        if [ -f "{{.ENV_FILE}}" ]; then
+          set -a
+          . "{{.ENV_FILE}}"
+          set +a
+        fi
+
+        if [ -n "${JWT_PRIVATE_KEY_FILE}" ]; then
+          JWT_PRIVATE_KEY_PATH="${JWT_PRIVATE_KEY_FILE}"
+        fi
+
+        if [ -n "${JWT_PUBLIC_KEY_FILE}" ]; then
+          JWT_PUBLIC_KEY_PATH="${JWT_PUBLIC_KEY_FILE}"
+        fi
+
+        if [ -f "${JWT_PRIVATE_KEY_PATH}" ] && [ -f "${JWT_PUBLIC_KEY_PATH}" ]; then
+          echo "🔑 JWT keys already exist, skip generation"
+          exit 0
+        fi
+
+        mkdir -p "$(dirname "${JWT_PRIVATE_KEY_PATH}")"
+        mkdir -p "$(dirname "${JWT_PUBLIC_KEY_PATH}")"
+
+        echo "🔑 Generating RS256 JWT keys..."
+        openssl genpkey -quiet -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "${JWT_PRIVATE_KEY_PATH}" >/dev/null 2>&1
+        openssl rsa -pubout -in "${JWT_PRIVATE_KEY_PATH}" -out "${JWT_PUBLIC_KEY_PATH}" >/dev/null 2>&1
+        echo "✅ JWT keys generated"
+      - |
+        JWT_PRIVATE_KEY_PATH="{{.JWT_PRIVATE_KEY_FILE}}"
+        JWT_PUBLIC_KEY_PATH="{{.JWT_PUBLIC_KEY_FILE}}"
+
+        if [ -f "{{.ENV_FILE}}" ]; then
+          set -a
+          . "{{.ENV_FILE}}"
+          set +a
+        fi
+
+        if [ -n "${JWT_PRIVATE_KEY_FILE}" ]; then
+          JWT_PRIVATE_KEY_PATH="${JWT_PRIVATE_KEY_FILE}"
+        fi
+
+        if [ -n "${JWT_PUBLIC_KEY_FILE}" ]; then
+          JWT_PUBLIC_KEY_PATH="${JWT_PUBLIC_KEY_FILE}"
+        fi
+
+        chmod 600 "${JWT_PRIVATE_KEY_PATH}"
+        chmod 644 "${JWT_PUBLIC_KEY_PATH}"
+
+  jwt:verify:
+    desc: ✅ Verify RS256 JWT key pair
+    silent: true
+    cmds:
+      - |
+        JWT_PRIVATE_KEY_PATH="{{.JWT_PRIVATE_KEY_FILE}}"
+        JWT_PUBLIC_KEY_PATH="{{.JWT_PUBLIC_KEY_FILE}}"
+
+        if [ -f "{{.ENV_FILE}}" ]; then
+          set -a
+          . "{{.ENV_FILE}}"
+          set +a
+        fi
+
+        if [ -n "${JWT_PRIVATE_KEY_FILE}" ]; then
+          JWT_PRIVATE_KEY_PATH="${JWT_PRIVATE_KEY_FILE}"
+        fi
+
+        if [ -n "${JWT_PUBLIC_KEY_FILE}" ]; then
+          JWT_PUBLIC_KEY_PATH="${JWT_PUBLIC_KEY_FILE}"
+        fi
+
+        test -f "${JWT_PRIVATE_KEY_PATH}"
+        test -f "${JWT_PUBLIC_KEY_PATH}"
+        openssl pkey -in "${JWT_PRIVATE_KEY_PATH}" -check -noout
+        openssl rsa -pubin -in "${JWT_PUBLIC_KEY_PATH}" -text -noout
 
   # - - -
   # Testing

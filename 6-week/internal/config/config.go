@@ -18,9 +18,19 @@ type TLSConfig interface {
 	KeyFile() string
 }
 
+type JWTConfig interface {
+	Issuer() string
+	Subject() string
+	Audience() string
+	ExpiresAt() string
+	NotBefore() string
+	IssuedAt() string
+}
+
 type Config interface {
 	Postgres() PostgresConfig
 	GRPC() GRPCConfig
 	Gateway() GatewayConfig
 	TLS() TLSConfig
+	JWT() JWTConfig
 }

@@ -9,6 +9,7 @@ type appConfig struct {
 	grpc     config.GRPCConfig
 	gateway  config.GatewayConfig
 	tls      config.TLSConfig
+	jwt      config.JWTConfig
 }
 
 func NewConfig() (config.Config, error) {
@@ -32,11 +33,17 @@ func NewConfig() (config.Config, error) {
 		return nil, err
 	}
 
+	jwtConfig, err := NewJWTConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &appConfig{
 		postgres: postgresConfig,
 		grpc:     grpcConfig,
 		gateway:  gatewayConfig,
 		tls:      tlsConfig,
+		jwt:      jwtConfig,
 	}, nil
 }
 
@@ -54,4 +61,8 @@ func (cfg *appConfig) Gateway() config.GatewayConfig {
 
 func (cfg *appConfig) TLS() config.TLSConfig {
 	return cfg.tls
+}
+
+func (cfg *appConfig) JWT() config.JWTConfig {
+	return cfg.jwt
 }

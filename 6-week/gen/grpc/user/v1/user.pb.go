@@ -555,9 +555,9 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x04List\x12\x16.google.protobuf.Empty\x1a\x15.user.v1.ListResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/users\x12L\n" +
 	"\x03Get\x12\x13.user.v1.GetRequest\x1a\x14.user.v1.GetResponse\"\x1a\x82\xd3\xe4\x93\x02\x14\x12\x12/api/v1/users/{id}\x12W\n" +
 	"\x06Update\x12\x16.user.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*2\x12/api/v1/users/{id}\x12T\n" +
-	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\x1a\x82\xd3\xe4\x93\x02\x14*\x12/api/v1/users/{id}B\xeb\x01\x92A\x96\x01\x12\\\n" +
+	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\x1a\x82\xd3\xe4\x93\x02\x14*\x12/api/v1/users/{id}B\xd7\x01\x92A\x82\x01\x12\\\n" +
 	"\bChat API\x12'RESTful gateway API for real-time chat.\" \n" +
-	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.0\x1a\x0elocalhost:8000*\x02\x01\x022\x10application/json:\x10application/jsonZOgithub.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/user/v1;userv1b\x06proto3"
+	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.02\x10application/json:\x10application/jsonZOgithub.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/user/v1;userv1b\x06proto3"
 
 var (
 	file_user_v1_user_proto_rawDescOnce sync.Once

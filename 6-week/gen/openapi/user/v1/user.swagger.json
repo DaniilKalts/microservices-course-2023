@@ -14,11 +14,6 @@
       "name": "UserV1"
     }
   ],
-  "host": "localhost:8000",
-  "schemes": [
-    "http",
-    "https"
-  ],
   "consumes": [
     "application/json"
   ],

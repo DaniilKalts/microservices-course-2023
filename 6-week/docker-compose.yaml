@@ -37,11 +37,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: microservices-course-2023-api
+    user: "${UID:-1000}:${GID:-1000}"
     env_file:
       - .env
     ports:
       - "8000:8000"
       - "50051:50051"
+    volumes:
+      - ./build/tls:/app/build/tls:ro
     depends_on:
       postgres:
         condition: service_healthy

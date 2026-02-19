@@ -20,9 +20,6 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
             email: "gopher@gmail.com"
         }
     }
-    host: "localhost:8000"
-    schemes: HTTP
-    schemes: HTTPS
     consumes: "application/json"
     produces: "application/json"
 };

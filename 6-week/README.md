@@ -7,7 +7,7 @@
 ### Status
 
 **To-do:**
-- [ ] Add TLS encryption for gRPC server
+- [x] Add TLS encryption for gRPC server
 - [ ] Add JWT authentication with login, register, logout
 
 - - -

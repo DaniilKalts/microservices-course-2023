@@ -7,6 +7,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 
 	userv1 "github.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/user/v1"
@@ -58,7 +59,10 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 	container.initUserRepository()
 	container.initUserService()
 	container.initUserHandler()
-	container.initGRPC()
+
+	if err := container.initGRPC(); err != nil {
+		return nil, err
+	}
 
 	if err := container.initGateway(ctx); err != nil {
 		return nil, err
@@ -107,17 +111,30 @@ func (c *Container) initUserHandler() {
 	c.userHandler = userAPI.NewHandler(c.UserSvc)
 }
 
-func (c *Container) initGRPC() {
-	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(
-			grpcInterceptor.ValidationInterceptor(),
-		),
-	)
+func (c *Container) initGRPC() error {
+	grpcOpts := make([]grpc.ServerOption, 0, 2)
+	grpcOpts = append(grpcOpts, grpc.ChainUnaryInterceptor(grpcInterceptor.ValidationInterceptor()))
+
+	if c.Cfg.TLS().Enabled() {
+		cert := c.Cfg.TLS().CertFile()
+		key := c.Cfg.TLS().KeyFile()
+
+		creds, err := credentials.NewServerTLSFromFile(cert, key)
+		if err != nil {
+			return err
+		}
+
+		grpcOpts = append(grpcOpts, grpc.Creds(creds))
+	}
+
+	grpcServer := grpc.NewServer(grpcOpts...)
 
 	reflection.Register(grpcServer)
 	userv1.RegisterUserV1Server(grpcServer, c.userHandler)
 
 	c.GRPC = grpcServer
+
+	return nil
 }
 
 func (c *Container) initGateway(ctx context.Context) error {

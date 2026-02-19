@@ -21,8 +21,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # ==========================================
 FROM alpine:3.20 AS chat
 WORKDIR /app
-COPY --from=builder /app/api .
-COPY --from=builder /app/gen/openapi ./gen/openapi
+
+COPY --from=builder --chown=1000:1000 /app/api ./api
+COPY --from=builder --chown=1000:1000 /app/gen/openapi ./gen/openapi
 
 # Run as non-root for security
 USER 1000:1000

@@ -1,6 +1,7 @@
 package swagger
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -51,8 +52,14 @@ func NewHandler(openAPIFilePath string) (http.Handler, error) {
 			return
 		}
 
+		spec, err := prepareOpenAPISpec(openAPISpec, r)
+		if err != nil {
+			http.Error(w, "failed to prepare openapi spec", http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_, _ = w.Write(openAPISpec)
+		_, _ = w.Write(spec)
 	})
 	handler.HandleFunc(initializerScriptPath, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
@@ -61,4 +68,26 @@ func NewHandler(openAPIFilePath string) (http.Handler, error) {
 	handler.Handle("/", staticHandler)
 
 	return handler, nil
+}
+
+func prepareOpenAPISpec(raw []byte, r *http.Request) ([]byte, error) {
+	var spec map[string]any
+	if err := json.Unmarshal(raw, &spec); err != nil {
+		return nil, err
+	}
+
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+
+	spec["host"] = r.Host
+	spec["schemes"] = []string{scheme}
+
+	prepared, err := json.Marshal(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	return prepared, nil
 }

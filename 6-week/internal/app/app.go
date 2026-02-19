@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/config"
 )
 
 const (
@@ -58,7 +60,7 @@ func (a *App) Run(ctx context.Context) error {
 	}()
 
 	go func() {
-		serveErr <- serveGateway(gatewayServer)
+		serveErr <- serveGateway(gatewayServer, a.c.Cfg.TLS())
 	}()
 
 	stop := make(chan os.Signal, 1)
@@ -86,8 +88,14 @@ func serveGRPC(server *grpc.Server, lis net.Listener) error {
 	return nil
 }
 
-func serveGateway(server *http.Server) error {
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+func serveGateway(server *http.Server, tlsCfg config.TLSConfig) (err error) {
+	if tlsCfg.Enabled() {
+		err = server.ListenAndServeTLS(tlsCfg.CertFile(), tlsCfg.KeyFile())
+	} else {
+		err = server.ListenAndServe()
+	}
+
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("grpc-gateway server: %w", err)
 	}
 

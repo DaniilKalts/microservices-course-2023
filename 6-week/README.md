@@ -89,6 +89,8 @@ third_party/
 docker compose up -d --build
 ```
 
+Swagger UI: `http://localhost:8000/swagger/`
+
 ### 2. Run Locally (Go)
 
 1. Start PostgreSQL:

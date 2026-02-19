@@ -39,11 +39,9 @@ services:
     container_name: microservices-course-2023-api
     env_file:
       - .env
-    environment:
-      - GRPC_HOST=${GRPC_USER_HOST}
-      - GRPC_PORT=${GRPC_USER_PORT}
     ports:
       - "8000:8000"
+      - "50051:50051"
     depends_on:
       postgres:
         condition: service_healthy

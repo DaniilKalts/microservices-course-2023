@@ -12,8 +12,15 @@ type GatewayConfig interface {
 	Address() string
 }
 
+type TLSConfig interface {
+	Enabled() bool
+	CertFile() string
+	KeyFile() string
+}
+
 type Config interface {
 	Postgres() PostgresConfig
 	GRPC() GRPCConfig
 	Gateway() GatewayConfig
+	TLS() TLSConfig
 }

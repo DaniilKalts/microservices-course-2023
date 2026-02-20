@@ -24,6 +24,8 @@ type JWTConfig interface {
 	Issuer() string
 	Subject() string
 	Audience() string
+	PrivateKeyFile() string
+	PublicKeyFile() string
 	AccessExpiresAt() time.Duration
 	RefreshExpiresAt() time.Duration
 	NotBefore() time.Duration

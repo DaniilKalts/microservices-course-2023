@@ -13,17 +13,24 @@ const (
 	jwtIssuerEnvName           = "JWT_ISS"
 	jwtSubjectEnvName          = "JWT_SUB"
 	jwtAudienceEnvName         = "JWT_AUD"
+	jwtPrivateKeyFileEnvName   = "JWT_PRIVATE_KEY_FILE"
+	jwtPublicKeyFileEnvName    = "JWT_PUBLIC_KEY_FILE"
 	jwtAccessExpiresAtEnvName  = "JWT_ACCESS_EXP"
 	jwtLegacyAccessExpEnvName  = "JWT_EXP"
 	jwtRefreshExpiresAtEnvName = "JWT_REFRESH_EXP"
 	jwtNotBeforeEnvName        = "JWT_NBF"
 	jwtIssuedAtEnvName         = "JWT_IAT"
+
+	defaultJWTPrivateKeyFile = "build/jwt/rs256_private.pem"
+	defaultJWTPublicKeyFile  = "build/jwt/rs256_public.pem"
 )
 
 type jwtConfig struct {
 	issuer           string
 	subject          string
 	audience         string
+	privateKeyFile   string
+	publicKeyFile    string
 	accessExpiresAt  time.Duration
 	refreshExpiresAt time.Duration
 	notBefore        time.Duration
@@ -44,6 +51,16 @@ func NewJWTConfig() (config.JWTConfig, error) {
 	audience := os.Getenv(jwtAudienceEnvName)
 	if len(audience) == 0 {
 		return nil, errors.New(jwtAudienceEnvName + " is not set")
+	}
+
+	privateKeyFile := os.Getenv(jwtPrivateKeyFileEnvName)
+	if len(privateKeyFile) == 0 {
+		privateKeyFile = defaultJWTPrivateKeyFile
+	}
+
+	publicKeyFile := os.Getenv(jwtPublicKeyFileEnvName)
+	if len(publicKeyFile) == 0 {
+		publicKeyFile = defaultJWTPublicKeyFile
 	}
 
 	accessExpiresAt, err := readAccessExpiresAt()
@@ -70,6 +87,8 @@ func NewJWTConfig() (config.JWTConfig, error) {
 		issuer:           issuer,
 		subject:          subject,
 		audience:         audience,
+		privateKeyFile:   privateKeyFile,
+		publicKeyFile:    publicKeyFile,
 		accessExpiresAt:  accessExpiresAt,
 		refreshExpiresAt: refreshExpiresAt,
 		notBefore:        notBefore,
@@ -87,6 +106,14 @@ func (cfg *jwtConfig) Subject() string {
 
 func (cfg *jwtConfig) Audience() string {
 	return cfg.audience
+}
+
+func (cfg *jwtConfig) PrivateKeyFile() string {
+	return cfg.privateKeyFile
+}
+
+func (cfg *jwtConfig) PublicKeyFile() string {
+	return cfg.publicKeyFile
 }
 
 func readAccessExpiresAt() (time.Duration, error) {

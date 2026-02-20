@@ -29,17 +29,19 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/6-week/pkg/jwt"
 )
 
-const (
-	swaggerBasePath         = "/swagger"
-	swaggerMergedOpenAPI    = "gen/openapi/gateway.swagger.json"
-	swaggerUserBasePath     = swaggerBasePath + "/user"
-	swaggerUserOpenAPI      = "gen/openapi/user/v1/user.swagger.json"
-	swaggerAuthBasePath     = swaggerBasePath + "/auth"
-	swaggerAuthOpenAPI      = "gen/openapi/auth/v1/auth.swagger.json"
-	swaggerRedirectTarget   = swaggerBasePath + "/"
-	swaggerUserRedirectPath = swaggerUserBasePath + "/"
-	swaggerAuthRedirectPath = swaggerAuthBasePath + "/"
-)
+const swaggerBasePath = "/swagger"
+
+type swaggerRoute struct {
+	name       string
+	basePath   string
+	openAPIURL string
+}
+
+var swaggerRoutes = []swaggerRoute{
+	{name: "merged", basePath: swaggerBasePath, openAPIURL: "gen/openapi/gateway.swagger.json"},
+	{name: "user", basePath: swaggerBasePath + "/user", openAPIURL: "gen/openapi/user/v1/user.swagger.json"},
+	{name: "auth", basePath: swaggerBasePath + "/auth", openAPIURL: "gen/openapi/auth/v1/auth.swagger.json"},
+}
 
 type Container struct {
 	Cfg config.Config
@@ -196,39 +198,45 @@ func (c *Container) initGRPC() error {
 
 func (c *Container) initGateway(ctx context.Context) error {
 	gatewayMux := runtime.NewServeMux()
+
+	mux := http.NewServeMux()
+	mux.Handle("/", gatewayMux)
+
 	if err := userv1.RegisterUserV1HandlerServer(ctx, gatewayMux, c.userHandler); err != nil {
-		return fmt.Errorf("register grpc-gateway handlers: %w", err)
+		return fmt.Errorf("register user grpc-gateway handler: %w", err)
 	}
 	if err := authv1.RegisterAuthV1HandlerServer(ctx, gatewayMux, c.authHandler); err != nil {
-		return fmt.Errorf("register grpc-gateway handlers: %w", err)
+		return fmt.Errorf("register auth grpc-gateway handler: %w", err)
 	}
 
-	mergedSwaggerHandler, err := swagger.NewHandler(swaggerMergedOpenAPI)
+	if err := registerSwaggerHandlers(mux); err != nil {
+		return err
+	}
+
+	c.Gateway = mux
+
+	return nil
+}
+
+func registerSwaggerHandlers(mux *http.ServeMux) error {
+	for _, route := range swaggerRoutes {
+		if err := registerSwaggerHandler(mux, route); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func registerSwaggerHandler(mux *http.ServeMux, route swaggerRoute) error {
+	handler, err := swagger.NewHandler(route.openAPIURL)
 	if err != nil {
-		return fmt.Errorf("init merged swagger-ui handler: %w", err)
+		return fmt.Errorf("init %s swagger-ui handler: %w", route.name, err)
 	}
 
-	userSwaggerHandler, err := swagger.NewHandler(swaggerUserOpenAPI)
-	if err != nil {
-		return fmt.Errorf("init user swagger-ui handler: %w", err)
-	}
-
-	authSwaggerHandler, err := swagger.NewHandler(swaggerAuthOpenAPI)
-	if err != nil {
-		return fmt.Errorf("init auth swagger-ui handler: %w", err)
-	}
-
-	handler := http.NewServeMux()
-
-	handler.Handle("/", gatewayMux)
-	handler.Handle(swaggerBasePath+"/", http.StripPrefix(swaggerBasePath, mergedSwaggerHandler))
-	handler.Handle(swaggerBasePath, http.RedirectHandler(swaggerRedirectTarget, http.StatusMovedPermanently))
-	handler.Handle(swaggerUserBasePath+"/", http.StripPrefix(swaggerUserBasePath, userSwaggerHandler))
-	handler.Handle(swaggerUserBasePath, http.RedirectHandler(swaggerUserRedirectPath, http.StatusMovedPermanently))
-	handler.Handle(swaggerAuthBasePath+"/", http.StripPrefix(swaggerAuthBasePath, authSwaggerHandler))
-	handler.Handle(swaggerAuthBasePath, http.RedirectHandler(swaggerAuthRedirectPath, http.StatusMovedPermanently))
-
-	c.Gateway = handler
+	redirectPath := route.basePath + "/"
+	mux.Handle(redirectPath, http.StripPrefix(route.basePath, handler))
+	mux.Handle(route.basePath, http.RedirectHandler(redirectPath, http.StatusMovedPermanently))
 
 	return nil
 }

@@ -8,7 +8,7 @@
 
 **To-do:**
 - [x] Add TLS encryption for gRPC server
-- [ ] Add JWT authentication with login, register, logout
+- [x] Add JWT authentication with login, register, logout
 
 - - -
 

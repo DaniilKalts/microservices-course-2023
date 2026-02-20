@@ -16,9 +16,9 @@ func TestGet_Success(t *testing.T) {
 
 	ctx := context.Background()
 	id := "u-1"
-	expected := &domainUser.Entity{ID: id, Name: "John", Email: "john@example.com"}
+	expected := &domainUser.User{ID: id, Name: "John", Email: "john@example.com"}
 	repo := repositoryMocks.NewUserRepositoryMock(t)
-	repo.GetMock.Set(func(_ context.Context, gotID string) (*domainUser.Entity, error) {
+	repo.GetMock.Set(func(_ context.Context, gotID string) (*domainUser.User, error) {
 		require.Equal(t, id, gotID)
 		return expected, nil
 	})
@@ -57,7 +57,7 @@ func TestGet_RepositoryScenarios(t *testing.T) {
 			t.Parallel()
 
 			repo := repositoryMocks.NewUserRepositoryMock(t)
-			repo.GetMock.Set(func(_ context.Context, _ string) (*domainUser.Entity, error) {
+			repo.GetMock.Set(func(_ context.Context, _ string) (*domainUser.User, error) {
 				return nil, tt.repoErr
 			})
 

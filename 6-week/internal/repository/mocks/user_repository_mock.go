@@ -19,9 +19,9 @@ type UserRepositoryMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcCreate          func(ctx context.Context, user *domainUser.Entity, passwordHash string) (s1 string, err error)
+	funcCreate          func(ctx context.Context, user *domainUser.User, passwordHash string) (s1 string, err error)
 	funcCreateOrigin    string
-	inspectFuncCreate   func(ctx context.Context, user *domainUser.Entity, passwordHash string)
+	inspectFuncCreate   func(ctx context.Context, user *domainUser.User, passwordHash string)
 	afterCreateCounter  uint64
 	beforeCreateCounter uint64
 	CreateMock          mUserRepositoryMockCreate
@@ -33,14 +33,14 @@ type UserRepositoryMock struct {
 	beforeDeleteCounter uint64
 	DeleteMock          mUserRepositoryMockDelete
 
-	funcGet          func(ctx context.Context, id string) (ep1 *domainUser.Entity, err error)
+	funcGet          func(ctx context.Context, id string) (up1 *domainUser.User, err error)
 	funcGetOrigin    string
 	inspectFuncGet   func(ctx context.Context, id string)
 	afterGetCounter  uint64
 	beforeGetCounter uint64
 	GetMock          mUserRepositoryMockGet
 
-	funcList          func(ctx context.Context) (ea1 []domainUser.Entity, err error)
+	funcList          func(ctx context.Context) (ua1 []domainUser.User, err error)
 	funcListOrigin    string
 	inspectFuncList   func(ctx context.Context)
 	afterListCounter  uint64
@@ -110,14 +110,14 @@ type UserRepositoryMockCreateExpectation struct {
 // UserRepositoryMockCreateParams contains parameters of the UserRepository.Create
 type UserRepositoryMockCreateParams struct {
 	ctx          context.Context
-	user         *domainUser.Entity
+	user         *domainUser.User
 	passwordHash string
 }
 
 // UserRepositoryMockCreateParamPtrs contains pointers to parameters of the UserRepository.Create
 type UserRepositoryMockCreateParamPtrs struct {
 	ctx          *context.Context
-	user         **domainUser.Entity
+	user         **domainUser.User
 	passwordHash *string
 }
 
@@ -146,7 +146,7 @@ func (mmCreate *mUserRepositoryMockCreate) Optional() *mUserRepositoryMockCreate
 }
 
 // Expect sets up expected params for UserRepository.Create
-func (mmCreate *mUserRepositoryMockCreate) Expect(ctx context.Context, user *domainUser.Entity, passwordHash string) *mUserRepositoryMockCreate {
+func (mmCreate *mUserRepositoryMockCreate) Expect(ctx context.Context, user *domainUser.User, passwordHash string) *mUserRepositoryMockCreate {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("UserRepositoryMock.Create mock is already set by Set")
 	}
@@ -194,7 +194,7 @@ func (mmCreate *mUserRepositoryMockCreate) ExpectCtxParam1(ctx context.Context) 
 }
 
 // ExpectUserParam2 sets up expected param user for UserRepository.Create
-func (mmCreate *mUserRepositoryMockCreate) ExpectUserParam2(user *domainUser.Entity) *mUserRepositoryMockCreate {
+func (mmCreate *mUserRepositoryMockCreate) ExpectUserParam2(user *domainUser.User) *mUserRepositoryMockCreate {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("UserRepositoryMock.Create mock is already set by Set")
 	}
@@ -240,7 +240,7 @@ func (mmCreate *mUserRepositoryMockCreate) ExpectPasswordHashParam3(passwordHash
 }
 
 // Inspect accepts an inspector function that has same arguments as the UserRepository.Create
-func (mmCreate *mUserRepositoryMockCreate) Inspect(f func(ctx context.Context, user *domainUser.Entity, passwordHash string)) *mUserRepositoryMockCreate {
+func (mmCreate *mUserRepositoryMockCreate) Inspect(f func(ctx context.Context, user *domainUser.User, passwordHash string)) *mUserRepositoryMockCreate {
 	if mmCreate.mock.inspectFuncCreate != nil {
 		mmCreate.mock.t.Fatalf("Inspect function is already set for UserRepositoryMock.Create")
 	}
@@ -265,7 +265,7 @@ func (mmCreate *mUserRepositoryMockCreate) Return(s1 string, err error) *UserRep
 }
 
 // Set uses given function f to mock the UserRepository.Create method
-func (mmCreate *mUserRepositoryMockCreate) Set(f func(ctx context.Context, user *domainUser.Entity, passwordHash string) (s1 string, err error)) *UserRepositoryMock {
+func (mmCreate *mUserRepositoryMockCreate) Set(f func(ctx context.Context, user *domainUser.User, passwordHash string) (s1 string, err error)) *UserRepositoryMock {
 	if mmCreate.defaultExpectation != nil {
 		mmCreate.mock.t.Fatalf("Default expectation is already set for the UserRepository.Create method")
 	}
@@ -281,7 +281,7 @@ func (mmCreate *mUserRepositoryMockCreate) Set(f func(ctx context.Context, user 
 
 // When sets expectation for the UserRepository.Create which will trigger the result defined by the following
 // Then helper
-func (mmCreate *mUserRepositoryMockCreate) When(ctx context.Context, user *domainUser.Entity, passwordHash string) *UserRepositoryMockCreateExpectation {
+func (mmCreate *mUserRepositoryMockCreate) When(ctx context.Context, user *domainUser.User, passwordHash string) *UserRepositoryMockCreateExpectation {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("UserRepositoryMock.Create mock is already set by Set")
 	}
@@ -323,7 +323,7 @@ func (mmCreate *mUserRepositoryMockCreate) invocationsDone() bool {
 }
 
 // Create implements mm_repository.UserRepository
-func (mmCreate *UserRepositoryMock) Create(ctx context.Context, user *domainUser.Entity, passwordHash string) (s1 string, err error) {
+func (mmCreate *UserRepositoryMock) Create(ctx context.Context, user *domainUser.User, passwordHash string) (s1 string, err error) {
 	mm_atomic.AddUint64(&mmCreate.beforeCreateCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreate.afterCreateCounter, 1)
 
@@ -837,7 +837,7 @@ type UserRepositoryMockGetParamPtrs struct {
 
 // UserRepositoryMockGetResults contains results of the UserRepository.Get
 type UserRepositoryMockGetResults struct {
-	ep1 *domainUser.Entity
+	up1 *domainUser.User
 	err error
 }
 
@@ -941,7 +941,7 @@ func (mmGet *mUserRepositoryMockGet) Inspect(f func(ctx context.Context, id stri
 }
 
 // Return sets up results that will be returned by UserRepository.Get
-func (mmGet *mUserRepositoryMockGet) Return(ep1 *domainUser.Entity, err error) *UserRepositoryMock {
+func (mmGet *mUserRepositoryMockGet) Return(up1 *domainUser.User, err error) *UserRepositoryMock {
 	if mmGet.mock.funcGet != nil {
 		mmGet.mock.t.Fatalf("UserRepositoryMock.Get mock is already set by Set")
 	}
@@ -949,13 +949,13 @@ func (mmGet *mUserRepositoryMockGet) Return(ep1 *domainUser.Entity, err error) *
 	if mmGet.defaultExpectation == nil {
 		mmGet.defaultExpectation = &UserRepositoryMockGetExpectation{mock: mmGet.mock}
 	}
-	mmGet.defaultExpectation.results = &UserRepositoryMockGetResults{ep1, err}
+	mmGet.defaultExpectation.results = &UserRepositoryMockGetResults{up1, err}
 	mmGet.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmGet.mock
 }
 
 // Set uses given function f to mock the UserRepository.Get method
-func (mmGet *mUserRepositoryMockGet) Set(f func(ctx context.Context, id string) (ep1 *domainUser.Entity, err error)) *UserRepositoryMock {
+func (mmGet *mUserRepositoryMockGet) Set(f func(ctx context.Context, id string) (up1 *domainUser.User, err error)) *UserRepositoryMock {
 	if mmGet.defaultExpectation != nil {
 		mmGet.mock.t.Fatalf("Default expectation is already set for the UserRepository.Get method")
 	}
@@ -986,8 +986,8 @@ func (mmGet *mUserRepositoryMockGet) When(ctx context.Context, id string) *UserR
 }
 
 // Then sets up UserRepository.Get return parameters for the expectation previously defined by the When method
-func (e *UserRepositoryMockGetExpectation) Then(ep1 *domainUser.Entity, err error) *UserRepositoryMock {
-	e.results = &UserRepositoryMockGetResults{ep1, err}
+func (e *UserRepositoryMockGetExpectation) Then(up1 *domainUser.User, err error) *UserRepositoryMock {
+	e.results = &UserRepositoryMockGetResults{up1, err}
 	return e.mock
 }
 
@@ -1013,7 +1013,7 @@ func (mmGet *mUserRepositoryMockGet) invocationsDone() bool {
 }
 
 // Get implements mm_repository.UserRepository
-func (mmGet *UserRepositoryMock) Get(ctx context.Context, id string) (ep1 *domainUser.Entity, err error) {
+func (mmGet *UserRepositoryMock) Get(ctx context.Context, id string) (up1 *domainUser.User, err error) {
 	mm_atomic.AddUint64(&mmGet.beforeGetCounter, 1)
 	defer mm_atomic.AddUint64(&mmGet.afterGetCounter, 1)
 
@@ -1033,7 +1033,7 @@ func (mmGet *UserRepositoryMock) Get(ctx context.Context, id string) (ep1 *domai
 	for _, e := range mmGet.GetMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.ep1, e.results.err
+			return e.results.up1, e.results.err
 		}
 	}
 
@@ -1065,7 +1065,7 @@ func (mmGet *UserRepositoryMock) Get(ctx context.Context, id string) (ep1 *domai
 		if mm_results == nil {
 			mmGet.t.Fatal("No results are set for the UserRepositoryMock.Get")
 		}
-		return (*mm_results).ep1, (*mm_results).err
+		return (*mm_results).up1, (*mm_results).err
 	}
 	if mmGet.funcGet != nil {
 		return mmGet.funcGet(ctx, id)
@@ -1178,7 +1178,7 @@ type UserRepositoryMockListParamPtrs struct {
 
 // UserRepositoryMockListResults contains results of the UserRepository.List
 type UserRepositoryMockListResults struct {
-	ea1 []domainUser.Entity
+	ua1 []domainUser.User
 	err error
 }
 
@@ -1258,7 +1258,7 @@ func (mmList *mUserRepositoryMockList) Inspect(f func(ctx context.Context)) *mUs
 }
 
 // Return sets up results that will be returned by UserRepository.List
-func (mmList *mUserRepositoryMockList) Return(ea1 []domainUser.Entity, err error) *UserRepositoryMock {
+func (mmList *mUserRepositoryMockList) Return(ua1 []domainUser.User, err error) *UserRepositoryMock {
 	if mmList.mock.funcList != nil {
 		mmList.mock.t.Fatalf("UserRepositoryMock.List mock is already set by Set")
 	}
@@ -1266,13 +1266,13 @@ func (mmList *mUserRepositoryMockList) Return(ea1 []domainUser.Entity, err error
 	if mmList.defaultExpectation == nil {
 		mmList.defaultExpectation = &UserRepositoryMockListExpectation{mock: mmList.mock}
 	}
-	mmList.defaultExpectation.results = &UserRepositoryMockListResults{ea1, err}
+	mmList.defaultExpectation.results = &UserRepositoryMockListResults{ua1, err}
 	mmList.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmList.mock
 }
 
 // Set uses given function f to mock the UserRepository.List method
-func (mmList *mUserRepositoryMockList) Set(f func(ctx context.Context) (ea1 []domainUser.Entity, err error)) *UserRepositoryMock {
+func (mmList *mUserRepositoryMockList) Set(f func(ctx context.Context) (ua1 []domainUser.User, err error)) *UserRepositoryMock {
 	if mmList.defaultExpectation != nil {
 		mmList.mock.t.Fatalf("Default expectation is already set for the UserRepository.List method")
 	}
@@ -1303,8 +1303,8 @@ func (mmList *mUserRepositoryMockList) When(ctx context.Context) *UserRepository
 }
 
 // Then sets up UserRepository.List return parameters for the expectation previously defined by the When method
-func (e *UserRepositoryMockListExpectation) Then(ea1 []domainUser.Entity, err error) *UserRepositoryMock {
-	e.results = &UserRepositoryMockListResults{ea1, err}
+func (e *UserRepositoryMockListExpectation) Then(ua1 []domainUser.User, err error) *UserRepositoryMock {
+	e.results = &UserRepositoryMockListResults{ua1, err}
 	return e.mock
 }
 
@@ -1330,7 +1330,7 @@ func (mmList *mUserRepositoryMockList) invocationsDone() bool {
 }
 
 // List implements mm_repository.UserRepository
-func (mmList *UserRepositoryMock) List(ctx context.Context) (ea1 []domainUser.Entity, err error) {
+func (mmList *UserRepositoryMock) List(ctx context.Context) (ua1 []domainUser.User, err error) {
 	mm_atomic.AddUint64(&mmList.beforeListCounter, 1)
 	defer mm_atomic.AddUint64(&mmList.afterListCounter, 1)
 
@@ -1350,7 +1350,7 @@ func (mmList *UserRepositoryMock) List(ctx context.Context) (ea1 []domainUser.En
 	for _, e := range mmList.ListMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.ea1, e.results.err
+			return e.results.ua1, e.results.err
 		}
 	}
 
@@ -1377,7 +1377,7 @@ func (mmList *UserRepositoryMock) List(ctx context.Context) (ea1 []domainUser.En
 		if mm_results == nil {
 			mmList.t.Fatal("No results are set for the UserRepositoryMock.List")
 		}
-		return (*mm_results).ea1, (*mm_results).err
+		return (*mm_results).ua1, (*mm_results).err
 	}
 	if mmList.funcList != nil {
 		return mmList.funcList(ctx)

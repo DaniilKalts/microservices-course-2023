@@ -9,7 +9,7 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 )
 
-func (r *Repository) Create(ctx context.Context, user *domainUser.Entity, passwordHash string) (string, error) {
+func (r *Repository) Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error) {
 	dbUser := toDBUserFromDomain(user)
 	dbUser.PasswordHash = passwordHash
 

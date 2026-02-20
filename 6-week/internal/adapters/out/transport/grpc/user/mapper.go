@@ -7,8 +7,8 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 )
 
-func toDomainFromCreate(req *userv1.CreateRequest) *domainUser.Entity {
-	return &domainUser.Entity{
+func toDomainFromCreate(req *userv1.CreateRequest) *domainUser.User {
+	return &domainUser.User{
 		Name:  req.GetName(),
 		Email: req.GetEmail(),
 		Role:  domainUser.RoleUser,
@@ -29,23 +29,20 @@ func toDomainPatchFromUpdate(req *userv1.UpdateRequest) *domainUser.UpdatePatch 
 	return patch
 }
 
-func toProtoUser(user *domainUser.Entity) *userv1.User {
+func toProtoUser(user *domainUser.User) *userv1.User {
 	protoUser := &userv1.User{
 		Id:        user.ID,
 		Name:      user.Name,
 		Email:     user.Email,
 		Role:      userv1.Role(user.Role),
 		CreatedAt: timestamppb.New(user.CreatedAt),
-	}
-
-	if user.UpdatedAt != nil {
-		protoUser.UpdatedAt = timestamppb.New(*user.UpdatedAt)
+		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}
 
 	return protoUser
 }
 
-func toProtoUsers(users []domainUser.Entity) []*userv1.User {
+func toProtoUsers(users []domainUser.User) []*userv1.User {
 	protoUsers := make([]*userv1.User, 0, len(users))
 	for i := range users {
 		protoUsers = append(protoUsers, toProtoUser(&users[i]))

@@ -10,7 +10,7 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 )
 
-func (s *service) Create(ctx context.Context, user *domainUser.Entity, password, passwordConfirm string) (string, error) {
+func (s *service) Create(ctx context.Context, user *domainUser.User, password, passwordConfirm string) (string, error) {
 	if password != passwordConfirm {
 		return "", errors.New("Passwords don't match")
 	}

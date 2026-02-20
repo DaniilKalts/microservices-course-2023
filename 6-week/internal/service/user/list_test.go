@@ -15,13 +15,13 @@ func TestList_Success(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	expected := []domainUser.Entity{
+	expected := []domainUser.User{
 		{ID: "u-1", Name: "John", Email: "john@example.com"},
 		{ID: "u-2", Name: "Jane", Email: "jane@example.com"},
 	}
 
 	repo := repositoryMocks.NewUserRepositoryMock(t)
-	repo.ListMock.Set(func(_ context.Context) ([]domainUser.Entity, error) {
+	repo.ListMock.Set(func(_ context.Context) ([]domainUser.User, error) {
 		return expected, nil
 	})
 
@@ -40,7 +40,7 @@ func TestList_RepositoryError(t *testing.T) {
 	repoErr := errors.New("repository list failed")
 
 	repo := repositoryMocks.NewUserRepositoryMock(t)
-	repo.ListMock.Set(func(_ context.Context) ([]domainUser.Entity, error) {
+	repo.ListMock.Set(func(_ context.Context) ([]domainUser.User, error) {
 		return nil, repoErr
 	})
 

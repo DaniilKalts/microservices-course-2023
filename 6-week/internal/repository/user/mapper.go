@@ -2,7 +2,7 @@ package user
 
 import domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 
-func toDBUserFromDomain(user *domainUser.Entity) *dbUser {
+func toDBUserFromDomain(user *domainUser.User) *dbUser {
 	return &dbUser{
 		ID:    user.ID,
 		Name:  user.Name,
@@ -11,15 +11,13 @@ func toDBUserFromDomain(user *domainUser.Entity) *dbUser {
 	}
 }
 
-func toDomainFromDBUser(user *dbUser) *domainUser.Entity {
-	updatedAt := user.UpdatedAt
-
-	return &domainUser.Entity{
+func toDomainFromDBUser(user *dbUser) *domainUser.User {
+	return &domainUser.User{
 		ID:        user.ID,
 		Name:      user.Name,
 		Email:     user.Email,
 		Role:      domainUser.Role(user.Role),
 		CreatedAt: user.CreatedAt,
-		UpdatedAt: &updatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}
 }

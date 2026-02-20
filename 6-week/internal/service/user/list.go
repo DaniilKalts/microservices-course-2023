@@ -6,6 +6,6 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 )
 
-func (s *service) List(ctx context.Context) ([]domainUser.Entity, error) {
+func (s *service) List(ctx context.Context) ([]domainUser.User, error) {
 	return s.repo.List(ctx)
 }

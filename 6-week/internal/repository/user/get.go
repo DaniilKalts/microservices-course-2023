@@ -9,7 +9,7 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 )
 
-func (r *Repository) Get(ctx context.Context, id string) (*domainUser.Entity, error) {
+func (r *Repository) Get(ctx context.Context, id string) (*domainUser.User, error) {
 	builderSelect := sq.Select("id", "name", "email", "role", "created_at", "updated_at").
 		From("users").
 		PlaceholderFormat(sq.Dollar).

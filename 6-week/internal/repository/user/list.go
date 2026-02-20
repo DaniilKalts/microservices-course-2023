@@ -9,7 +9,7 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 )
 
-func (r *Repository) List(ctx context.Context) ([]domainUser.Entity, error) {
+func (r *Repository) List(ctx context.Context) ([]domainUser.User, error) {
 	builderSelect := sq.Select("id", "name", "email", "role", "created_at", "updated_at").
 		From("users").
 		PlaceholderFormat(sq.Dollar).
@@ -26,7 +26,7 @@ func (r *Repository) List(ctx context.Context) ([]domainUser.Entity, error) {
 		return nil, err
 	}
 
-	entities := make([]domainUser.Entity, 0, len(users))
+	entities := make([]domainUser.User, 0, len(users))
 	for i := range users {
 		entities = append(entities, *toDomainFromDBUser(&users[i]))
 	}

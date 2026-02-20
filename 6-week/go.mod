@@ -7,6 +7,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.3.0
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/gojuno/minimock/v3 v3.4.7
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0
 	github.com/jackc/pgx/v5 v5.8.0
@@ -33,6 +34,5 @@ require (
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

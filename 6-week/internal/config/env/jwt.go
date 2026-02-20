@@ -3,26 +3,31 @@ package env
 import (
 	"errors"
 	"os"
+	"time"
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/config"
+	envutils "github.com/DaniilKalts/microservices-course-2023/6-week/pkg/env"
 )
 
 const (
-	jwtIssuerEnvName    = "JWT_ISS"
-	jwtSubjectEnvName   = "JWT_SUB"
-	jwtAudienceEnvName  = "JWT_AUD"
-	jwtExpiresAtEnvName = "JWT_EXP"
-	jwtNotBeforeEnvName = "JWT_NBF"
-	jwtIssuedAtEnvName  = "JWT_IAT"
+	jwtIssuerEnvName           = "JWT_ISS"
+	jwtSubjectEnvName          = "JWT_SUB"
+	jwtAudienceEnvName         = "JWT_AUD"
+	jwtAccessExpiresAtEnvName  = "JWT_ACCESS_EXP"
+	jwtLegacyAccessExpEnvName  = "JWT_EXP"
+	jwtRefreshExpiresAtEnvName = "JWT_REFRESH_EXP"
+	jwtNotBeforeEnvName        = "JWT_NBF"
+	jwtIssuedAtEnvName         = "JWT_IAT"
 )
 
 type jwtConfig struct {
-	issuer    string
-	subject   string
-	audience  string
-	expiresAt string
-	notBefore string
-	issuedAt  string
+	issuer           string
+	subject          string
+	audience         string
+	accessExpiresAt  time.Duration
+	refreshExpiresAt time.Duration
+	notBefore        time.Duration
+	issuedAt         time.Duration
 }
 
 func NewJWTConfig() (config.JWTConfig, error) {
@@ -41,28 +46,34 @@ func NewJWTConfig() (config.JWTConfig, error) {
 		return nil, errors.New(jwtAudienceEnvName + " is not set")
 	}
 
-	expiresAt := os.Getenv(jwtExpiresAtEnvName)
-	if len(expiresAt) == 0 {
-		return nil, errors.New(jwtExpiresAtEnvName + " is not set")
+	accessExpiresAt, err := readAccessExpiresAt()
+	if err != nil {
+		return nil, err
 	}
 
-	notBefore := os.Getenv(jwtNotBeforeEnvName)
-	if len(notBefore) == 0 {
-		return nil, errors.New(jwtNotBeforeEnvName + " is not set")
+	refreshExpiresAt, err := envutils.ReadDuration(jwtRefreshExpiresAtEnvName)
+	if err != nil {
+		return nil, err
 	}
 
-	issuedAt := os.Getenv(jwtIssuedAtEnvName)
-	if len(issuedAt) == 0 {
-		return nil, errors.New(jwtIssuedAtEnvName + " is not set")
+	notBefore, err := envutils.ReadDuration(jwtNotBeforeEnvName)
+	if err != nil {
+		return nil, err
+	}
+
+	issuedAt, err := envutils.ReadDuration(jwtIssuedAtEnvName)
+	if err != nil {
+		return nil, err
 	}
 
 	return &jwtConfig{
-		issuer:    issuer,
-		subject:   subject,
-		audience:  audience,
-		expiresAt: expiresAt,
-		notBefore: notBefore,
-		issuedAt:  issuedAt,
+		issuer:           issuer,
+		subject:          subject,
+		audience:         audience,
+		accessExpiresAt:  accessExpiresAt,
+		refreshExpiresAt: refreshExpiresAt,
+		notBefore:        notBefore,
+		issuedAt:         issuedAt,
 	}, nil
 }
 
@@ -78,14 +89,30 @@ func (cfg *jwtConfig) Audience() string {
 	return cfg.audience
 }
 
-func (cfg *jwtConfig) ExpiresAt() string {
-	return cfg.expiresAt
+func readAccessExpiresAt() (time.Duration, error) {
+	if len(os.Getenv(jwtAccessExpiresAtEnvName)) != 0 {
+		return envutils.ReadDuration(jwtAccessExpiresAtEnvName)
+	}
+
+	if len(os.Getenv(jwtLegacyAccessExpEnvName)) != 0 {
+		return envutils.ReadDuration(jwtLegacyAccessExpEnvName)
+	}
+
+	return 0, errors.New(jwtAccessExpiresAtEnvName + " is not set")
 }
 
-func (cfg *jwtConfig) NotBefore() string {
+func (cfg *jwtConfig) AccessExpiresAt() time.Duration {
+	return cfg.accessExpiresAt
+}
+
+func (cfg *jwtConfig) RefreshExpiresAt() time.Duration {
+	return cfg.refreshExpiresAt
+}
+
+func (cfg *jwtConfig) NotBefore() time.Duration {
 	return cfg.notBefore
 }
 
-func (cfg *jwtConfig) IssuedAt() string {
+func (cfg *jwtConfig) IssuedAt() time.Duration {
 	return cfg.issuedAt
 }

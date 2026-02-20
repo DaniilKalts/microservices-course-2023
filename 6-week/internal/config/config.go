@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 type GRPCConfig interface {
 	Address() string
 }
@@ -22,9 +24,10 @@ type JWTConfig interface {
 	Issuer() string
 	Subject() string
 	Audience() string
-	ExpiresAt() string
-	NotBefore() string
-	IssuedAt() string
+	AccessExpiresAt() time.Duration
+	RefreshExpiresAt() time.Duration
+	NotBefore() time.Duration
+	IssuedAt() time.Duration
 }
 
 type Config interface {

@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package auth.v1;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/auth/v1;authv1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "Auth API"
+        version: "1.0.0"
+        description: "RESTful gateway API for authentication and tokens."
+        contact: {
+            name: "Daniil Kalts"
+            email: "gopher@gmail.com"
+        }
+    }
+    consumes: "application/json"
+    produces: "application/json"
+};
+
+service AuthV1 {
+    rpc Register(RegisterRequest) returns (RegisterResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/auth/register"
+            body: "*"
+        };
+    };
+
+    rpc Login(LoginRequest) returns (LoginResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/auth/login"
+            body: "*"
+        };
+    };
+
+    rpc Logout(LogoutRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/api/v1/auth/logout"
+            body: "*"
+        };
+    };
+
+    rpc Refresh(RefreshRequest) returns (RefreshResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/auth/refresh"
+            body: "*"
+        };
+    };
+}
+
+message TokenPair {
+    string access_token = 1 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 4096
+    }];
+    string refresh_token = 2 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 4096
+    }];
+}
+
+// Register
+message RegisterRequest {
+    string name = 1 [(validate.rules).string = {
+        min_len: 2,
+        max_len: 50,
+        pattern: "^[^\\x00-\\x1F\\x7F]+$"
+    }];
+    string email = 2 [(validate.rules).string = {
+        email: true,
+        max_len: 254
+    }];
+    string password = 3 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 64,
+        pattern: "^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$"
+    }];
+}
+
+message RegisterResponse {
+    string id = 1 [(validate.rules).string.uuid = true];
+    TokenPair tokens = 2 [(validate.rules).message.required = true];
+}
+
+// Login
+message LoginRequest {
+    string email = 1 [(validate.rules).string = {
+        email: true,
+        max_len: 254
+    }];
+    string password = 2 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 64
+    }];
+}
+
+message LoginResponse {
+    TokenPair tokens = 1 [(validate.rules).message.required = true];
+}
+
+// Logout
+message LogoutRequest {
+    string refresh_token = 1 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 4096
+    }];
+}
+
+// Refresh
+message RefreshRequest {
+    string refresh_token = 1 [(validate.rules).string = {
+        min_len: 1,
+        max_len: 4096
+    }];
+}
+
+message RefreshResponse {
+    TokenPair tokens = 1 [(validate.rules).message.required = true];
+}

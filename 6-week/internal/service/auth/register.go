@@ -7,12 +7,12 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 )
 
-func (s *service) Register(ctx context.Context, name, email, password string) (string, domainAuth.TokenPair, error) {
+func (s *service) Register(ctx context.Context, name, email, password, passwordConfirm string) (string, domainAuth.TokenPair, error) {
 	userID, err := s.userService.Create(ctx, &domainUser.User{
 		Name:  name,
 		Email: email,
 		Role:  domainUser.RoleUser,
-	}, password, password)
+	}, password, passwordConfirm)
 	if err != nil {
 		return "", domainAuth.TokenPair{}, err
 	}

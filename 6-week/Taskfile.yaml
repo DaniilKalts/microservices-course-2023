@@ -276,7 +276,7 @@ tasks:
           JWT_PUBLIC_KEY_PATH="${JWT_PUBLIC_KEY_FILE}"
         fi
 
-        chmod 600 "${JWT_PRIVATE_KEY_PATH}"
+        chmod 644 "${JWT_PRIVATE_KEY_PATH}"
         chmod 644 "${JWT_PUBLIC_KEY_PATH}"
 
   jwt:verify:

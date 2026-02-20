@@ -448,6 +448,9 @@
         },
         "password": {
           "type": "string"
+        },
+        "passwordConfirm": {
+          "type": "string"
         }
       },
       "title": "Register"

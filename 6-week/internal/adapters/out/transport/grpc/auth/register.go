@@ -7,7 +7,7 @@ import (
 )
 
 func (h *Handler) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
-	userID, tokens, err := h.authService.Register(ctx, req.GetName(), req.GetEmail(), req.GetPassword())
+	userID, tokens, err := h.authService.Register(ctx, req.GetName(), req.GetEmail(), req.GetPassword(), req.GetPasswordConfirm())
 	if err != nil {
 		return nil, err
 	}

@@ -248,6 +248,17 @@ func (m *RegisterRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
+	if l := utf8.RuneCountInString(m.GetPasswordConfirm()); l < 8 || l > 64 {
+		err := RegisterRequestValidationError{
+			field:  "PasswordConfirm",
+			reason: "value length must be between 8 and 64 runes, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if len(errors) > 0 {
 		return RegisterRequestMultiError(errors)
 	}

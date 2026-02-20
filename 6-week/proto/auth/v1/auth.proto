@@ -80,6 +80,10 @@ message RegisterRequest {
         max_len: 64,
         pattern: "^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$"
     }];
+    string password_confirm = 4 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 64
+    }];
 }
 
 message RegisterResponse {

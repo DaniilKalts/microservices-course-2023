@@ -44,7 +44,7 @@ services:
       - "8000:8000"
       - "50051:50051"
     volumes:
-      - ./build/tls:/app/build/tls:ro
+      - ./build:/app/build:ro
     depends_on:
       postgres:
         condition: service_healthy

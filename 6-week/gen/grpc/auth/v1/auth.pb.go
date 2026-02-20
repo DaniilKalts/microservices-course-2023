@@ -79,12 +79,13 @@ func (x *TokenPair) GetRefreshToken() string {
 
 // Register
 type RegisterRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Email           string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Password        string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
+	PasswordConfirm string                 `protobuf:"bytes,4,opt,name=password_confirm,json=passwordConfirm,proto3" json:"password_confirm,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *RegisterRequest) Reset() {
@@ -134,6 +135,13 @@ func (x *RegisterRequest) GetEmail() string {
 func (x *RegisterRequest) GetPassword() string {
 	if x != nil {
 		return x.Password
+	}
+	return ""
+}
+
+func (x *RegisterRequest) GetPasswordConfirm() string {
+	if x != nil {
+		return x.PasswordConfirm
 	}
 	return ""
 }
@@ -430,12 +438,13 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\faccess_token\x18\x01 \x01(\tB\n" +
 	"\xfaB\ar\x05\x10\x01\x18\x80 R\vaccessToken\x12/\n" +
 	"\rrefresh_token\x18\x02 \x01(\tB\n" +
-	"\xfaB\ar\x05\x10\x01\x18\x80 R\frefreshToken\"\xaf\x01\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80 R\frefreshToken\"\xe5\x01\n" +
 	"\x0fRegisterRequest\x122\n" +
 	"\x04name\x18\x01 \x01(\tB\x1e\xfaB\x1br\x19\x10\x02\x1822\x13^[^\\x00-\\x1F\\x7F]+$R\x04name\x12 \n" +
 	"\x05email\x18\x02 \x01(\tB\n" +
 	"\xfaB\ar\x05\x18\xfe\x01`\x01R\x05email\x12F\n" +
-	"\bpassword\x18\x03 \x01(\tB*\xfaB'r%\x10\b\x18@2\x1f^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$R\bpassword\"b\n" +
+	"\bpassword\x18\x03 \x01(\tB*\xfaB'r%\x10\b\x18@2\x1f^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$R\bpassword\x124\n" +
+	"\x10password_confirm\x18\x04 \x01(\tB\t\xfaB\x06r\x04\x10\b\x18@R\x0fpasswordConfirm\"b\n" +
 	"\x10RegisterResponse\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id\x124\n" +
 	"\x06tokens\x18\x02 \x01(\v2\x12.auth.v1.TokenPairB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x06tokens\"W\n" +

@@ -461,12 +461,19 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\rrefresh_token\x18\x01 \x01(\tB\n" +
 	"\xfaB\ar\x05\x10\x01\x18\x80 R\frefreshToken\"G\n" +
 	"\x0fRefreshResponse\x124\n" +
-	"\x06tokens\x18\x01 \x01(\v2\x12.auth.v1.TokenPairB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x06tokens2\xfb\x02\n" +
-	"\x06AuthV1\x12a\n" +
-	"\bRegister\x12\x18.auth.v1.RegisterRequest\x1a\x19.auth.v1.RegisterResponse\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/v1/auth/register\x12U\n" +
-	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/api/v1/auth/login\x12X\n" +
-	"\x06Logout\x12\x16.auth.v1.LogoutRequest\x1a\x16.google.protobuf.Empty\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/v1/auth/logout\x12]\n" +
-	"\aRefresh\x12\x17.auth.v1.RefreshRequest\x1a\x18.auth.v1.RefreshResponse\"\x1f\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/api/v1/auth/refreshB\xe2\x01\x92A\x8d\x01\x12g\n" +
+	"\x06tokens\x18\x01 \x01(\v2\x12.auth.v1.TokenPairB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x06tokens2\x80\n" +
+	"\n" +
+	"\x06AuthV1\x12\xa9\x02\n" +
+	"\bRegister\x12\x18.auth.v1.RegisterRequest\x1a\x19.auth.v1.RegisterResponse\"\xe7\x01\x92A\xc3\x01\n" +
+	"\t🔐 Auth\x12\x1bRegister a new user account\x1a\x8a\x01Creates a new user account using name, email, and password credentials. Returns the created user ID and a fresh access/refresh token pair.*\fregisterUser\x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/v1/auth/register\x12\x93\x02\n" +
+	"\x05Login\x12\x15.auth.v1.LoginRequest\x1a\x16.auth.v1.LoginResponse\"\xda\x01\x92A\xb9\x01\n" +
+	"\t🔐 Auth\x12#Authenticate user and return tokens\x1a|Authenticates a user with email and password credentials. Returns a new access/refresh token pair for authorized API access.*\tloginUser\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/api/v1/auth/login\x12\xa3\x02\n" +
+	"\x06Logout\x12\x16.auth.v1.LogoutRequest\x1a\x16.google.protobuf.Empty\"\xe8\x01\x92A\xc6\x01\n" +
+	"\t🔐 Auth\x12\x1eInvalidate the current session\x1a\x8c\x01Invalidates the session associated with the provided refresh token. Requires a valid refresh_token and returns an empty response on success.*\n" +
+	"logoutUser\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/v1/auth/logout\x12\xae\x02\n" +
+	"\aRefresh\x12\x17.auth.v1.RefreshRequest\x1a\x18.auth.v1.RefreshResponse\"\xef\x01\x92A\xcc\x01\n" +
+	"\t🔐 Auth\x12 Rotate access and refresh tokens\x1a\x8d\x01Issues a new access/refresh token pair by rotating the provided refresh token. Requires a valid refresh_token and returns replacement tokens.*\rrefreshTokens\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/api/v1/auth/refresh\x1a]\x92AZ\n" +
+	"\t🔐 Auth\x12MHandles account registration, authentication, and token lifecycle operations.B\xe2\x01\x92A\x8d\x01\x12g\n" +
 	"\bAuth API\x122RESTful gateway API for authentication and tokens.\" \n" +
 	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.02\x10application/json:\x10application/jsonZOgithub.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/auth/v1;authv1b\x06proto3"
 

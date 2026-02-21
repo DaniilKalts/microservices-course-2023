@@ -549,13 +549,23 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id*\x1b\n" +
 	"\x04Role\x12\b\n" +
 	"\x04USER\x10\x00\x12\t\n" +
-	"\x05ADMIN\x10\x012\xa8\x03\n" +
-	"\x06UserV1\x12S\n" +
-	"\x06Create\x12\x16.user.v1.CreateRequest\x1a\x17.user.v1.CreateResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/api/v1/users\x12L\n" +
-	"\x04List\x12\x16.google.protobuf.Empty\x1a\x15.user.v1.ListResponse\"\x15\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/users\x12L\n" +
-	"\x03Get\x12\x13.user.v1.GetRequest\x1a\x14.user.v1.GetResponse\"\x1a\x82\xd3\xe4\x93\x02\x14\x12\x12/api/v1/users/{id}\x12W\n" +
-	"\x06Update\x12\x16.user.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*2\x12/api/v1/users/{id}\x12T\n" +
-	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\x1a\x82\xd3\xe4\x93\x02\x14*\x12/api/v1/users/{id}B\xd7\x01\x92A\x82\x01\x12\\\n" +
+	"\x05ADMIN\x10\x012\xd5\n" +
+	"\n" +
+	"\x06UserV1\x12\x82\x02\n" +
+	"\x06Create\x12\x16.user.v1.CreateRequest\x1a\x17.user.v1.CreateResponse\"\xc6\x01\x92A\xaa\x01\n" +
+	"\t👤 User\x12\x11Create a new user\x1a~Creates a new user record with name, email, and password fields. Requires authorization and returns the newly created user ID.*\n" +
+	"createUser\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/api/v1/users\x12\xdf\x01\n" +
+	"\x04List\x12\x16.google.protobuf.Empty\x1a\x15.user.v1.ListResponse\"\xa7\x01\x92A\x8e\x01\n" +
+	"\t👤 User\x12\x12Retrieve all users\x1abRetrieves the complete list of users. Requires authorization and returns an array of user objects.*\tlistUsers\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/users\x12\xf3\x01\n" +
+	"\x03Get\x12\x13.user.v1.GetRequest\x1a\x14.user.v1.GetResponse\"\xc0\x01\x92A\xa2\x01\n" +
+	"\t👤 User\x12\x15Retrieve a user by ID\x1auRetrieves a single user by UUID from the path parameter. Requires authorization and returns the matching user object.*\agetUser\x82\xd3\xe4\x93\x02\x14\x12\x12/api/v1/users/{id}\x12\x97\x02\n" +
+	"\x06Update\x12\x16.user.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\"\xdc\x01\x92A\xbb\x01\n" +
+	"\t👤 User\x12\x1cUpdate user fields partially\x1a\x83\x01Applies partial updates to the user's mutable fields by UUID. Requires authorization and returns an empty response when successful.*\n" +
+	"updateUser\x82\xd3\xe4\x93\x02\x17:\x01*2\x12/api/v1/users/{id}\x12\xff\x01\n" +
+	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\xc4\x01\x92A\xa6\x01\n" +
+	"\t👤 User\x12\x13Delete a user by ID\x1axDeletes the user identified by the UUID path parameter. Requires authorization and returns an empty response on success.*\n" +
+	"deleteUser\x82\xd3\xe4\x93\x02\x14*\x12/api/v1/users/{id}\x1aR\x92AO\n" +
+	"\t👤 User\x12BManages user records, profile retrieval, and lifecycle operations.B\xd7\x01\x92A\x82\x01\x12\\\n" +
 	"\bChat API\x12'RESTful gateway API for real-time chat.\" \n" +
 	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.02\x10application/json:\x10application/jsonZOgithub.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/user/v1;userv1b\x06proto3"
 

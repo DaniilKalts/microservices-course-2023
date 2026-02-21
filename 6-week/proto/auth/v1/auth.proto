@@ -24,10 +24,21 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 };
 
 service AuthV1 {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+        name: "🔐 Auth"
+        description: "Handles account registration, authentication, and token lifecycle operations."
+    };
+
     rpc Register(RegisterRequest) returns (RegisterResponse) {
         option (google.api.http) = {
             post: "/api/v1/auth/register"
             body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Register a new user account"
+            description: "Creates a new user account using name, email, and password credentials. Returns the created user ID and a fresh access/refresh token pair."
+            tags: "🔐 Auth"
+            operation_id: "registerUser"
         };
     };
 
@@ -36,6 +47,12 @@ service AuthV1 {
             post: "/api/v1/auth/login"
             body: "*"
         };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Authenticate user and return tokens"
+            description: "Authenticates a user with email and password credentials. Returns a new access/refresh token pair for authorized API access."
+            tags: "🔐 Auth"
+            operation_id: "loginUser"
+        };
     };
 
     rpc Logout(LogoutRequest) returns (google.protobuf.Empty) {
@@ -43,12 +60,24 @@ service AuthV1 {
             post: "/api/v1/auth/logout"
             body: "*"
         };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Invalidate the current session"
+            description: "Invalidates the session associated with the provided refresh token. Requires a valid refresh_token and returns an empty response on success."
+            tags: "🔐 Auth"
+            operation_id: "logoutUser"
+        };
     };
 
     rpc Refresh(RefreshRequest) returns (RefreshResponse) {
         option (google.api.http) = {
             post: "/api/v1/auth/refresh"
             body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Rotate access and refresh tokens"
+            description: "Issues a new access/refresh token pair by rotating the provided refresh token. Requires a valid refresh_token and returns replacement tokens."
+            tags: "🔐 Auth"
+            operation_id: "refreshTokens"
         };
     };
 }

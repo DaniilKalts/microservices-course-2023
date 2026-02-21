@@ -11,7 +11,8 @@
   },
   "tags": [
     {
-      "name": "UserV1"
+      "name": "👤 User",
+      "description": "Manages user records, profile retrieval, and lifecycle operations."
     }
   ],
   "consumes": [
@@ -23,7 +24,9 @@
   "paths": {
     "/api/v1/users": {
       "get": {
-        "operationId": "UserV1_List",
+        "summary": "Retrieve all users",
+        "description": "Retrieves the complete list of users. Requires authorization and returns an array of user objects.",
+        "operationId": "listUsers",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -39,11 +42,13 @@
           }
         },
         "tags": [
-          "UserV1"
+          "👤 User"
         ]
       },
       "post": {
-        "operationId": "UserV1_Create",
+        "summary": "Create a new user",
+        "description": "Creates a new user record with name, email, and password fields. Requires authorization and returns the newly created user ID.",
+        "operationId": "createUser",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -69,13 +74,15 @@
           }
         ],
         "tags": [
-          "UserV1"
+          "👤 User"
         ]
       }
     },
     "/api/v1/users/{id}": {
       "get": {
-        "operationId": "UserV1_Get",
+        "summary": "Retrieve a user by ID",
+        "description": "Retrieves a single user by UUID from the path parameter. Requires authorization and returns the matching user object.",
+        "operationId": "getUser",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -99,11 +106,13 @@
           }
         ],
         "tags": [
-          "UserV1"
+          "👤 User"
         ]
       },
       "delete": {
-        "operationId": "UserV1_Delete",
+        "summary": "Delete a user by ID",
+        "description": "Deletes the user identified by the UUID path parameter. Requires authorization and returns an empty response on success.",
+        "operationId": "deleteUser",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -128,11 +137,13 @@
           }
         ],
         "tags": [
-          "UserV1"
+          "👤 User"
         ]
       },
       "patch": {
-        "operationId": "UserV1_Update",
+        "summary": "Update user fields partially",
+        "description": "Applies partial updates to the user's mutable fields by UUID. Requires authorization and returns an empty response when successful.",
+        "operationId": "updateUser",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -165,7 +176,7 @@
           }
         ],
         "tags": [
-          "UserV1"
+          "👤 User"
         ]
       }
     }

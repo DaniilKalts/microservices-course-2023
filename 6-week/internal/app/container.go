@@ -75,16 +75,13 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 	}
 
 	container.initTxManager()
-	container.initUserRepository()
-	container.initUserService()
-	container.initAuthService()
-	container.initUserHandler()
-	container.initAuthHandler()
+	container.initRepositories()
+	container.initServices()
+	container.initHandlers()
 
 	if err := container.initGRPC(); err != nil {
 		return nil, err
 	}
-
 	if err := container.initGateway(ctx); err != nil {
 		return nil, err
 	}
@@ -120,10 +117,6 @@ func (c *Container) initTxManager() {
 	c.Tx = transaction.NewTransactionManager(c.DB.DB())
 }
 
-func (c *Container) initUserRepository() {
-	c.UserRepo = userRepository.NewRepository(c.DB)
-}
-
 func (c *Container) initJWTManager() error {
 	privateKey, err := jwt.LoadPrivateKey(c.Cfg.JWT().PrivateKeyFile())
 	if err != nil {
@@ -153,19 +146,18 @@ func (c *Container) initJWTManager() error {
 	return nil
 }
 
-func (c *Container) initUserService() {
-	c.UserSvc = userService.NewService(c.UserRepo)
+
+func (c *Container) initRepositories() {
+	c.UserRepo = userRepository.NewRepository(c.DB)
 }
 
-func (c *Container) initAuthService() {
+func (c *Container) initServices() {
+	c.UserSvc = userService.NewService(c.UserRepo)
 	c.AuthSvc = authService.NewService(c.UserSvc, c.JWTManager)
 }
 
-func (c *Container) initUserHandler() {
+func (c *Container) initHandlers() {
 	c.userHandler = userAPI.NewHandler(c.UserSvc)
-}
-
-func (c *Container) initAuthHandler() {
 	c.authHandler = authAPI.NewHandler(c.AuthSvc)
 }
 

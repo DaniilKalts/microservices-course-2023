@@ -7,16 +7,14 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/reflection"
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/auth/v1"
 	userv1 "github.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/user/v1"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/in/database/postgres"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/in/transport/http/swagger"
-	authAPI "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/auth"
-	grpcInterceptor "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/interceptor"
-	userAPI "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/user"
+	grpcTransport "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc"
+	authAPI "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/handlers/auth"
+	userAPI "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/handlers/user"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database/transaction"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/config"
@@ -146,7 +144,6 @@ func (c *Container) initJWTManager() error {
 	return nil
 }
 
-
 func (c *Container) initRepositories() {
 	c.UserRepo = userRepository.NewRepository(c.DB)
 }
@@ -162,26 +159,19 @@ func (c *Container) initHandlers() {
 }
 
 func (c *Container) initGRPC() error {
-	grpcOpts := make([]grpc.ServerOption, 0, 2)
-	grpcOpts = append(grpcOpts, grpc.ChainUnaryInterceptor(grpcInterceptor.ValidationInterceptor()))
-
-	if c.Cfg.TLS().Enabled() {
-		cert := c.Cfg.TLS().CertFile()
-		key := c.Cfg.TLS().KeyFile()
-
-		creds, err := credentials.NewServerTLSFromFile(cert, key)
-		if err != nil {
-			return err
-		}
-
-		grpcOpts = append(grpcOpts, grpc.Creds(creds))
+	grpcServer, err := grpcTransport.NewServer(grpcTransport.ServerConfig{
+		EnableTLS: c.Cfg.TLS().Enabled(),
+		CertFile:  c.Cfg.TLS().CertFile(),
+		KeyFile:   c.Cfg.TLS().KeyFile(),
+	})
+	if err != nil {
+		return err
 	}
 
-	grpcServer := grpc.NewServer(grpcOpts...)
-	reflection.Register(grpcServer)
-
-	userv1.RegisterUserV1Server(grpcServer, c.userHandler)
-	authv1.RegisterAuthV1Server(grpcServer, c.authHandler)
+	grpcTransport.RegisterServices(grpcServer, grpcTransport.Handlers{
+		User: c.userHandler,
+		Auth: c.authHandler,
+	})
 
 	c.GRPC = grpcServer
 

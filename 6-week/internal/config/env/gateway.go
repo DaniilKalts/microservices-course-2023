@@ -18,7 +18,7 @@ type gatewayConfig struct {
 	port string
 }
 
-func NewGatewayConfig() (config.GRPCConfig, error) {
+func NewGatewayConfig() (config.GatewayConfig, error) {
 	host := os.Getenv(gatewayHostEnvName)
 	if len(host) == 0 {
 		return nil, errors.New(gatewayHostEnvName + " is not set")

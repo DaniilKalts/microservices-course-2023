@@ -86,7 +86,9 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 }
 
 func (c *Container) initConfig(configPath string) error {
-	config.Load(configPath)
+	if err := config.Load(configPath); err != nil {
+		return fmt.Errorf("load dotenv config: %w", err)
+	}
 
 	cfg, err := env.NewConfig()
 	if err != nil {

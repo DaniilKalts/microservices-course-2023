@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -23,8 +23,7 @@ func TestDelete_Success(t *testing.T) {
 		return nil
 	})
 
-	svc := NewService(repo)
-	err := svc.Delete(ctx, id)
+	err := Delete(ctx, repo, id)
 
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), repo.DeleteAfterCounter())
@@ -61,8 +60,7 @@ func TestDelete_RepositoryScenarios(t *testing.T) {
 				return tt.repoErr
 			})
 
-			svc := NewService(repo)
-			err := svc.Delete(ctx, id)
+			err := Delete(ctx, repo, id)
 
 			require.EqualError(t, err, tt.repoErr.Error())
 			require.Equal(t, uint64(1), repo.DeleteAfterCounter())

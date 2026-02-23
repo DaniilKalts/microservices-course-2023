@@ -1,4 +1,4 @@
-package auth
+package operations
 
 import (
 	jwtv5 "github.com/golang-jwt/jwt/v5"
@@ -7,7 +7,7 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/6-week/pkg/jwt"
 )
 
-func (s *service) generateTokenPair(userID string, roleID int32) (domainAuth.TokenPair, error) {
+func generateTokenPair(jwtManager jwt.Manager, userID string, roleID int32) (domainAuth.TokenPair, error) {
 	if userID == "" {
 		return domainAuth.TokenPair{}, errUserIDEmpty
 	}
@@ -19,12 +19,12 @@ func (s *service) generateTokenPair(userID string, roleID int32) (domainAuth.Tok
 		},
 	}
 
-	accessToken, err := s.jwtManager.GenerateAccessToken(claims)
+	accessToken, err := jwtManager.GenerateAccessToken(claims)
 	if err != nil {
 		return domainAuth.TokenPair{}, err
 	}
 
-	refreshToken, err := s.jwtManager.GenerateRefreshToken(claims)
+	refreshToken, err := jwtManager.GenerateRefreshToken(claims)
 	if err != nil {
 		return domainAuth.TokenPair{}, err
 	}

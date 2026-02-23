@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -25,8 +25,7 @@ func TestList_Success(t *testing.T) {
 		return expected, nil
 	})
 
-	svc := NewService(repo)
-	got, err := svc.List(ctx)
+	got, err := List(ctx, repo)
 
 	require.NoError(t, err)
 	require.Equal(t, expected, got)
@@ -44,8 +43,7 @@ func TestList_RepositoryError(t *testing.T) {
 		return nil, repoErr
 	})
 
-	svc := NewService(repo)
-	got, err := svc.List(ctx)
+	got, err := List(ctx, repo)
 
 	require.EqualError(t, err, repoErr.Error())
 	require.Nil(t, got)

@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -8,9 +8,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 )
 
-func (s *service) Create(ctx context.Context, user *domainUser.User, password, passwordConfirm string) (string, error) {
+func Create(
+	ctx context.Context,
+	repo repository.UserRepository,
+	user *domainUser.User,
+	password,
+	passwordConfirm string,
+) (string, error) {
 	if password != passwordConfirm {
 		return "", errors.New("Passwords don't match")
 	}
@@ -26,5 +33,5 @@ func (s *service) Create(ctx context.Context, user *domainUser.User, password, p
 		return "", err
 	}
 
-	return s.repo.Create(ctx, user, string(hashedPassword))
+	return repo.Create(ctx, user, string(hashedPassword))
 }

@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -30,8 +30,7 @@ func TestUpdate_Success(t *testing.T) {
 		return nil
 	})
 
-	svc := NewService(repo)
-	err := svc.Update(ctx, id, patch)
+	err := Update(ctx, repo, id, patch)
 
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), repo.UpdateAfterCounter())
@@ -81,8 +80,7 @@ func TestUpdate_RepositoryScenarios(t *testing.T) {
 				return tt.repoErr
 			})
 
-			svc := NewService(repo)
-			err := svc.Update(ctx, id, tt.patch)
+			err := Update(ctx, repo, id, tt.patch)
 
 			require.EqualError(t, err, tt.repoErr.Error())
 			require.Equal(t, uint64(1), repo.UpdateAfterCounter())
@@ -106,8 +104,7 @@ func TestUpdate_PartialPatch_DoesNotOverwriteOtherFields(t *testing.T) {
 		return nil
 	})
 
-	svc := NewService(repo)
-	err := svc.Update(ctx, id, patch)
+	err := Update(ctx, repo, id, patch)
 
 	require.NoError(t, err)
 	require.NotNil(t, gotPatch)

@@ -1,4 +1,4 @@
-package auth
+package operations
 
 import (
 	"strings"
@@ -7,6 +7,7 @@ import (
 )
 
 const bearerScheme = "Bearer"
+const refreshTokenType = "refresh"
 
 func normalizeRefreshToken(refreshToken string) string {
 	refreshToken = strings.TrimSpace(refreshToken)
@@ -26,13 +27,13 @@ func normalizeRefreshToken(refreshToken string) string {
 	return refreshToken
 }
 
-func (s *service) verifyRefreshToken(refreshToken string) (*jwt.Claims, error) {
+func verifyRefreshToken(jwtManager jwt.Manager, refreshToken string) (*jwt.Claims, error) {
 	normalized := normalizeRefreshToken(refreshToken)
 	if normalized == "" {
 		return nil, errRefreshTokenEmpty
 	}
 
-	claims, err := s.jwtManager.Verify(normalized)
+	claims, err := jwtManager.Verify(normalized)
 	if err != nil {
 		return nil, err
 	}
@@ -48,13 +49,13 @@ func (s *service) verifyRefreshToken(refreshToken string) (*jwt.Claims, error) {
 	return claims, nil
 }
 
-func (s *service) parseRefreshToken(refreshToken string) error {
+func parseRefreshToken(jwtManager jwt.Manager, refreshToken string) error {
 	normalized := normalizeRefreshToken(refreshToken)
 	if normalized == "" {
 		return errRefreshTokenEmpty
 	}
 
-	claims, err := s.jwtManager.Parse(normalized)
+	claims, err := jwtManager.Parse(normalized)
 	if err != nil {
 		return err
 	}

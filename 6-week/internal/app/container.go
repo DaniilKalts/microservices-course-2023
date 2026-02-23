@@ -22,8 +22,6 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 	userRepository "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/service"
-	authService "github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/auth"
-	userService "github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/pkg/jwt"
 )
 
@@ -48,11 +46,11 @@ type Container struct {
 	Tx         database.TxManager
 	JWTManager jwt.Manager
 
-	UserRepo    repository.UserRepository
-	UserSvc     service.UserService
+	UserRepo repository.UserRepository
+	Services service.Services
+
 	userHandler userv1.UserV1Server
 
-	AuthSvc     service.AuthService
 	authHandler authv1.AuthV1Server
 
 	GRPC    *grpc.Server
@@ -149,13 +147,15 @@ func (c *Container) initRepositories() {
 }
 
 func (c *Container) initServices() {
-	c.UserSvc = userService.NewService(c.UserRepo)
-	c.AuthSvc = authService.NewService(c.UserSvc, c.JWTManager)
+	c.Services = service.NewServices(service.Deps{
+		UserRepo:   c.UserRepo,
+		JWTManager: c.JWTManager,
+	})
 }
 
 func (c *Container) initHandlers() {
-	c.userHandler = userAPI.NewHandler(c.UserSvc)
-	c.authHandler = authAPI.NewHandler(c.AuthSvc)
+	c.userHandler = userAPI.NewHandler(c.Services.User)
+	c.authHandler = authAPI.NewHandler(c.Services.Auth)
 }
 
 func (c *Container) initGRPC() error {

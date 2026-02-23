@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -49,8 +49,7 @@ func TestCreate_ValidationScenarios(t *testing.T) {
 				return "", errors.New("repository should not be called")
 			})
 
-			svc := NewService(repo)
-			gotID, err := svc.Create(ctx, &domainUser.User{Name: "John", Email: "john@example.com"}, tt.password, tt.passwordConfirm)
+			gotID, err := Create(ctx, repo, &domainUser.User{Name: "John", Email: "john@example.com"}, tt.password, tt.passwordConfirm)
 
 			require.Error(t, err)
 			if tt.errText != "" {
@@ -103,8 +102,7 @@ func TestCreate_RepositoryScenarios(t *testing.T) {
 				return tt.repoResult, tt.repoErr
 			})
 
-			svc := NewService(repo)
-			gotID, err := svc.Create(ctx, &domainUser.User{Name: "John", Email: "john@example.com"}, "P@ssword123", "P@ssword123")
+			gotID, err := Create(ctx, repo, &domainUser.User{Name: "John", Email: "john@example.com"}, "P@ssword123", "P@ssword123")
 
 			if tt.wantErr != "" {
 				require.EqualError(t, err, tt.wantErr)

@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -23,8 +23,7 @@ func TestGet_Success(t *testing.T) {
 		return expected, nil
 	})
 
-	svc := NewService(repo)
-	got, err := svc.Get(ctx, id)
+	got, err := Get(ctx, repo, id)
 
 	require.NoError(t, err)
 	require.Equal(t, expected, got)
@@ -61,8 +60,7 @@ func TestGet_RepositoryScenarios(t *testing.T) {
 				return nil, tt.repoErr
 			})
 
-			svc := NewService(repo)
-			got, err := svc.Get(ctx, id)
+			got, err := Get(ctx, repo, id)
 
 			require.EqualError(t, err, tt.repoErr.Error())
 			require.Nil(t, got)

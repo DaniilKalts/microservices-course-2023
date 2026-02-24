@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 	repositoryMocks "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/mocks"
 )
 
@@ -18,24 +18,21 @@ func TestUpdate_Success(t *testing.T) {
 	id := "u-1"
 	name := "Jane"
 	email := "jane@example.com"
-	patch := &domainUser.UpdatePatch{Name: &name, Email: &email}
+	input := UpdateInput{ID: id, Name: &name, Email: &email}
 
-	var gotID string
-	var gotPatch *domainUser.UpdatePatch
+	var gotInput repository.UserUpdateInput
 
 	repo := repositoryMocks.NewUserRepositoryMock(t)
-	repo.UpdateMock.Set(func(_ context.Context, updateID string, userPatch *domainUser.UpdatePatch) error {
-		gotID = updateID
-		gotPatch = userPatch
+	repo.UpdateMock.Set(func(_ context.Context, updateInput repository.UserUpdateInput) error {
+		gotInput = updateInput
 		return nil
 	})
 
-	err := Update(ctx, repo, id, patch)
+	err := Update(ctx, repo, input)
 
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), repo.UpdateAfterCounter())
-	require.Equal(t, id, gotID)
-	require.Same(t, patch, gotPatch)
+	require.Equal(t, repository.UserUpdateInput{ID: input.ID, Name: input.Name, Email: input.Email}, gotInput)
 }
 
 func TestUpdate_RepositoryScenarios(t *testing.T) {
@@ -44,28 +41,28 @@ func TestUpdate_RepositoryScenarios(t *testing.T) {
 	ctx := context.Background()
 	id := "u-1"
 	name := "Jane"
-	patch := &domainUser.UpdatePatch{Name: &name}
+	updateInput := UpdateInput{ID: id, Name: &name}
 	email := "john@example.com"
-	patchWithEmail := &domainUser.UpdatePatch{Email: &email}
+	updateInputWithEmail := UpdateInput{ID: id, Email: &email}
 
 	tests := []struct {
 		name    string
-		patch   *domainUser.UpdatePatch
+		input   UpdateInput
 		repoErr error
 	}{
 		{
 			name:    "TestUpdate_NotFound",
-			patch:   patch,
+			input:   updateInput,
 			repoErr: errors.New("not found"),
 		},
 		{
 			name:    "TestUpdate_DuplicateEmail",
-			patch:   patchWithEmail,
+			input:   updateInputWithEmail,
 			repoErr: errors.New("duplicate email"),
 		},
 		{
 			name:    "TestUpdate_RepositoryError",
-			patch:   patch,
+			input:   updateInput,
 			repoErr: errors.New("repository update failed"),
 		},
 	}
@@ -76,11 +73,11 @@ func TestUpdate_RepositoryScenarios(t *testing.T) {
 			t.Parallel()
 
 			repo := repositoryMocks.NewUserRepositoryMock(t)
-			repo.UpdateMock.Set(func(_ context.Context, _ string, _ *domainUser.UpdatePatch) error {
+			repo.UpdateMock.Set(func(_ context.Context, _ repository.UserUpdateInput) error {
 				return tt.repoErr
 			})
 
-			err := Update(ctx, repo, id, tt.patch)
+			err := Update(ctx, repo, tt.input)
 
 			require.EqualError(t, err, tt.repoErr.Error())
 			require.Equal(t, uint64(1), repo.UpdateAfterCounter())
@@ -94,21 +91,20 @@ func TestUpdate_PartialPatch_DoesNotOverwriteOtherFields(t *testing.T) {
 	ctx := context.Background()
 	id := "u-1"
 	name := "OnlyNameChanged"
-	patch := &domainUser.UpdatePatch{Name: &name}
+	input := UpdateInput{ID: id, Name: &name}
 
-	var gotPatch *domainUser.UpdatePatch
+	var gotInput repository.UserUpdateInput
 
 	repo := repositoryMocks.NewUserRepositoryMock(t)
-	repo.UpdateMock.Set(func(_ context.Context, _ string, userPatch *domainUser.UpdatePatch) error {
-		gotPatch = userPatch
+	repo.UpdateMock.Set(func(_ context.Context, updateInput repository.UserUpdateInput) error {
+		gotInput = updateInput
 		return nil
 	})
 
-	err := Update(ctx, repo, id, patch)
+	err := Update(ctx, repo, input)
 
 	require.NoError(t, err)
-	require.NotNil(t, gotPatch)
-	require.NotNil(t, gotPatch.Name)
-	require.Equal(t, name, *gotPatch.Name)
-	require.Nil(t, gotPatch.Email)
+	require.NotNil(t, gotInput.Name)
+	require.Equal(t, name, *gotInput.Name)
+	require.Nil(t, gotInput.Email)
 }

@@ -11,14 +11,18 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 )
 
+type CreateInput struct {
+	User            *domainUser.User
+	Password        string
+	PasswordConfirm string
+}
+
 func Create(
 	ctx context.Context,
 	repo repository.UserRepository,
-	user *domainUser.User,
-	password,
-	passwordConfirm string,
+	input CreateInput,
 ) (string, error) {
-	if password != passwordConfirm {
+	if input.Password != input.PasswordConfirm {
 		return "", errors.New("Passwords don't match")
 	}
 
@@ -26,12 +30,12 @@ func Create(
 	if err != nil {
 		return "", err
 	}
-	user.ID = id.String()
+	input.User.ID = id.String()
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
 
-	return repo.Create(ctx, user, string(hashedPassword))
+	return repo.Create(ctx, input.User, string(hashedPassword))
 }

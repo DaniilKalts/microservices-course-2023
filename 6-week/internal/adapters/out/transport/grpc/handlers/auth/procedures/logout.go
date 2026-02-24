@@ -4,12 +4,9 @@ import (
 	"context"
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/service"
+	authOperations "github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/auth/operations"
 )
 
-type LogoutInput struct {
-	RefreshToken string
-}
-
-func Logout(ctx context.Context, authService service.AuthService, input LogoutInput) error {
-	return authService.Logout(ctx, input.RefreshToken)
+func Logout(ctx context.Context, authSvc service.AuthService, input authOperations.LogoutInput) error {
+	return authSvc.Logout(ctx, input)
 }

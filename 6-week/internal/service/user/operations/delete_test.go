@@ -23,7 +23,7 @@ func TestDelete_Success(t *testing.T) {
 		return nil
 	})
 
-	err := Delete(ctx, repo, id)
+	err := Delete(ctx, repo, DeleteInput{ID: id})
 
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), repo.DeleteAfterCounter())
@@ -60,7 +60,7 @@ func TestDelete_RepositoryScenarios(t *testing.T) {
 				return tt.repoErr
 			})
 
-			err := Delete(ctx, repo, id)
+			err := Delete(ctx, repo, DeleteInput{ID: id})
 
 			require.EqualError(t, err, tt.repoErr.Error())
 			require.Equal(t, uint64(1), repo.DeleteAfterCounter())

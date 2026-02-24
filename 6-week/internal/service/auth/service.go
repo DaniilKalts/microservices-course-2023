@@ -10,10 +10,10 @@ import (
 )
 
 type Service interface {
-	Register(ctx context.Context, name, email, password, passwordConfirm string) (string, domainAuth.TokenPair, error)
-	Login(ctx context.Context, email, password string) (domainAuth.TokenPair, error)
-	Logout(ctx context.Context, refreshToken string) error
-	Refresh(ctx context.Context, refreshToken string) (domainAuth.TokenPair, error)
+	Register(ctx context.Context, input operations.RegisterInput) (string, domainAuth.TokenPair, error)
+	Login(ctx context.Context, input operations.LoginInput) (domainAuth.TokenPair, error)
+	Logout(ctx context.Context, input operations.LogoutInput) error
+	Refresh(ctx context.Context, input operations.RefreshInput) (domainAuth.TokenPair, error)
 }
 
 type service struct {
@@ -28,18 +28,18 @@ func NewService(userSvc userService.Service, jwtManager jwt.Manager) Service {
 	}
 }
 
-func (s *service) Register(ctx context.Context, name, email, password, passwordConfirm string) (string, domainAuth.TokenPair, error) {
-	return operations.Register(ctx, s.userService, s.jwtManager, name, email, password, passwordConfirm)
+func (s *service) Register(ctx context.Context, input operations.RegisterInput) (string, domainAuth.TokenPair, error) {
+	return operations.Register(ctx, s.userService, s.jwtManager, input)
 }
 
-func (s *service) Login(ctx context.Context, email, password string) (domainAuth.TokenPair, error) {
-	return operations.Login(ctx, email, password)
+func (s *service) Login(ctx context.Context, input operations.LoginInput) (domainAuth.TokenPair, error) {
+	return operations.Login(ctx, input)
 }
 
-func (s *service) Logout(ctx context.Context, refreshToken string) error {
-	return operations.Logout(ctx, s.jwtManager, refreshToken)
+func (s *service) Logout(ctx context.Context, input operations.LogoutInput) error {
+	return operations.Logout(ctx, s.jwtManager, input)
 }
 
-func (s *service) Refresh(ctx context.Context, refreshToken string) (domainAuth.TokenPair, error) {
-	return operations.Refresh(ctx, s.jwtManager, refreshToken)
+func (s *service) Refresh(ctx context.Context, input operations.RefreshInput) (domainAuth.TokenPair, error) {
+	return operations.Refresh(ctx, s.jwtManager, input)
 }

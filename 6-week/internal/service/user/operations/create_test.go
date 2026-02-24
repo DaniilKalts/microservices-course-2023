@@ -49,7 +49,11 @@ func TestCreate_ValidationScenarios(t *testing.T) {
 				return "", errors.New("repository should not be called")
 			})
 
-			gotID, err := Create(ctx, repo, &domainUser.User{Name: "John", Email: "john@example.com"}, tt.password, tt.passwordConfirm)
+			gotID, err := Create(ctx, repo, CreateInput{
+				User:            &domainUser.User{Name: "John", Email: "john@example.com"},
+				Password:        tt.password,
+				PasswordConfirm: tt.passwordConfirm,
+			})
 
 			require.Error(t, err)
 			if tt.errText != "" {
@@ -102,7 +106,11 @@ func TestCreate_RepositoryScenarios(t *testing.T) {
 				return tt.repoResult, tt.repoErr
 			})
 
-			gotID, err := Create(ctx, repo, &domainUser.User{Name: "John", Email: "john@example.com"}, "P@ssword123", "P@ssword123")
+			gotID, err := Create(ctx, repo, CreateInput{
+				User:            &domainUser.User{Name: "John", Email: "john@example.com"},
+				Password:        "P@ssword123",
+				PasswordConfirm: "P@ssword123",
+			})
 
 			if tt.wantErr != "" {
 				require.EqualError(t, err, tt.wantErr)

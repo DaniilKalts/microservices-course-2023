@@ -6,6 +6,10 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 )
 
-func Delete(ctx context.Context, repo repository.UserRepository, id string) error {
-	return repo.Delete(ctx, id)
+type DeleteInput struct {
+	ID string
+}
+
+func Delete(ctx context.Context, repo repository.UserRepository, input DeleteInput) error {
+	return repo.Delete(ctx, input.ID)
 }

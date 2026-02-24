@@ -7,8 +7,12 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/6-week/pkg/jwt"
 )
 
-func Refresh(_ context.Context, jwtManager jwt.Manager, refreshToken string) (domainAuth.TokenPair, error) {
-	claims, err := verifyRefreshToken(jwtManager, refreshToken)
+type RefreshInput struct {
+	RefreshToken string
+}
+
+func Refresh(_ context.Context, jwtManager jwt.Manager, input RefreshInput) (domainAuth.TokenPair, error) {
+	claims, err := verifyRefreshToken(jwtManager, input.RefreshToken)
 	if err != nil {
 		return domainAuth.TokenPair{}, err
 	}

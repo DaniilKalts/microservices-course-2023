@@ -7,19 +7,19 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
-	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 )
 
-func (r *Repository) Update(ctx context.Context, id string, patch *domainUser.UpdatePatch) error {
+func (r *Repository) Update(ctx context.Context, input repository.UserUpdateInput) error {
 	builderUpdate := sq.Update("users").
 		PlaceholderFormat(sq.Dollar).
-		Where(sq.Eq{"id": id})
+		Where(sq.Eq{"id": input.ID})
 
-	if patch.Name != nil {
-		builderUpdate = builderUpdate.Set("name", *patch.Name)
+	if input.Name != nil {
+		builderUpdate = builderUpdate.Set("name", *input.Name)
 	}
-	if patch.Email != nil {
-		builderUpdate = builderUpdate.Set("email", *patch.Email)
+	if input.Email != nil {
+		builderUpdate = builderUpdate.Set("email", *input.Email)
 	}
 
 	builderUpdate = builderUpdate.Set("updated_at", time.Now())

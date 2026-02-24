@@ -23,7 +23,7 @@ func TestGet_Success(t *testing.T) {
 		return expected, nil
 	})
 
-	got, err := Get(ctx, repo, id)
+	got, err := Get(ctx, repo, GetInput{ID: id})
 
 	require.NoError(t, err)
 	require.Equal(t, expected, got)
@@ -60,7 +60,7 @@ func TestGet_RepositoryScenarios(t *testing.T) {
 				return nil, tt.repoErr
 			})
 
-			got, err := Get(ctx, repo, id)
+			got, err := Get(ctx, repo, GetInput{ID: id})
 
 			require.EqualError(t, err, tt.repoErr.Error())
 			require.Nil(t, got)

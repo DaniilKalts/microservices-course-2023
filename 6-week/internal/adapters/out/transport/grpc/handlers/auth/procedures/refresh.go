@@ -5,12 +5,9 @@ import (
 
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/auth"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/service"
+	authOperations "github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/auth/operations"
 )
 
-type RefreshInput struct {
-	RefreshToken string
-}
-
-func Refresh(ctx context.Context, authService service.AuthService, input RefreshInput) (domainAuth.TokenPair, error) {
-	return authService.Refresh(ctx, input.RefreshToken)
+func Refresh(ctx context.Context, authSvc service.AuthService, input authOperations.RefreshInput) (domainAuth.TokenPair, error) {
+	return authSvc.Refresh(ctx, input)
 }

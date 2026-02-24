@@ -5,19 +5,13 @@ import (
 
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/auth"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/service"
+	authOperations "github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/auth/operations"
 )
-
-type RegisterInput struct {
-	Name            string
-	Email           string
-	Password        string
-	PasswordConfirm string
-}
 
 func Register(
 	ctx context.Context,
-	authService service.AuthService,
-	input RegisterInput,
+	authSvc service.AuthService,
+	input authOperations.RegisterInput,
 ) (string, domainAuth.TokenPair, error) {
-	return authService.Register(ctx, input.Name, input.Email, input.Password, input.PasswordConfirm)
+	return authSvc.Register(ctx, input)
 }

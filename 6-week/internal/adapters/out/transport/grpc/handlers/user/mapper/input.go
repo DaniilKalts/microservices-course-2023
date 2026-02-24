@@ -2,12 +2,12 @@ package mapper
 
 import (
 	userv1 "github.com/DaniilKalts/microservices-course-2023/6-week/gen/grpc/user/v1"
-	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/handlers/user/procedures"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	userOperations "github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/user/operations"
 )
 
-func ToCreateInput(req *userv1.CreateRequest) procedures.CreateInput {
-	return procedures.CreateInput{
+func ToCreateInput(req *userv1.CreateRequest) userOperations.CreateInput {
+	return userOperations.CreateInput{
 		User: &domainUser.User{
 			Name:  req.GetName(),
 			Email: req.GetEmail(),
@@ -18,24 +18,24 @@ func ToCreateInput(req *userv1.CreateRequest) procedures.CreateInput {
 	}
 }
 
-func ToGetInput(req *userv1.GetRequest) procedures.GetInput {
-	return procedures.GetInput{ID: req.GetId()}
+func ToGetInput(req *userv1.GetRequest) userOperations.GetInput {
+	return userOperations.GetInput{ID: req.GetId()}
 }
 
-func ToUpdateInput(req *userv1.UpdateRequest) procedures.UpdateInput {
-	patch := &domainUser.UpdatePatch{}
+func ToUpdateInput(req *userv1.UpdateRequest) userOperations.UpdateInput {
+	input := userOperations.UpdateInput{ID: req.GetId()}
 	if req.GetName() != nil {
 		name := req.GetName().GetValue()
-		patch.Name = &name
+		input.Name = &name
 	}
 	if req.GetEmail() != nil {
 		email := req.GetEmail().GetValue()
-		patch.Email = &email
+		input.Email = &email
 	}
 
-	return procedures.UpdateInput{ID: req.GetId(), Patch: patch}
+	return input
 }
 
-func ToDeleteInput(req *userv1.DeleteRequest) procedures.DeleteInput {
-	return procedures.DeleteInput{ID: req.GetId()}
+func ToDeleteInput(req *userv1.DeleteRequest) userOperations.DeleteInput {
+	return userOperations.DeleteInput{ID: req.GetId()}
 }

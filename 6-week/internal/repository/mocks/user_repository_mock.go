@@ -11,6 +11,7 @@ import (
 	mm_time "time"
 
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	mm_repository "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 	"github.com/gojuno/minimock/v3"
 )
 
@@ -47,9 +48,9 @@ type UserRepositoryMock struct {
 	beforeListCounter uint64
 	ListMock          mUserRepositoryMockList
 
-	funcUpdate          func(ctx context.Context, id string, patch *domainUser.UpdatePatch) (err error)
+	funcUpdate          func(ctx context.Context, input mm_repository.UserUpdateInput) (err error)
 	funcUpdateOrigin    string
-	inspectFuncUpdate   func(ctx context.Context, id string, patch *domainUser.UpdatePatch)
+	inspectFuncUpdate   func(ctx context.Context, input mm_repository.UserUpdateInput)
 	afterUpdateCounter  uint64
 	beforeUpdateCounter uint64
 	UpdateMock          mUserRepositoryMockUpdate
@@ -1481,15 +1482,13 @@ type UserRepositoryMockUpdateExpectation struct {
 // UserRepositoryMockUpdateParams contains parameters of the UserRepository.Update
 type UserRepositoryMockUpdateParams struct {
 	ctx   context.Context
-	id    string
-	patch *domainUser.UpdatePatch
+	input mm_repository.UserUpdateInput
 }
 
 // UserRepositoryMockUpdateParamPtrs contains pointers to parameters of the UserRepository.Update
 type UserRepositoryMockUpdateParamPtrs struct {
 	ctx   *context.Context
-	id    *string
-	patch **domainUser.UpdatePatch
+	input *mm_repository.UserUpdateInput
 }
 
 // UserRepositoryMockUpdateResults contains results of the UserRepository.Update
@@ -1501,8 +1500,7 @@ type UserRepositoryMockUpdateResults struct {
 type UserRepositoryMockUpdateExpectationOrigins struct {
 	origin      string
 	originCtx   string
-	originId    string
-	originPatch string
+	originInput string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1516,7 +1514,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) Optional() *mUserRepositoryMockUpdate
 }
 
 // Expect sets up expected params for UserRepository.Update
-func (mmUpdate *mUserRepositoryMockUpdate) Expect(ctx context.Context, id string, patch *domainUser.UpdatePatch) *mUserRepositoryMockUpdate {
+func (mmUpdate *mUserRepositoryMockUpdate) Expect(ctx context.Context, input mm_repository.UserUpdateInput) *mUserRepositoryMockUpdate {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by Set")
 	}
@@ -1529,7 +1527,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) Expect(ctx context.Context, id string
 		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by ExpectParams functions")
 	}
 
-	mmUpdate.defaultExpectation.params = &UserRepositoryMockUpdateParams{ctx, id, patch}
+	mmUpdate.defaultExpectation.params = &UserRepositoryMockUpdateParams{ctx, input}
 	mmUpdate.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmUpdate.expectations {
 		if minimock.Equal(e.params, mmUpdate.defaultExpectation.params) {
@@ -1563,8 +1561,8 @@ func (mmUpdate *mUserRepositoryMockUpdate) ExpectCtxParam1(ctx context.Context) 
 	return mmUpdate
 }
 
-// ExpectIdParam2 sets up expected param id for UserRepository.Update
-func (mmUpdate *mUserRepositoryMockUpdate) ExpectIdParam2(id string) *mUserRepositoryMockUpdate {
+// ExpectInputParam2 sets up expected param input for UserRepository.Update
+func (mmUpdate *mUserRepositoryMockUpdate) ExpectInputParam2(input mm_repository.UserUpdateInput) *mUserRepositoryMockUpdate {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by Set")
 	}
@@ -1580,37 +1578,14 @@ func (mmUpdate *mUserRepositoryMockUpdate) ExpectIdParam2(id string) *mUserRepos
 	if mmUpdate.defaultExpectation.paramPtrs == nil {
 		mmUpdate.defaultExpectation.paramPtrs = &UserRepositoryMockUpdateParamPtrs{}
 	}
-	mmUpdate.defaultExpectation.paramPtrs.id = &id
-	mmUpdate.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
-
-	return mmUpdate
-}
-
-// ExpectPatchParam3 sets up expected param patch for UserRepository.Update
-func (mmUpdate *mUserRepositoryMockUpdate) ExpectPatchParam3(patch *domainUser.UpdatePatch) *mUserRepositoryMockUpdate {
-	if mmUpdate.mock.funcUpdate != nil {
-		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by Set")
-	}
-
-	if mmUpdate.defaultExpectation == nil {
-		mmUpdate.defaultExpectation = &UserRepositoryMockUpdateExpectation{}
-	}
-
-	if mmUpdate.defaultExpectation.params != nil {
-		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by Expect")
-	}
-
-	if mmUpdate.defaultExpectation.paramPtrs == nil {
-		mmUpdate.defaultExpectation.paramPtrs = &UserRepositoryMockUpdateParamPtrs{}
-	}
-	mmUpdate.defaultExpectation.paramPtrs.patch = &patch
-	mmUpdate.defaultExpectation.expectationOrigins.originPatch = minimock.CallerInfo(1)
+	mmUpdate.defaultExpectation.paramPtrs.input = &input
+	mmUpdate.defaultExpectation.expectationOrigins.originInput = minimock.CallerInfo(1)
 
 	return mmUpdate
 }
 
 // Inspect accepts an inspector function that has same arguments as the UserRepository.Update
-func (mmUpdate *mUserRepositoryMockUpdate) Inspect(f func(ctx context.Context, id string, patch *domainUser.UpdatePatch)) *mUserRepositoryMockUpdate {
+func (mmUpdate *mUserRepositoryMockUpdate) Inspect(f func(ctx context.Context, input mm_repository.UserUpdateInput)) *mUserRepositoryMockUpdate {
 	if mmUpdate.mock.inspectFuncUpdate != nil {
 		mmUpdate.mock.t.Fatalf("Inspect function is already set for UserRepositoryMock.Update")
 	}
@@ -1635,7 +1610,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) Return(err error) *UserRepositoryMock
 }
 
 // Set uses given function f to mock the UserRepository.Update method
-func (mmUpdate *mUserRepositoryMockUpdate) Set(f func(ctx context.Context, id string, patch *domainUser.UpdatePatch) (err error)) *UserRepositoryMock {
+func (mmUpdate *mUserRepositoryMockUpdate) Set(f func(ctx context.Context, input mm_repository.UserUpdateInput) (err error)) *UserRepositoryMock {
 	if mmUpdate.defaultExpectation != nil {
 		mmUpdate.mock.t.Fatalf("Default expectation is already set for the UserRepository.Update method")
 	}
@@ -1651,14 +1626,14 @@ func (mmUpdate *mUserRepositoryMockUpdate) Set(f func(ctx context.Context, id st
 
 // When sets expectation for the UserRepository.Update which will trigger the result defined by the following
 // Then helper
-func (mmUpdate *mUserRepositoryMockUpdate) When(ctx context.Context, id string, patch *domainUser.UpdatePatch) *UserRepositoryMockUpdateExpectation {
+func (mmUpdate *mUserRepositoryMockUpdate) When(ctx context.Context, input mm_repository.UserUpdateInput) *UserRepositoryMockUpdateExpectation {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by Set")
 	}
 
 	expectation := &UserRepositoryMockUpdateExpectation{
 		mock:               mmUpdate.mock,
-		params:             &UserRepositoryMockUpdateParams{ctx, id, patch},
+		params:             &UserRepositoryMockUpdateParams{ctx, input},
 		expectationOrigins: UserRepositoryMockUpdateExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmUpdate.expectations = append(mmUpdate.expectations, expectation)
@@ -1693,17 +1668,17 @@ func (mmUpdate *mUserRepositoryMockUpdate) invocationsDone() bool {
 }
 
 // Update implements mm_repository.UserRepository
-func (mmUpdate *UserRepositoryMock) Update(ctx context.Context, id string, patch *domainUser.UpdatePatch) (err error) {
+func (mmUpdate *UserRepositoryMock) Update(ctx context.Context, input mm_repository.UserUpdateInput) (err error) {
 	mm_atomic.AddUint64(&mmUpdate.beforeUpdateCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdate.afterUpdateCounter, 1)
 
 	mmUpdate.t.Helper()
 
 	if mmUpdate.inspectFuncUpdate != nil {
-		mmUpdate.inspectFuncUpdate(ctx, id, patch)
+		mmUpdate.inspectFuncUpdate(ctx, input)
 	}
 
-	mm_params := UserRepositoryMockUpdateParams{ctx, id, patch}
+	mm_params := UserRepositoryMockUpdateParams{ctx, input}
 
 	// Record call args
 	mmUpdate.UpdateMock.mutex.Lock()
@@ -1722,7 +1697,7 @@ func (mmUpdate *UserRepositoryMock) Update(ctx context.Context, id string, patch
 		mm_want := mmUpdate.UpdateMock.defaultExpectation.params
 		mm_want_ptrs := mmUpdate.UpdateMock.defaultExpectation.paramPtrs
 
-		mm_got := UserRepositoryMockUpdateParams{ctx, id, patch}
+		mm_got := UserRepositoryMockUpdateParams{ctx, input}
 
 		if mm_want_ptrs != nil {
 
@@ -1731,14 +1706,9 @@ func (mmUpdate *UserRepositoryMock) Update(ctx context.Context, id string, patch
 					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
 			}
 
-			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
-				mmUpdate.t.Errorf("UserRepositoryMock.Update got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
-			}
-
-			if mm_want_ptrs.patch != nil && !minimock.Equal(*mm_want_ptrs.patch, mm_got.patch) {
-				mmUpdate.t.Errorf("UserRepositoryMock.Update got unexpected parameter patch, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originPatch, *mm_want_ptrs.patch, mm_got.patch, minimock.Diff(*mm_want_ptrs.patch, mm_got.patch))
+			if mm_want_ptrs.input != nil && !minimock.Equal(*mm_want_ptrs.input, mm_got.input) {
+				mmUpdate.t.Errorf("UserRepositoryMock.Update got unexpected parameter input, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originInput, *mm_want_ptrs.input, mm_got.input, minimock.Diff(*mm_want_ptrs.input, mm_got.input))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -1753,9 +1723,9 @@ func (mmUpdate *UserRepositoryMock) Update(ctx context.Context, id string, patch
 		return (*mm_results).err
 	}
 	if mmUpdate.funcUpdate != nil {
-		return mmUpdate.funcUpdate(ctx, id, patch)
+		return mmUpdate.funcUpdate(ctx, input)
 	}
-	mmUpdate.t.Fatalf("Unexpected call to UserRepositoryMock.Update. %v %v %v", ctx, id, patch)
+	mmUpdate.t.Fatalf("Unexpected call to UserRepositoryMock.Update. %v %v", ctx, input)
 	return
 }
 

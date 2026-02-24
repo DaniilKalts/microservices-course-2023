@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -7,10 +7,15 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
-	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 )
 
-func (r *Repository) Update(ctx context.Context, input repository.UserUpdateInput) error {
+type UpdateInput struct {
+	ID    string
+	Name  *string
+	Email *string
+}
+
+func Update(ctx context.Context, dbc database.Client, input UpdateInput) error {
 	builderUpdate := sq.Update("users").
 		PlaceholderFormat(sq.Dollar).
 		Where(sq.Eq{"id": input.ID})
@@ -30,7 +35,7 @@ func (r *Repository) Update(ctx context.Context, input repository.UserUpdateInpu
 	}
 
 	q := database.Query{Name: "user.Update", QueryRaw: query}
-	if _, err = r.dbc.DB().ExecContext(ctx, q, args...); err != nil {
+	if _, err = dbc.DB().ExecContext(ctx, q, args...); err != nil {
 		return err
 	}
 

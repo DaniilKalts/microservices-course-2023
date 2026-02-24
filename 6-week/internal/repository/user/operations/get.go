@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -7,13 +7,19 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/mapper"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/model"
 )
 
-func (r *Repository) Get(ctx context.Context, id string) (*domainUser.User, error) {
+type GetInput struct {
+	ID string
+}
+
+func Get(ctx context.Context, dbc database.Client, input GetInput) (*domainUser.User, error) {
 	builderSelect := sq.Select("id", "name", "email", "role", "created_at", "updated_at").
 		From("users").
 		PlaceholderFormat(sq.Dollar).
-		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"id": input.ID}).
 		Limit(1)
 
 	query, args, err := builderSelect.ToSql()
@@ -21,11 +27,11 @@ func (r *Repository) Get(ctx context.Context, id string) (*domainUser.User, erro
 		return nil, err
 	}
 
-	var user dbUser
+	var user model.DBUser
 	q := database.Query{Name: "user.Get", QueryRaw: query}
-	if err = r.dbc.DB().ScanOneContext(ctx, &user, q, args...); err != nil {
+	if err = dbc.DB().ScanOneContext(ctx, &user, q, args...); err != nil {
 		return nil, err
 	}
 
-	return toDomainFromDBUser(&user), nil
+	return mapper.ToDomainFromDBUser(&user), nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/auth"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/auth/operations"
 	userService "github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/pkg/jwt"
@@ -18,12 +19,14 @@ type Service interface {
 
 type service struct {
 	userService userService.Service
+	userRepo    repository.UserRepository
 	jwtManager  jwt.Manager
 }
 
-func NewService(userSvc userService.Service, jwtManager jwt.Manager) Service {
+func NewService(userSvc userService.Service, userRepo repository.UserRepository, jwtManager jwt.Manager) Service {
 	return &service{
 		userService: userSvc,
+		userRepo:    userRepo,
 		jwtManager:  jwtManager,
 	}
 }
@@ -33,7 +36,7 @@ func (s *service) Register(ctx context.Context, input operations.RegisterInput) 
 }
 
 func (s *service) Login(ctx context.Context, input operations.LoginInput) (domainAuth.TokenPair, error) {
-	return operations.Login(ctx, input)
+	return operations.Login(ctx, s.userRepo, s.jwtManager, input)
 }
 
 func (s *service) Logout(ctx context.Context, input operations.LogoutInput) error {

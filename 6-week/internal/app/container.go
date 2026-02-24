@@ -20,7 +20,6 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/config"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/config/env"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
-	userRepository "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/pkg/jwt"
 )
@@ -46,8 +45,8 @@ type Container struct {
 	Tx         database.TxManager
 	JWTManager jwt.Manager
 
-	UserRepo repository.UserRepository
-	Services service.Services
+	Repositories repository.Repositories
+	Services     service.Services
 
 	userHandler userv1.UserV1Server
 
@@ -145,13 +144,13 @@ func (c *Container) initJWTManager() error {
 }
 
 func (c *Container) initRepositories() {
-	c.UserRepo = userRepository.NewRepository(c.DB)
+	c.Repositories = repository.NewRepositories(repository.Deps{DB: c.DB})
 }
 
 func (c *Container) initServices() {
 	c.Services = service.NewServices(service.Deps{
-		UserRepo:   c.UserRepo,
-		JWTManager: c.JWTManager,
+		Repositories: c.Repositories,
+		JWTManager:   c.JWTManager,
 	})
 }
 

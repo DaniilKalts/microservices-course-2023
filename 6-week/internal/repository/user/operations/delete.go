@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -8,10 +8,14 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
 )
 
-func (r *Repository) Delete(ctx context.Context, id string) error {
+type DeleteInput struct {
+	ID string
+}
+
+func Delete(ctx context.Context, dbc database.Client, input DeleteInput) error {
 	builderDelete := sq.Delete("users").
 		PlaceholderFormat(sq.Dollar).
-		Where(sq.Eq{"id": id})
+		Where(sq.Eq{"id": input.ID})
 
 	query, args, err := builderDelete.ToSql()
 	if err != nil {
@@ -19,7 +23,7 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 	}
 
 	q := database.Query{Name: "user.Delete", QueryRaw: query}
-	if _, err = r.dbc.DB().ExecContext(ctx, q, args...); err != nil {
+	if _, err = dbc.DB().ExecContext(ctx, q, args...); err != nil {
 		return err
 	}
 

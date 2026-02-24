@@ -8,7 +8,6 @@ import (
 )
 
 type UserService = userService.Service
-
 type AuthService = authService.Service
 
 type Services struct {
@@ -17,13 +16,13 @@ type Services struct {
 }
 
 type Deps struct {
-	UserRepo   repository.UserRepository
-	JWTManager jwt.Manager
+	Repositories repository.Repositories
+	JWTManager   jwt.Manager
 }
 
 func NewServices(deps Deps) Services {
-	userSvc := userService.NewService(deps.UserRepo)
-	authSvc := authService.NewService(userSvc, deps.JWTManager)
+	userSvc := userService.NewService(deps.Repositories.User)
+	authSvc := authService.NewService(userSvc, deps.Repositories.User, deps.JWTManager)
 
 	return Services{
 		User: userSvc,

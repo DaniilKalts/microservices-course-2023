@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -7,11 +7,16 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/mapper"
 )
 
-func (r *Repository) Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error) {
-	dbUser := toDBUserFromDomain(user)
-	dbUser.PasswordHash = passwordHash
+type CreateInput struct {
+	User         *domainUser.User
+	PasswordHash string
+}
+
+func Create(ctx context.Context, dbc database.Client, input CreateInput) (string, error) {
+	dbUser := mapper.ToDBUserFromDomain(input.User, input.PasswordHash)
 
 	builderCreate := sq.Insert("users").
 		PlaceholderFormat(sq.Dollar).
@@ -25,7 +30,7 @@ func (r *Repository) Create(ctx context.Context, user *domainUser.User, password
 	}
 
 	var userID string
-	if err = r.dbc.DB().ScanOneContext(ctx, &userID, database.Query{Name: "user.Create", QueryRaw: query}, args...); err != nil {
+	if err = dbc.DB().ScanOneContext(ctx, &userID, database.Query{Name: "user.Create", QueryRaw: query}, args...); err != nil {
 		return "", err
 	}
 

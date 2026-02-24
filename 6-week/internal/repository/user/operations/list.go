@@ -1,4 +1,4 @@
-package user
+package operations
 
 import (
 	"context"
@@ -7,9 +7,11 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/mapper"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/model"
 )
 
-func (r *Repository) List(ctx context.Context) ([]domainUser.User, error) {
+func List(ctx context.Context, dbc database.Client) ([]domainUser.User, error) {
 	builderSelect := sq.Select("id", "name", "email", "role", "created_at", "updated_at").
 		From("users").
 		PlaceholderFormat(sq.Dollar).
@@ -20,16 +22,11 @@ func (r *Repository) List(ctx context.Context) ([]domainUser.User, error) {
 		return nil, err
 	}
 
-	var users []dbUser
+	var users []model.DBUser
 	q := database.Query{Name: "user.List", QueryRaw: query}
-	if err = r.dbc.DB().ScanAllContext(ctx, &users, q, args...); err != nil {
+	if err = dbc.DB().ScanAllContext(ctx, &users, q, args...); err != nil {
 		return nil, err
 	}
 
-	entities := make([]domainUser.User, 0, len(users))
-	for i := range users {
-		entities = append(entities, *toDomainFromDBUser(&users[i]))
-	}
-
-	return entities, nil
+	return mapper.ToDomainFromDBUsers(users), nil
 }

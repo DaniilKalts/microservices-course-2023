@@ -9,12 +9,18 @@ import (
 )
 
 const (
-	accessTokenType  = "access"
-	refreshTokenType = "refresh"
+	tokenTypeAccess  = "access"
+	tokenTypeRefresh = "refresh"
 	bearerScheme     = "Bearer"
 )
 
-var errTokenTypeMissing = errors.New("token type is missing")
+var (
+	errTokenEmpty        = errors.New("token is empty")
+	errTokenIDMissing    = errors.New("token id is missing")
+	errTokenTypeMissing  = errors.New("token type is missing")
+	errTokenTypeInvalid  = errors.New("invalid token type")
+	errTokenTypeMismatch = errors.New("token type mismatch")
+)
 
 func validateTokenType(tokenType, expectedTokenType string) error {
 	if tokenType == "" {
@@ -22,13 +28,13 @@ func validateTokenType(tokenType, expectedTokenType string) error {
 	}
 
 	switch tokenType {
-	case accessTokenType, refreshTokenType:
+	case tokenTypeAccess, tokenTypeRefresh:
 	default:
-		return fmt.Errorf("invalid token type %q", tokenType)
+		return fmt.Errorf("%w: %q", errTokenTypeInvalid, tokenType)
 	}
 
 	if expectedTokenType != "" && tokenType != expectedTokenType {
-		return fmt.Errorf("token type mismatch: got %q", tokenType)
+		return fmt.Errorf("%w: got %q, want %q", errTokenTypeMismatch, tokenType, expectedTokenType)
 	}
 
 	return nil
@@ -52,14 +58,6 @@ func normalizeToken(tokenString string) string {
 	return tokenString
 }
 
-func (m *manager) keyFunc(token *jwtv5.Token) (any, error) {
-	if token == nil || token.Method == nil {
-		return nil, errors.New("token method is missing")
-	}
-
-	if token.Method.Alg() != signingMethodAlgorithm {
-		return nil, fmt.Errorf("unexpected signing method %q", token.Method.Alg())
-	}
-
+func (m *manager) publicKeyFunc(_ *jwtv5.Token) (any, error) {
 	return m.publicKey, nil
 }

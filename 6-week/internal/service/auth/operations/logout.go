@@ -11,5 +11,6 @@ type LogoutInput struct {
 }
 
 func Logout(_ context.Context, jwtManager jwt.Manager, input LogoutInput) error {
-	return parseRefreshToken(jwtManager, input.RefreshToken)
+	_, err := jwtManager.VerifyRefreshToken(input.RefreshToken)
+	return err
 }

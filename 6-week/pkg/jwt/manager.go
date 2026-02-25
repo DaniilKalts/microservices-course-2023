@@ -18,14 +18,13 @@ const (
 	signingMethodAlgorithm = "RS256"
 
 	operationVerify = "verify"
-	operationParse  = "parse"
 )
 
 type Manager interface {
 	GenerateAccessToken(claims Claims) (string, error)
 	GenerateRefreshToken(claims Claims) (string, error)
-	Verify(tokenString string) (*Claims, error)
-	Parse(tokenString string) (*Claims, error)
+	VerifyRefreshToken(tokenString string) (*Claims, error)
+
 	AccessTokenTTL() time.Duration
 	RefreshTokenTTL() time.Duration
 }
@@ -129,11 +128,44 @@ func normalizeConfig(cfg Config) (Config, error) {
 }
 
 func (m *manager) GenerateAccessToken(claims Claims) (string, error) {
-	return m.generateToken(claims, m.accessTokenTTL, accessTokenType)
+	return m.generateToken(claims, m.accessTokenTTL, tokenTypeAccess)
 }
 
 func (m *manager) GenerateRefreshToken(claims Claims) (string, error) {
-	return m.generateToken(claims, m.refreshTokenTTL, refreshTokenType)
+	return m.generateToken(claims, m.refreshTokenTTL, tokenTypeRefresh)
+}
+
+func (m *manager) VerifyRefreshToken(tokenString string) (*Claims, error) {
+	options := []jwtv5.ParserOption{
+		jwtv5.WithValidMethods([]string{signingMethodAlgorithm}),
+	}
+
+	if m.issuer != "" {
+		options = append(options, jwtv5.WithIssuer(m.issuer))
+	}
+
+	if m.audience != "" {
+		options = append(options, jwtv5.WithAudience(m.audience))
+	}
+
+	if m.subject != "" {
+		options = append(options, jwtv5.WithSubject(m.subject))
+	}
+
+	claims, err := m.parseClaims(tokenString, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = validateTokenType(claims.TokenType, tokenTypeRefresh); err != nil {
+		return nil, fmt.Errorf("%s token: %w", operationVerify, err)
+	}
+
+	if claims.ID == "" {
+		return nil, fmt.Errorf("%s token: %w", operationVerify, errTokenIDMissing)
+	}
+
+	return claims, nil
 }
 
 func (m *manager) AccessTokenTTL() time.Duration {
@@ -164,107 +196,25 @@ func (m *manager) sign(claims Claims) (string, error) {
 	return signed, nil
 }
 
-func (m *manager) Verify(tokenString string) (*Claims, error) {
-	claims, err := m.parseClaims(operationVerify, tokenString, m.verifyParserOptions()...)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = validateTokenType(claims.TokenType, ""); err != nil {
-		return nil, fmt.Errorf("%s token: %w", operationVerify, err)
-	}
-
-	return claims, nil
-}
-
-func (m *manager) Parse(tokenString string) (*Claims, error) {
-	claims, err := m.parseClaims(
-		operationParse,
-		tokenString,
-		jwtv5.WithValidMethods([]string{signingMethodAlgorithm}),
-		jwtv5.WithoutClaimsValidation(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = m.validateIdentityClaims(operationParse, claims); err != nil {
-		return nil, err
-	}
-
-	if err = validateTokenType(claims.TokenType, ""); err != nil {
-		return nil, fmt.Errorf("%s token: %w", operationParse, err)
-	}
-
-	now := time.Now().UTC()
-
-	if claims.NotBefore != nil && now.Before(claims.NotBefore.Time) {
-		return nil, fmt.Errorf("%s token: token is not valid yet", operationParse)
-	}
-
-	if claims.IssuedAt != nil && now.Before(claims.IssuedAt.Time) {
-		return nil, fmt.Errorf("%s token: token issued in the future", operationParse)
-	}
-
-	return claims, nil
-}
-
 func (m *manager) parseClaims(
-	operation string,
 	tokenString string,
 	parserOptions ...jwtv5.ParserOption,
 ) (*Claims, error) {
 	tokenString = normalizeToken(tokenString)
 	if tokenString == "" {
-		return nil, fmt.Errorf("%s token: token is empty", operation)
+		return nil, fmt.Errorf("%s token: %w", operationVerify, errTokenEmpty)
 	}
 
 	claims := &Claims{}
 
-	token, err := jwtv5.ParseWithClaims(tokenString, claims, m.keyFunc, parserOptions...)
+	token, err := jwtv5.ParseWithClaims(tokenString, claims, m.publicKeyFunc, parserOptions...)
 	if err != nil {
-		return nil, fmt.Errorf("%s token: %w", operation, err)
+		return nil, fmt.Errorf("%s token: %w", operationVerify, err)
 	}
 
 	if !token.Valid {
-		return nil, fmt.Errorf("%s token: token is invalid", operation)
+		return nil, fmt.Errorf("%s token: token is invalid", operationVerify)
 	}
 
 	return claims, nil
-}
-
-func (m *manager) validateIdentityClaims(operation string, claims *Claims) error {
-	if m.issuer != "" && claims.Issuer != m.issuer {
-		return fmt.Errorf("%s token: issuer mismatch: got %q", operation, claims.Issuer)
-	}
-
-	if m.audience != "" && !containsAudience(claims.Audience, m.audience) {
-		return fmt.Errorf("%s token: audience mismatch: got %v", operation, claims.Audience)
-	}
-
-	if m.subject != "" && claims.Subject != m.subject {
-		return fmt.Errorf("%s token: subject mismatch: got %q", operation, claims.Subject)
-	}
-
-	return nil
-}
-
-func (m *manager) verifyParserOptions() []jwtv5.ParserOption {
-	options := []jwtv5.ParserOption{
-		jwtv5.WithValidMethods([]string{signingMethodAlgorithm}),
-	}
-
-	if m.issuer != "" {
-		options = append(options, jwtv5.WithIssuer(m.issuer))
-	}
-
-	if m.audience != "" {
-		options = append(options, jwtv5.WithAudience(m.audience))
-	}
-
-	if m.subject != "" {
-		options = append(options, jwtv5.WithSubject(m.subject))
-	}
-
-	return options
 }

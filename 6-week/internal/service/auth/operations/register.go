@@ -35,10 +35,10 @@ func Register(
 		return domainUser.User{}, domainAuth.TokenPair{}, err
 	}
 
-	tokens, err := generateTokenPair(jwtManager, userID, int32(domainUser.RoleUser))
+	tokenPair, err := generateTokenPair(jwtManager, userID, int32(domainUser.RoleUser))
 	if err != nil {
 		return domainUser.User{}, domainAuth.TokenPair{}, err
 	}
 
-	return domainUser.User{ID: userID, Name: input.Name, Email: input.Email}, tokens, nil
+	return domainUser.User{ID: userID, Name: input.Name, Email: input.Email}, tokenPair, nil
 }

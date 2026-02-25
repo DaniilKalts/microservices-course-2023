@@ -31,7 +31,7 @@ func Login(
 	if err != nil {
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyPasswordHash), []byte(input.Password))
 		if pgxscan.NotFound(err) {
-			return domainAuth.TokenPair{}, status.Error(codes.Unauthenticated, errInvalidCredentials.Error())
+			return domainAuth.TokenPair{}, status.Error(codes.Unauthenticated, domainAuth.ErrInvalidCredentials.Error())
 		}
 
 		return domainAuth.TokenPair{}, status.Error(codes.Internal, "failed to authenticate user")
@@ -40,16 +40,16 @@ func Login(
 	err = bcrypt.CompareHashAndPassword([]byte(credentials.PasswordHash), []byte(input.Password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return domainAuth.TokenPair{}, status.Error(codes.Unauthenticated, errInvalidCredentials.Error())
+			return domainAuth.TokenPair{}, status.Error(codes.Unauthenticated, domainAuth.ErrInvalidCredentials.Error())
 		}
 
 		return domainAuth.TokenPair{}, status.Error(codes.Internal, "failed to authenticate user")
 	}
 
-	tokens, err := generateTokenPair(jwtManager, credentials.ID, int32(credentials.Role))
+	tokenPair, err := generateTokenPair(jwtManager, credentials.ID, int32(credentials.Role))
 	if err != nil {
 		return domainAuth.TokenPair{}, status.Error(codes.Internal, "failed to issue auth tokens")
 	}
 
-	return tokens, nil
+	return tokenPair, nil
 }

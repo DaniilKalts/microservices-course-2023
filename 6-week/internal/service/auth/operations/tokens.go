@@ -9,7 +9,7 @@ import (
 
 func generateTokenPair(jwtManager jwt.Manager, userID string, roleID int32) (domainAuth.TokenPair, error) {
 	if userID == "" {
-		return domainAuth.TokenPair{}, errUserIDEmpty
+		return domainAuth.TokenPair{}, domainAuth.ErrUserIDEmpty
 	}
 
 	claims := jwt.Claims{

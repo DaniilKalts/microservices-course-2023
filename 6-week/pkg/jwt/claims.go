@@ -56,13 +56,3 @@ func (m *manager) prepareClaims(claims Claims, ttl time.Duration, expectedTokenT
 
 	return claims, nil
 }
-
-func containsAudience(audiences jwtv5.ClaimStrings, expected string) bool {
-	for _, audience := range audiences {
-		if audience == expected {
-			return true
-		}
-	}
-
-	return false
-}

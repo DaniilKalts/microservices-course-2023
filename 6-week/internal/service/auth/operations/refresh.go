@@ -12,15 +12,15 @@ type RefreshInput struct {
 }
 
 func Refresh(_ context.Context, jwtManager jwt.Manager, input RefreshInput) (domainAuth.TokenPair, error) {
-	claims, err := verifyRefreshToken(jwtManager, input.RefreshToken)
+	claims, err := jwtManager.VerifyRefreshToken(input.RefreshToken)
 	if err != nil {
 		return domainAuth.TokenPair{}, err
 	}
 
-	tokens, err := generateTokenPair(jwtManager, claims.ID, claims.RoleID)
+	tokenPair, err := generateTokenPair(jwtManager, claims.ID, claims.RoleID)
 	if err != nil {
 		return domainAuth.TokenPair{}, err
 	}
 
-	return tokens, nil
+	return tokenPair, nil
 }

@@ -12,5 +12,5 @@ type GetInput struct {
 }
 
 func Get(ctx context.Context, repo repository.UserRepository, input GetInput) (*domainUser.User, error) {
-	return repo.Get(ctx, input.ID)
+	return repo.GetByID(ctx, input.ID)
 }

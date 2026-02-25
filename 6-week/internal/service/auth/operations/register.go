@@ -11,10 +11,9 @@ import (
 )
 
 type RegisterInput struct {
-	Name            string
-	Email           string
-	Password        string
-	PasswordConfirm string
+	Name     string
+	Email    string
+	Password string
 }
 
 func Register(
@@ -22,7 +21,7 @@ func Register(
 	userSvc userService.Service,
 	jwtManager jwt.Manager,
 	input RegisterInput,
-) (string, domainAuth.TokenPair, error) {
+) (domainUser.User, domainAuth.TokenPair, error) {
 	userID, err := userSvc.Create(ctx, userOperations.CreateInput{
 		User: &domainUser.User{
 			Name:  input.Name,
@@ -30,16 +29,16 @@ func Register(
 			Role:  domainUser.RoleUser,
 		},
 		Password:        input.Password,
-		PasswordConfirm: input.PasswordConfirm,
+		PasswordConfirm: input.Password,
 	})
 	if err != nil {
-		return "", domainAuth.TokenPair{}, err
+		return domainUser.User{}, domainAuth.TokenPair{}, err
 	}
 
 	tokens, err := generateTokenPair(jwtManager, userID, int32(domainUser.RoleUser))
 	if err != nil {
-		return "", domainAuth.TokenPair{}, err
+		return domainUser.User{}, domainAuth.TokenPair{}, err
 	}
 
-	return userID, tokens, nil
+	return domainUser.User{ID: userID, Name: input.Name, Email: input.Email}, tokens, nil
 }

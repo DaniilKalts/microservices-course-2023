@@ -7,10 +7,9 @@ import (
 
 func ToRegisterInput(req *authv1.RegisterRequest) authOperations.RegisterInput {
 	return authOperations.RegisterInput{
-		Name:            req.GetName(),
-		Email:           req.GetEmail(),
-		Password:        req.GetPassword(),
-		PasswordConfirm: req.GetPasswordConfirm(),
+		Name:     req.GetName(),
+		Email:    req.GetEmail(),
+		Password: req.GetPassword(),
 	}
 }
 

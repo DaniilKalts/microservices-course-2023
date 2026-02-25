@@ -82,6 +82,10 @@ func (m *TokenPair) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
+	// no validation rules for AccessTokenExpiresIn
+
+	// no validation rules for RefreshTokenExpiresIn
+
 	if len(errors) > 0 {
 		return TokenPairMultiError(errors)
 	}
@@ -240,18 +244,7 @@ func (m *RegisterRequest) validate(all bool) error {
 	if !_RegisterRequest_Password_Pattern.MatchString(m.GetPassword()) {
 		err := RegisterRequestValidationError{
 			field:  "Password",
-			reason: "value does not match regex pattern \"^([A-Za-z].*\\\\d|\\\\d.*[A-Za-z]).*$\"",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if l := utf8.RuneCountInString(m.GetPasswordConfirm()); l < 8 || l > 64 {
-		err := RegisterRequestValidationError{
-			field:  "PasswordConfirm",
-			reason: "value length must be between 8 and 64 runes, inclusive",
+			reason: "value does not match regex pattern \"^(.*[A-Z].*[a-z].*[0-9].*[^A-Za-z0-9].*|.*[A-Z].*[a-z].*[^A-Za-z0-9].*[0-9].*|.*[A-Z].*[0-9].*[a-z].*[^A-Za-z0-9].*|.*[A-Z].*[0-9].*[^A-Za-z0-9].*[a-z].*|.*[A-Z].*[^A-Za-z0-9].*[a-z].*[0-9].*|.*[A-Z].*[^A-Za-z0-9].*[0-9].*[a-z].*|.*[a-z].*[A-Z].*[0-9].*[^A-Za-z0-9].*|.*[a-z].*[A-Z].*[^A-Za-z0-9].*[0-9].*|.*[a-z].*[0-9].*[A-Z].*[^A-Za-z0-9].*|.*[a-z].*[0-9].*[^A-Za-z0-9].*[A-Z].*|.*[a-z].*[^A-Za-z0-9].*[A-Z].*[0-9].*|.*[a-z].*[^A-Za-z0-9].*[0-9].*[A-Z].*|.*[0-9].*[A-Z].*[a-z].*[^A-Za-z0-9].*|.*[0-9].*[A-Z].*[^A-Za-z0-9].*[a-z].*|.*[0-9].*[a-z].*[A-Z].*[^A-Za-z0-9].*|.*[0-9].*[a-z].*[^A-Za-z0-9].*[A-Z].*|.*[0-9].*[^A-Za-z0-9].*[A-Z].*[a-z].*|.*[0-9].*[^A-Za-z0-9].*[a-z].*[A-Z].*|.*[^A-Za-z0-9].*[A-Z].*[a-z].*[0-9].*|.*[^A-Za-z0-9].*[A-Z].*[0-9].*[a-z].*|.*[^A-Za-z0-9].*[a-z].*[A-Z].*[0-9].*|.*[^A-Za-z0-9].*[a-z].*[0-9].*[A-Z].*|.*[^A-Za-z0-9].*[0-9].*[A-Z].*[a-z].*|.*[^A-Za-z0-9].*[0-9].*[a-z].*[A-Z].*)$\"",
 		}
 		if !all {
 			return err
@@ -389,7 +382,7 @@ var _ interface {
 
 var _RegisterRequest_Name_Pattern = regexp.MustCompile("^[^\\x00-\\x1F\\x7F]+$")
 
-var _RegisterRequest_Password_Pattern = regexp.MustCompile("^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$")
+var _RegisterRequest_Password_Pattern = regexp.MustCompile("^(.*[A-Z].*[a-z].*[0-9].*[^A-Za-z0-9].*|.*[A-Z].*[a-z].*[^A-Za-z0-9].*[0-9].*|.*[A-Z].*[0-9].*[a-z].*[^A-Za-z0-9].*|.*[A-Z].*[0-9].*[^A-Za-z0-9].*[a-z].*|.*[A-Z].*[^A-Za-z0-9].*[a-z].*[0-9].*|.*[A-Z].*[^A-Za-z0-9].*[0-9].*[a-z].*|.*[a-z].*[A-Z].*[0-9].*[^A-Za-z0-9].*|.*[a-z].*[A-Z].*[^A-Za-z0-9].*[0-9].*|.*[a-z].*[0-9].*[A-Z].*[^A-Za-z0-9].*|.*[a-z].*[0-9].*[^A-Za-z0-9].*[A-Z].*|.*[a-z].*[^A-Za-z0-9].*[A-Z].*[0-9].*|.*[a-z].*[^A-Za-z0-9].*[0-9].*[A-Z].*|.*[0-9].*[A-Z].*[a-z].*[^A-Za-z0-9].*|.*[0-9].*[A-Z].*[^A-Za-z0-9].*[a-z].*|.*[0-9].*[a-z].*[A-Z].*[^A-Za-z0-9].*|.*[0-9].*[a-z].*[^A-Za-z0-9].*[A-Z].*|.*[0-9].*[^A-Za-z0-9].*[A-Z].*[a-z].*|.*[0-9].*[^A-Za-z0-9].*[a-z].*[A-Z].*|.*[^A-Za-z0-9].*[A-Z].*[a-z].*[0-9].*|.*[^A-Za-z0-9].*[A-Z].*[0-9].*[a-z].*|.*[^A-Za-z0-9].*[a-z].*[A-Z].*[0-9].*|.*[^A-Za-z0-9].*[a-z].*[0-9].*[A-Z].*|.*[^A-Za-z0-9].*[0-9].*[A-Z].*[a-z].*|.*[^A-Za-z0-9].*[0-9].*[a-z].*[A-Z].*)$")
 
 // Validate checks the field values on RegisterResponse with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -413,16 +406,44 @@ func (m *RegisterResponse) validate(all bool) error {
 
 	var errors []error
 
-	if err := m._validateUuid(m.GetId()); err != nil {
-		err = RegisterResponseValidationError{
-			field:  "Id",
-			reason: "value must be a valid UUID",
-			cause:  err,
+	if m.GetUser() == nil {
+		err := RegisterResponseValidationError{
+			field:  "User",
+			reason: "value is required",
 		}
 		if !all {
 			return err
 		}
 		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetUser()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, RegisterResponseValidationError{
+					field:  "User",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, RegisterResponseValidationError{
+					field:  "User",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetUser()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return RegisterResponseValidationError{
+				field:  "User",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
 	}
 
 	if m.GetTokens() == nil {
@@ -467,14 +488,6 @@ func (m *RegisterResponse) validate(all bool) error {
 
 	if len(errors) > 0 {
 		return RegisterResponseMultiError(errors)
-	}
-
-	return nil
-}
-
-func (m *RegisterResponse) _validateUuid(uuid string) error {
-	if matched := _auth_uuidPattern.MatchString(uuid); !matched {
-		return errors.New("invalid uuid format")
 	}
 
 	return nil
@@ -1235,3 +1248,129 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = RefreshResponseValidationError{}
+
+// Validate checks the field values on RegisterResponse_User with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *RegisterResponse_User) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on RegisterResponse_User with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// RegisterResponse_UserMultiError, or nil if none found.
+func (m *RegisterResponse_User) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *RegisterResponse_User) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if err := m._validateUuid(m.GetId()); err != nil {
+		err = RegisterResponse_UserValidationError{
+			field:  "Id",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	// no validation rules for Name
+
+	// no validation rules for Email
+
+	if len(errors) > 0 {
+		return RegisterResponse_UserMultiError(errors)
+	}
+
+	return nil
+}
+
+func (m *RegisterResponse_User) _validateUuid(uuid string) error {
+	if matched := _auth_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// RegisterResponse_UserMultiError is an error wrapping multiple validation
+// errors returned by RegisterResponse_User.ValidateAll() if the designated
+// constraints aren't met.
+type RegisterResponse_UserMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RegisterResponse_UserMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RegisterResponse_UserMultiError) AllErrors() []error { return m }
+
+// RegisterResponse_UserValidationError is the validation error returned by
+// RegisterResponse_User.Validate if the designated constraints aren't met.
+type RegisterResponse_UserValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RegisterResponse_UserValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RegisterResponse_UserValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RegisterResponse_UserValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RegisterResponse_UserValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RegisterResponse_UserValidationError) ErrorName() string {
+	return "RegisterResponse_UserValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e RegisterResponse_UserValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRegisterResponse_User.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RegisterResponse_UserValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RegisterResponse_UserValidationError{}

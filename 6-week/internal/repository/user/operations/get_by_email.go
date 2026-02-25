@@ -6,25 +6,20 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
-	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
+	domainAuth "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/auth"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/mapper"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/model"
 )
 
-type GetByEmailInput struct {
+type GetCredentialsByEmailInput struct {
 	Email string
 }
 
-type Credentials struct {
-	ID           string
-	PasswordHash string
-	Role         domainUser.Role
-}
-
-func GetByEmail(
+func GetCredentialsByEmail(
 	ctx context.Context,
 	dbc database.Client,
-	input GetByEmailInput,
-) (*Credentials, error) {
+	input GetCredentialsByEmailInput,
+) (*domainAuth.Credentials, error) {
 	builderSelect := sq.Select("id", "password_hash", "role").
 		From("users").
 		PlaceholderFormat(sq.Dollar).
@@ -37,14 +32,10 @@ func GetByEmail(
 	}
 
 	var user model.DBUser
-	q := database.Query{Name: "user.GetByEmail", QueryRaw: query}
+	q := database.Query{Name: "user.GetCredentialsByEmail", QueryRaw: query}
 	if err = dbc.DB().ScanOneContext(ctx, &user, q, args...); err != nil {
 		return nil, err
 	}
 
-	return &Credentials{
-		ID:           user.ID,
-		PasswordHash: user.PasswordHash,
-		Role:         domainUser.Role(user.Role),
-	}, nil
+	return mapper.ToCredentialsFromDBUser(&user), nil
 }

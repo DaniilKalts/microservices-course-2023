@@ -79,6 +79,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "Logout\nThe access token should be passed via the Authorization header at the gateway level.\nThis RPC revokes the session identified by the provided refresh token.",
             "in": "body",
             "required": true,
             "schema": {
@@ -113,6 +114,7 @@
         "parameters": [
           {
             "name": "body",
+            "description": "Refresh\nToken rotation occurs: the provided refresh token is invalidated and a new pair is issued.",
             "in": "body",
             "required": true,
             "schema": {
@@ -128,7 +130,7 @@
     "/api/v1/auth/register": {
       "post": {
         "summary": "Register a new user account",
-        "description": "Creates a new user account using name, email, and password credentials. Returns the created user ID and a fresh access/refresh token pair.",
+        "description": "Creates a new user account using name, email, and password credentials. Returns the created user profile and a fresh access/refresh token pair.",
         "operationId": "registerUser",
         "responses": {
           "200": {
@@ -161,6 +163,20 @@
     }
   },
   "definitions": {
+    "RegisterResponseUser": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -216,7 +232,7 @@
           "type": "string"
         }
       },
-      "title": "Logout"
+      "description": "Logout\nThe access token should be passed via the Authorization header at the gateway level.\nThis RPC revokes the session identified by the provided refresh token."
     },
     "v1RefreshRequest": {
       "type": "object",
@@ -225,7 +241,7 @@
           "type": "string"
         }
       },
-      "title": "Refresh"
+      "description": "Refresh\nToken rotation occurs: the provided refresh token is invalidated and a new pair is issued."
     },
     "v1RefreshResponse": {
       "type": "object",
@@ -233,7 +249,8 @@
         "tokens": {
           "$ref": "#/definitions/v1TokenPair"
         }
-      }
+      },
+      "description": "Token rotation occurs: the provided refresh token is invalidated and a new pair is issued."
     },
     "v1RegisterRequest": {
       "type": "object",
@@ -246,9 +263,6 @@
         },
         "password": {
           "type": "string"
-        },
-        "passwordConfirm": {
-          "type": "string"
         }
       },
       "title": "Register"
@@ -256,8 +270,8 @@
     "v1RegisterResponse": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string"
+        "user": {
+          "$ref": "#/definitions/RegisterResponseUser"
         },
         "tokens": {
           "$ref": "#/definitions/v1TokenPair"
@@ -272,6 +286,14 @@
         },
         "refreshToken": {
           "type": "string"
+        },
+        "accessTokenExpiresIn": {
+          "type": "string",
+          "format": "int64"
+        },
+        "refreshTokenExpiresIn": {
+          "type": "string",
+          "format": "int64"
         }
       }
     }

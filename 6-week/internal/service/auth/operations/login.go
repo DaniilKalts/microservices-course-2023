@@ -27,7 +27,7 @@ func Login(
 	jwtManager jwt.Manager,
 	input LoginInput,
 ) (domainAuth.TokenPair, error) {
-	credentials, err := userRepo.GetByEmail(ctx, input.Email)
+	credentials, err := userRepo.GetCredentialsByEmail(ctx, input.Email)
 	if err != nil {
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyPasswordHash), []byte(input.Password))
 		if pgxscan.NotFound(err) {

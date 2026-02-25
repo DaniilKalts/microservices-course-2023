@@ -29,5 +29,13 @@ func generateTokenPair(jwtManager jwt.Manager, userID string, roleID int32) (dom
 		return domainAuth.TokenPair{}, err
 	}
 
-	return domainAuth.TokenPair{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+	accessTokenExpiresIn := int64(jwtManager.AccessTokenTTL().Seconds())
+	refreshTokenExpiresIn := int64(jwtManager.RefreshTokenTTL().Seconds())
+
+	return domainAuth.TokenPair{
+		AccessToken:           accessToken,
+		RefreshToken:          refreshToken,
+		AccessTokenExpiresIn:  accessTokenExpiresIn,
+		RefreshTokenExpiresIn: refreshTokenExpiresIn,
+	}, nil
 }

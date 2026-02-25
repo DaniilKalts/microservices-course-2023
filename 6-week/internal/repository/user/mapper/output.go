@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	domainAuth "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/model"
 )
@@ -23,4 +24,12 @@ func ToDomainFromDBUsers(users []model.DBUser) []domainUser.User {
 	}
 
 	return entities
+}
+
+func ToCredentialsFromDBUser(user *model.DBUser) *domainAuth.Credentials {
+	return &domainAuth.Credentials{
+		ID:           user.ID,
+		PasswordHash: user.PasswordHash,
+		Role:         domainUser.Role(user.Role),
+	}
 }

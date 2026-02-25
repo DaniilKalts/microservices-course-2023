@@ -18,7 +18,7 @@ func TestGet_Success(t *testing.T) {
 	id := "u-1"
 	expected := &domainUser.User{ID: id, Name: "John", Email: "john@example.com"}
 	repo := repositoryMocks.NewUserRepositoryMock(t)
-	repo.GetMock.Set(func(_ context.Context, gotID string) (*domainUser.User, error) {
+	repo.GetByIDMock.Set(func(_ context.Context, gotID string) (*domainUser.User, error) {
 		require.Equal(t, id, gotID)
 		return expected, nil
 	})
@@ -27,7 +27,7 @@ func TestGet_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, expected, got)
-	require.Equal(t, uint64(1), repo.GetAfterCounter())
+	require.Equal(t, uint64(1), repo.GetByIDAfterCounter())
 }
 
 func TestGet_RepositoryScenarios(t *testing.T) {
@@ -56,7 +56,7 @@ func TestGet_RepositoryScenarios(t *testing.T) {
 			t.Parallel()
 
 			repo := repositoryMocks.NewUserRepositoryMock(t)
-			repo.GetMock.Set(func(_ context.Context, _ string) (*domainUser.User, error) {
+			repo.GetByIDMock.Set(func(_ context.Context, _ string) (*domainUser.User, error) {
 				return nil, tt.repoErr
 			})
 
@@ -64,7 +64,7 @@ func TestGet_RepositoryScenarios(t *testing.T) {
 
 			require.EqualError(t, err, tt.repoErr.Error())
 			require.Nil(t, got)
-			require.Equal(t, uint64(1), repo.GetAfterCounter())
+			require.Equal(t, uint64(1), repo.GetByIDAfterCounter())
 		})
 	}
 }

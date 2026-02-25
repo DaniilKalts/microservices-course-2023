@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	
+
 	jwtv5 "github.com/golang-jwt/jwt/v5"
 )
 
@@ -17,8 +17,8 @@ const (
 
 	signingMethodAlgorithm = "RS256"
 
-	operationVerify        = "verify"
-	operationParse         = "parse"
+	operationVerify = "verify"
+	operationParse  = "parse"
 )
 
 type Manager interface {
@@ -26,6 +26,8 @@ type Manager interface {
 	GenerateRefreshToken(claims Claims) (string, error)
 	Verify(tokenString string) (*Claims, error)
 	Parse(tokenString string) (*Claims, error)
+	AccessTokenTTL() time.Duration
+	RefreshTokenTTL() time.Duration
 }
 
 type Config struct {
@@ -132,6 +134,14 @@ func (m *manager) GenerateAccessToken(claims Claims) (string, error) {
 
 func (m *manager) GenerateRefreshToken(claims Claims) (string, error) {
 	return m.generateToken(claims, m.refreshTokenTTL, refreshTokenType)
+}
+
+func (m *manager) AccessTokenTTL() time.Duration {
+	return m.accessTokenTTL
+}
+
+func (m *manager) RefreshTokenTTL() time.Duration {
+	return m.refreshTokenTTL
 }
 
 func (m *manager) generateToken(claims Claims, ttl time.Duration, tokenType string) (string, error) {

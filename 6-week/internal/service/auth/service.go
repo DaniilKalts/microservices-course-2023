@@ -4,6 +4,7 @@ import (
 	"context"
 
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/auth"
+	domainUser "github.com/DaniilKalts/microservices-course-2023/6-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/auth/operations"
 	userService "github.com/DaniilKalts/microservices-course-2023/6-week/internal/service/user"
@@ -11,7 +12,7 @@ import (
 )
 
 type Service interface {
-	Register(ctx context.Context, input operations.RegisterInput) (string, domainAuth.TokenPair, error)
+	Register(ctx context.Context, input operations.RegisterInput) (domainUser.User, domainAuth.TokenPair, error)
 	Login(ctx context.Context, input operations.LoginInput) (domainAuth.TokenPair, error)
 	Logout(ctx context.Context, input operations.LogoutInput) error
 	Refresh(ctx context.Context, input operations.RefreshInput) (domainAuth.TokenPair, error)
@@ -31,7 +32,7 @@ func NewService(userSvc userService.Service, userRepo repository.UserRepository,
 	}
 }
 
-func (s *service) Register(ctx context.Context, input operations.RegisterInput) (string, domainAuth.TokenPair, error) {
+func (s *service) Register(ctx context.Context, input operations.RegisterInput) (domainUser.User, domainAuth.TokenPair, error) {
 	return operations.Register(ctx, s.userService, s.jwtManager, input)
 }
 

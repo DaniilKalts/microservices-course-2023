@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	repositoryMocks "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/mocks"
-	userRepository "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user"
+	userRepositoryOperations "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/operations"
 )
 
 func TestUpdate_Success(t *testing.T) {
@@ -20,10 +20,10 @@ func TestUpdate_Success(t *testing.T) {
 	email := "jane@example.com"
 	input := UpdateInput{ID: id, Name: &name, Email: &email}
 
-	var gotInput userRepository.UpdateInput
+	var gotInput userRepositoryOperations.UpdateInput
 
 	repo := repositoryMocks.NewUserRepositoryMock(t)
-	repo.UpdateMock.Set(func(_ context.Context, updateInput userRepository.UpdateInput) error {
+	repo.UpdateMock.Set(func(_ context.Context, updateInput userRepositoryOperations.UpdateInput) error {
 		gotInput = updateInput
 		return nil
 	})
@@ -32,7 +32,7 @@ func TestUpdate_Success(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), repo.UpdateAfterCounter())
-	require.Equal(t, userRepository.UpdateInput{ID: input.ID, Name: input.Name, Email: input.Email}, gotInput)
+	require.Equal(t, userRepositoryOperations.UpdateInput{ID: input.ID, Name: input.Name, Email: input.Email}, gotInput)
 }
 
 func TestUpdate_RepositoryScenarios(t *testing.T) {
@@ -73,7 +73,7 @@ func TestUpdate_RepositoryScenarios(t *testing.T) {
 			t.Parallel()
 
 			repo := repositoryMocks.NewUserRepositoryMock(t)
-			repo.UpdateMock.Set(func(_ context.Context, _ userRepository.UpdateInput) error {
+			repo.UpdateMock.Set(func(_ context.Context, _ userRepositoryOperations.UpdateInput) error {
 				return tt.repoErr
 			})
 
@@ -93,10 +93,10 @@ func TestUpdate_PartialPatch_DoesNotOverwriteOtherFields(t *testing.T) {
 	name := "OnlyNameChanged"
 	input := UpdateInput{ID: id, Name: &name}
 
-	var gotInput userRepository.UpdateInput
+	var gotInput userRepositoryOperations.UpdateInput
 
 	repo := repositoryMocks.NewUserRepositoryMock(t)
-	repo.UpdateMock.Set(func(_ context.Context, updateInput userRepository.UpdateInput) error {
+	repo.UpdateMock.Set(func(_ context.Context, updateInput userRepositoryOperations.UpdateInput) error {
 		gotInput = updateInput
 		return nil
 	})

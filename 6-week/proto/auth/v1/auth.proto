@@ -36,7 +36,7 @@ service AuthV1 {
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
             summary: "Register a new user account"
-            description: "Creates a new user account using name, email, and password credentials. Returns the created user ID and a fresh access/refresh token pair."
+            description: "Creates a new user account using name, email, and password credentials. Returns the created user profile and a fresh access/refresh token pair."
             tags: "🔐 Auth"
             operation_id: "registerUser"
         };
@@ -91,6 +91,8 @@ message TokenPair {
         min_len: 1,
         max_len: 4096
     }];
+    int64 access_token_expires_in = 3;
+    int64 refresh_token_expires_in = 4;
 }
 
 // Register
@@ -107,16 +109,18 @@ message RegisterRequest {
     string password = 3 [(validate.rules).string = {
         min_len: 8,
         max_len: 64,
-        pattern: "^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$"
-    }];
-    string password_confirm = 4 [(validate.rules).string = {
-        min_len: 8,
-        max_len: 64
+        pattern: "^(.*[A-Z].*[a-z].*[0-9].*[^A-Za-z0-9].*|.*[A-Z].*[a-z].*[^A-Za-z0-9].*[0-9].*|.*[A-Z].*[0-9].*[a-z].*[^A-Za-z0-9].*|.*[A-Z].*[0-9].*[^A-Za-z0-9].*[a-z].*|.*[A-Z].*[^A-Za-z0-9].*[a-z].*[0-9].*|.*[A-Z].*[^A-Za-z0-9].*[0-9].*[a-z].*|.*[a-z].*[A-Z].*[0-9].*[^A-Za-z0-9].*|.*[a-z].*[A-Z].*[^A-Za-z0-9].*[0-9].*|.*[a-z].*[0-9].*[A-Z].*[^A-Za-z0-9].*|.*[a-z].*[0-9].*[^A-Za-z0-9].*[A-Z].*|.*[a-z].*[^A-Za-z0-9].*[A-Z].*[0-9].*|.*[a-z].*[^A-Za-z0-9].*[0-9].*[A-Z].*|.*[0-9].*[A-Z].*[a-z].*[^A-Za-z0-9].*|.*[0-9].*[A-Z].*[^A-Za-z0-9].*[a-z].*|.*[0-9].*[a-z].*[A-Z].*[^A-Za-z0-9].*|.*[0-9].*[a-z].*[^A-Za-z0-9].*[A-Z].*|.*[0-9].*[^A-Za-z0-9].*[A-Z].*[a-z].*|.*[0-9].*[^A-Za-z0-9].*[a-z].*[A-Z].*|.*[^A-Za-z0-9].*[A-Z].*[a-z].*[0-9].*|.*[^A-Za-z0-9].*[A-Z].*[0-9].*[a-z].*|.*[^A-Za-z0-9].*[a-z].*[A-Z].*[0-9].*|.*[^A-Za-z0-9].*[a-z].*[0-9].*[A-Z].*|.*[^A-Za-z0-9].*[0-9].*[A-Z].*[a-z].*|.*[^A-Za-z0-9].*[0-9].*[a-z].*[A-Z].*)$"
     }];
 }
 
 message RegisterResponse {
-    string id = 1 [(validate.rules).string.uuid = true];
+    message User {
+        string id = 1 [(validate.rules).string.uuid = true];
+        string name = 2;
+        string email = 3;
+    }
+
+    User user = 1 [(validate.rules).message.required = true];
     TokenPair tokens = 2 [(validate.rules).message.required = true];
 }
 
@@ -137,6 +141,8 @@ message LoginResponse {
 }
 
 // Logout
+// The access token should be passed via the Authorization header at the gateway level.
+// This RPC revokes the session identified by the provided refresh token.
 message LogoutRequest {
     string refresh_token = 1 [(validate.rules).string = {
         min_len: 1,
@@ -145,6 +151,7 @@ message LogoutRequest {
 }
 
 // Refresh
+// Token rotation occurs: the provided refresh token is invalidated and a new pair is issued.
 message RefreshRequest {
     string refresh_token = 1 [(validate.rules).string = {
         min_len: 1,
@@ -152,6 +159,7 @@ message RefreshRequest {
     }];
 }
 
+// Token rotation occurs: the provided refresh token is invalidated and a new pair is issued.
 message RefreshResponse {
     TokenPair tokens = 1 [(validate.rules).message.required = true];
 }

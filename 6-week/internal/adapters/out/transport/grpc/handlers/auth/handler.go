@@ -21,12 +21,12 @@ func NewHandler(authService service.AuthService) *Handler {
 }
 
 func (h *Handler) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
-	userID, tokens, err := procedures.Register(ctx, h.authService, mapper.ToRegisterInput(req))
+	user, tokens, err := procedures.Register(ctx, h.authService, mapper.ToRegisterInput(req))
 	if err != nil {
 		return nil, err
 	}
 
-	return &authv1.RegisterResponse{Id: userID, Tokens: mapper.ToProtoTokenPair(tokens)}, nil
+	return &authv1.RegisterResponse{User: mapper.ToProtoRegisterUser(user), Tokens: mapper.ToProtoTokenPair(tokens)}, nil
 }
 
 func (h *Handler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {

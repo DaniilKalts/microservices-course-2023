@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository"
-	userRepository "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user"
+	userRepositoryOperations "github.com/DaniilKalts/microservices-course-2023/6-week/internal/repository/user/operations"
 )
 
 type UpdateInput struct {
@@ -14,7 +14,7 @@ type UpdateInput struct {
 }
 
 func Update(ctx context.Context, repo repository.UserRepository, input UpdateInput) error {
-	return repo.Update(ctx, userRepository.UpdateInput{
+	return repo.Update(ctx, userRepositoryOperations.UpdateInput{
 		ID:    input.ID,
 		Name:  input.Name,
 		Email: input.Email,

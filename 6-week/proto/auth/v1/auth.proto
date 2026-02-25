@@ -21,6 +21,17 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     }
     consumes: "application/json"
     produces: "application/json"
+    security_definitions: {
+        security: {
+            key: "BearerAuth"
+            value: {
+                type: TYPE_API_KEY
+                in: IN_HEADER
+                name: "Authorization"
+                description: "JWT access token. Example: Bearer <token>"
+            }
+        }
+    }
 };
 
 service AuthV1 {

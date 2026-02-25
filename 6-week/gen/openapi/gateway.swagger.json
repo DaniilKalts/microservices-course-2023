@@ -186,6 +186,11 @@
         },
         "tags": [
           "👤 User"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ]
       },
       "post": {
@@ -218,6 +223,11 @@
         ],
         "tags": [
           "👤 User"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ]
       }
     },
@@ -250,6 +260,11 @@
         ],
         "tags": [
           "👤 User"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ]
       },
       "delete": {
@@ -281,6 +296,11 @@
         ],
         "tags": [
           "👤 User"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ]
       },
       "patch": {
@@ -320,6 +340,11 @@
         ],
         "tags": [
           "👤 User"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
         ]
       }
     }
@@ -551,6 +576,14 @@
           "format": "int64"
         }
       }
+    }
+  },
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "description": "JWT access token. Example: Bearer \u003ctoken\u003e",
+      "name": "Authorization",
+      "in": "header"
     }
   }
 }

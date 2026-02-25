@@ -23,6 +23,7 @@ const (
 type Manager interface {
 	GenerateAccessToken(claims Claims) (string, error)
 	GenerateRefreshToken(claims Claims) (string, error)
+	VerifyAccessToken(tokenString string) (*Claims, error)
 	VerifyRefreshToken(tokenString string) (*Claims, error)
 
 	AccessTokenTTL() time.Duration
@@ -135,7 +136,15 @@ func (m *manager) GenerateRefreshToken(claims Claims) (string, error) {
 	return m.generateToken(claims, m.refreshTokenTTL, tokenTypeRefresh)
 }
 
+func (m *manager) VerifyAccessToken(tokenString string) (*Claims, error) {
+	return m.verifyToken(tokenString, tokenTypeAccess)
+}
+
 func (m *manager) VerifyRefreshToken(tokenString string) (*Claims, error) {
+	return m.verifyToken(tokenString, tokenTypeRefresh)
+}
+
+func (m *manager) verifyToken(tokenString, expectedTokenType string) (*Claims, error) {
 	options := []jwtv5.ParserOption{
 		jwtv5.WithValidMethods([]string{signingMethodAlgorithm}),
 	}
@@ -157,7 +166,7 @@ func (m *manager) VerifyRefreshToken(tokenString string) (*Claims, error) {
 		return nil, err
 	}
 
-	if err = validateTokenType(claims.TokenType, tokenTypeRefresh); err != nil {
+	if err = validateTokenType(claims.TokenType, expectedTokenType); err != nil {
 		return nil, fmt.Errorf("%s token: %w", operationVerify, err)
 	}
 

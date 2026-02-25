@@ -10,6 +10,7 @@ import (
 )
 
 type Claims struct {
+	UserID    string `json:"user_id"`
 	RoleID    int32  `json:"role_id"`
 	TokenType string `json:"token_type"`
 	jwtv5.RegisteredClaims
@@ -50,9 +51,7 @@ func (m *manager) prepareClaims(claims Claims, ttl time.Duration, expectedTokenT
 		claims.ExpiresAt = jwtv5.NewNumericDate(now.Add(ttl))
 	}
 
-	if claims.ID == "" {
-		claims.ID = uuid.NewString()
-	}
+	claims.ID = uuid.NewString()
 
 	return claims, nil
 }

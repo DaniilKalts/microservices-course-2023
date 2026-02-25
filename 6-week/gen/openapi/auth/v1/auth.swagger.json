@@ -297,5 +297,13 @@
         }
       }
     }
+  },
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "description": "JWT access token. Example: Bearer \u003ctoken\u003e",
+      "name": "Authorization",
+      "in": "header"
+    }
   }
 }

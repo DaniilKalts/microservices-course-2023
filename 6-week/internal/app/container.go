@@ -15,6 +15,7 @@ import (
 	grpcTransport "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc"
 	authAPI "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/handlers/auth"
 	userAPI "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/handlers/user"
+	grpcInterceptor "github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/interceptor"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/clients/database/transaction"
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/config"
@@ -47,10 +48,7 @@ type Container struct {
 
 	Repositories repository.Repositories
 	Services     service.Services
-
-	userHandler userv1.UserV1Server
-
-	authHandler authv1.AuthV1Server
+	GRPCHandlers grpcTransport.Handlers
 
 	GRPC    *grpc.Server
 	Gateway http.Handler
@@ -155,24 +153,26 @@ func (c *Container) initServices() {
 }
 
 func (c *Container) initHandlers() {
-	c.userHandler = userAPI.NewHandler(c.Services.User)
-	c.authHandler = authAPI.NewHandler(c.Services.Auth)
+	c.GRPCHandlers = grpcTransport.Handlers{
+		User: userAPI.NewHandler(c.Services.User),
+		Auth: authAPI.NewHandler(c.Services.Auth),
+	}
 }
 
 func (c *Container) initGRPC() error {
-	grpcServer, err := grpcTransport.NewServer(grpcTransport.ServerConfig{
-		EnableTLS: c.Cfg.TLS().Enabled(),
-		CertFile:  c.Cfg.TLS().CertFile(),
-		KeyFile:   c.Cfg.TLS().KeyFile(),
+	grpcServer, err := grpcTransport.NewServer(grpcTransport.Deps{
+		Config: grpcTransport.ServerConfig{
+			EnableTLS: c.Cfg.TLS().Enabled(),
+			CertFile:  c.Cfg.TLS().CertFile(),
+			KeyFile:   c.Cfg.TLS().KeyFile(),
+		},
+		JWTManager: c.JWTManager,
 	})
 	if err != nil {
 		return err
 	}
 
-	grpcTransport.RegisterServices(grpcServer, grpcTransport.Handlers{
-		User: c.userHandler,
-		Auth: c.authHandler,
-	})
+	grpcTransport.RegisterServices(grpcServer, c.GRPCHandlers)
 
 	c.GRPC = grpcServer
 
@@ -180,15 +180,17 @@ func (c *Container) initGRPC() error {
 }
 
 func (c *Container) initGateway(ctx context.Context) error {
-	gatewayMux := runtime.NewServeMux()
+	gatewayMux := runtime.NewServeMux(
+		runtime.WithMiddlewares(grpcInterceptor.AuthMiddleware(c.JWTManager)),
+	)
 
 	mux := http.NewServeMux()
 	mux.Handle("/", gatewayMux)
 
-	if err := userv1.RegisterUserV1HandlerServer(ctx, gatewayMux, c.userHandler); err != nil {
+	if err := userv1.RegisterUserV1HandlerServer(ctx, gatewayMux, c.GRPCHandlers.User); err != nil {
 		return fmt.Errorf("register user grpc-gateway handler: %w", err)
 	}
-	if err := authv1.RegisterAuthV1HandlerServer(ctx, gatewayMux, c.authHandler); err != nil {
+	if err := authv1.RegisterAuthV1HandlerServer(ctx, gatewayMux, c.GRPCHandlers.Auth); err != nil {
 		return fmt.Errorf("register auth grpc-gateway handler: %w", err)
 	}
 

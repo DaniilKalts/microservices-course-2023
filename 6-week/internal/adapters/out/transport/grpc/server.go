@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/DaniilKalts/microservices-course-2023/6-week/internal/adapters/out/transport/grpc/interceptor"
+	"github.com/DaniilKalts/microservices-course-2023/6-week/pkg/jwt"
 )
 
 type ServerConfig struct {
@@ -15,12 +16,20 @@ type ServerConfig struct {
 	KeyFile   string
 }
 
-func NewServer(cfg ServerConfig) (*grpc.Server, error) {
+type Deps struct {
+	Config     ServerConfig
+	JWTManager jwt.Manager
+}
+
+func NewServer(deps Deps) (*grpc.Server, error) {
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
+			interceptor.AuthInterceptor(deps.JWTManager),
 			interceptor.ValidationInterceptor(),
 		),
 	}
+
+	cfg := deps.Config
 
 	if cfg.EnableTLS {
 		if cfg.CertFile == "" || cfg.KeyFile == "" {

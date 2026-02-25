@@ -17,7 +17,12 @@ func Refresh(_ context.Context, jwtManager jwt.Manager, input RefreshInput) (dom
 		return domainAuth.TokenPair{}, err
 	}
 
-	tokenPair, err := generateTokenPair(jwtManager, claims.ID, claims.RoleID)
+	userID := claims.UserID
+	if userID == "" {
+		userID = claims.ID
+	}
+
+	tokenPair, err := generateTokenPair(jwtManager, userID, claims.RoleID)
 	if err != nil {
 		return domainAuth.TokenPair{}, err
 	}

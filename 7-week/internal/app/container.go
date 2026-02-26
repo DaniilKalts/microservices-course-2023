@@ -12,11 +12,11 @@ import (
 	authv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/auth/v1"
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/database/postgres"
+	httpMiddleware "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/middleware"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/swagger"
 	grpcTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc"
 	authAPI "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/auth"
 	userAPI "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/user"
-	grpcInterceptor "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/interceptor"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database/transaction"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
@@ -48,7 +48,7 @@ type Container struct {
 	Tx         database.TxManager
 	JWTManager jwt.Manager
 
-	Logger     *zap.Logger
+	Logger *zap.Logger
 
 	Repositories repository.Repositories
 	Services     service.Services
@@ -182,6 +182,7 @@ func (c *Container) initGRPC() error {
 			KeyFile:   c.Cfg.TLS().KeyFile(),
 		},
 		JWTManager: c.JWTManager,
+		Logger:     c.Logger,
 	})
 	if err != nil {
 		return err
@@ -196,11 +197,14 @@ func (c *Container) initGRPC() error {
 
 func (c *Container) initGateway(ctx context.Context) error {
 	gatewayMux := runtime.NewServeMux(
-		runtime.WithMiddlewares(grpcInterceptor.AuthMiddleware(c.JWTManager)),
+		runtime.WithMiddlewares(httpMiddleware.AuthMiddleware(c.JWTManager)),
 	)
 
 	mux := http.NewServeMux()
-	mux.Handle("/", gatewayMux)
+
+	loggingMiddleware := httpMiddleware.Logging(c.Logger)
+	loggedGateway := loggingMiddleware(gatewayMux)
+	mux.Handle("/", loggedGateway)
 
 	if err := userv1.RegisterUserV1HandlerServer(ctx, gatewayMux, c.GRPCHandlers.User); err != nil {
 		return fmt.Errorf("register user grpc-gateway handler: %w", err)

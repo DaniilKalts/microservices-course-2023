@@ -3,6 +3,7 @@ package grpc
 import (
 	"errors"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
@@ -19,11 +20,13 @@ type ServerConfig struct {
 type Deps struct {
 	Config     ServerConfig
 	JWTManager jwt.Manager
+	Logger     *zap.Logger
 }
 
 func NewServer(deps Deps) (*grpc.Server, error) {
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
+			interceptor.LoggingInterceptor(deps.Logger),
 			interceptor.AuthInterceptor(deps.JWTManager),
 			interceptor.ValidationInterceptor(),
 		),

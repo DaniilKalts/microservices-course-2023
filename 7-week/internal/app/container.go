@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/auth/v1"
@@ -23,6 +24,7 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/logger"
 )
 
 const swaggerBasePath = "/swagger"
@@ -45,6 +47,8 @@ type Container struct {
 	DB         database.Client
 	Tx         database.TxManager
 	JWTManager jwt.Manager
+
+	Logger     *zap.Logger
 
 	Repositories repository.Repositories
 	Services     service.Services
@@ -92,7 +96,18 @@ func (c *Container) initConfig(configPath string) error {
 		return fmt.Errorf("load env config: %w", err)
 	}
 
+	loggerInstance, err := logger.New(logger.Config{
+		Level:            cfg.Zap().Level(),
+		Encoding:         cfg.Zap().Encoding(),
+		OutputPaths:      cfg.Zap().OutputPaths(),
+		ErrorOutputPaths: cfg.Zap().ErrorOutputPaths(),
+	})
+	if err != nil {
+		return fmt.Errorf("init logger: %w", err)
+	}
+
 	c.Cfg = cfg
+	c.Logger = loggerInstance
 
 	return nil
 }

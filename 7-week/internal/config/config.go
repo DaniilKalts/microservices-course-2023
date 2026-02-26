@@ -32,10 +32,18 @@ type JWTConfig interface {
 	IssuedAt() time.Duration
 }
 
+type ZapConfig interface {
+	Level() string
+	Encoding() string
+	OutputPaths() string
+	ErrorOutputPaths() string
+}
+
 type Config interface {
 	Postgres() PostgresConfig
 	GRPC() GRPCConfig
 	Gateway() GatewayConfig
 	TLS() TLSConfig
 	JWT() JWTConfig
+	Zap() ZapConfig
 }

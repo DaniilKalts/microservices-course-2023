@@ -10,6 +10,7 @@ type appConfig struct {
 	gateway  config.GatewayConfig
 	tls      config.TLSConfig
 	jwt      config.JWTConfig
+	zap      config.ZapConfig
 }
 
 func NewConfig() (config.Config, error) {
@@ -38,12 +39,18 @@ func NewConfig() (config.Config, error) {
 		return nil, err
 	}
 
+	zapConfig, err := NewZapConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &appConfig{
 		postgres: postgresConfig,
 		grpc:     grpcConfig,
 		gateway:  gatewayConfig,
 		tls:      tlsConfig,
 		jwt:      jwtConfig,
+		zap:      zapConfig,
 	}, nil
 }
 
@@ -65,4 +72,8 @@ func (cfg *appConfig) TLS() config.TLSConfig {
 
 func (cfg *appConfig) JWT() config.JWTConfig {
 	return cfg.jwt
+}
+
+func (cfg *appConfig) Zap() config.ZapConfig {
+	return cfg.zap
 }

@@ -2,6 +2,7 @@ package operations
 
 import (
 	"context"
+	"fmt"
 
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
@@ -37,7 +38,7 @@ func Register(
 
 	tokenPair, err := generateTokenPair(jwtManager, userID, int32(domainUser.RoleUser))
 	if err != nil {
-		return domainUser.User{}, domainAuth.TokenPair{}, err
+		return domainUser.User{}, domainAuth.TokenPair{}, fmt.Errorf("%w: %v", domainAuth.ErrIssueTokens, err)
 	}
 
 	return domainUser.User{ID: userID, Name: input.Name, Email: input.Email}, tokenPair, nil

@@ -2,6 +2,7 @@ package operations
 
 import (
 	"context"
+	"fmt"
 
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
@@ -14,7 +15,7 @@ type RefreshInput struct {
 func Refresh(_ context.Context, jwtManager jwt.Manager, input RefreshInput) (domainAuth.TokenPair, error) {
 	claims, err := jwtManager.VerifyRefreshToken(input.RefreshToken)
 	if err != nil {
-		return domainAuth.TokenPair{}, err
+		return domainAuth.TokenPair{}, fmt.Errorf("%w: %v", domainAuth.ErrInvalidRefreshToken, err)
 	}
 
 	userID := claims.UserID
@@ -24,7 +25,7 @@ func Refresh(_ context.Context, jwtManager jwt.Manager, input RefreshInput) (dom
 
 	tokenPair, err := generateTokenPair(jwtManager, userID, claims.RoleID)
 	if err != nil {
-		return domainAuth.TokenPair{}, err
+		return domainAuth.TokenPair{}, fmt.Errorf("%w: %v", domainAuth.ErrIssueTokens, err)
 	}
 
 	return tokenPair, nil

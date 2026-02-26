@@ -18,12 +18,10 @@ const (
 	authorizationMetadataKey = "authorization"
 )
 
-var authenticatedMethods = map[string]struct{}{}
-
-var adminOnlyMethods = map[string]struct{}{
-	userv1.UserV1_Create_FullMethodName: {},
-	userv1.UserV1_Update_FullMethodName: {},
-	userv1.UserV1_Delete_FullMethodName: {},
+var methodAccessPolicy = map[string]domainUser.Role{
+	userv1.UserV1_Create_FullMethodName: domainUser.RoleAdmin,
+	userv1.UserV1_Update_FullMethodName: domainUser.RoleAdmin,
+	userv1.UserV1_Delete_FullMethodName: domainUser.RoleAdmin,
 }
 
 func AuthInterceptor(jwtManager jwt.Manager) grpc.UnaryServerInterceptor {
@@ -52,15 +50,8 @@ func AuthInterceptor(jwtManager jwt.Manager) grpc.UnaryServerInterceptor {
 }
 
 func requiredRole(fullMethod string) (domainUser.Role, bool) {
-	if _, ok := authenticatedMethods[fullMethod]; ok {
-		return domainUser.RoleUser, true
-	}
-
-	if _, ok := adminOnlyMethods[fullMethod]; ok {
-		return domainUser.RoleAdmin, true
-	}
-
-	return 0, false
+	role, ok := methodAccessPolicy[fullMethod]
+	return role, ok
 }
 
 func accessTokenFromContext(ctx context.Context) (string, error) {

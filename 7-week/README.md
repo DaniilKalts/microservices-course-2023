@@ -7,9 +7,8 @@
 ### Status
 
 **Observability To-do:**
-- [ ] Add shared structured logger for the application (JSON output, levels, service metadata)
-- [ ] Add gRPC logging interceptor for unary requests
-- [ ] Add HTTP logging middleware for gateway routes
+- [x] Add shared structured logger for the application (JSON output, levels, service metadata)
+- [x] Add gRPC logging interceptor for unary requests
 - [ ] Expose `/metrics` and register Prometheus metrics (requests, latency, errors)
 - [ ] Add `prometheus` service with scrape configuration in `docker-compose.yaml`
 - [ ] Add `loki` service for centralized log storage

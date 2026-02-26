@@ -5,18 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	authv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/auth/v1"
-	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/database/postgres"
-	httpMiddleware "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/middleware"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/swagger"
+	gatewayTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/gateway"
 	grpcTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc"
-	authAPI "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/auth"
-	userAPI "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database/transaction"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
@@ -26,20 +20,6 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/logger"
 )
-
-const swaggerBasePath = "/swagger"
-
-type swaggerRoute struct {
-	name       string
-	basePath   string
-	openAPIURL string
-}
-
-var swaggerRoutes = []swaggerRoute{
-	{name: "merged", basePath: swaggerBasePath, openAPIURL: "gen/openapi/gateway.swagger.json"},
-	{name: "user", basePath: swaggerBasePath + "/user", openAPIURL: "gen/openapi/user/v1/user.swagger.json"},
-	{name: "auth", basePath: swaggerBasePath + "/auth", openAPIURL: "gen/openapi/auth/v1/auth.swagger.json"},
-}
 
 type Container struct {
 	Cfg config.Config
@@ -52,16 +32,19 @@ type Container struct {
 
 	Repositories repository.Repositories
 	Services     service.Services
-	GRPCHandlers grpcTransport.Handlers
 
-	GRPC    *grpc.Server
-	Gateway http.Handler
+	GRPC          *grpc.Server
+	Gateway       http.Handler
+	gatewayCancel context.CancelFunc
 }
 
 func Build(ctx context.Context, configPath string) (*Container, error) {
 	container := &Container{}
 
 	if err := container.initConfig(configPath); err != nil {
+		return nil, err
+	}
+	if err := container.initLogger(); err != nil {
 		return nil, err
 	}
 	if err := container.initDatabase(ctx); err != nil {
@@ -74,7 +57,6 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 	container.initTxManager()
 	container.initRepositories()
 	container.initServices()
-	container.initHandlers()
 
 	if err := container.initGRPC(); err != nil {
 		return nil, err
@@ -96,17 +78,22 @@ func (c *Container) initConfig(configPath string) error {
 		return fmt.Errorf("load env config: %w", err)
 	}
 
+	c.Cfg = cfg
+
+	return nil
+}
+
+func (c *Container) initLogger()  error {
 	loggerInstance, err := logger.New(logger.Config{
-		Level:            cfg.Zap().Level(),
-		Encoding:         cfg.Zap().Encoding(),
-		OutputPaths:      cfg.Zap().OutputPaths(),
-		ErrorOutputPaths: cfg.Zap().ErrorOutputPaths(),
+		Level:            c.Cfg.Zap().Level(),
+		Encoding:         c.Cfg.Zap().Encoding(),
+		OutputPaths:      c.Cfg.Zap().OutputPaths(),
+		ErrorOutputPaths: c.Cfg.Zap().ErrorOutputPaths(),
 	})
 	if err != nil {
 		return fmt.Errorf("init logger: %w", err)
 	}
 
-	c.Cfg = cfg
 	c.Logger = loggerInstance
 
 	return nil
@@ -167,13 +154,6 @@ func (c *Container) initServices() {
 	})
 }
 
-func (c *Container) initHandlers() {
-	c.GRPCHandlers = grpcTransport.Handlers{
-		User: userAPI.NewHandler(c.Services.User),
-		Auth: authAPI.NewHandler(c.Services.Auth),
-	}
-}
-
 func (c *Container) initGRPC() error {
 	grpcServer, err := grpcTransport.NewServer(grpcTransport.Deps{
 		Config: grpcTransport.ServerConfig{
@@ -183,12 +163,11 @@ func (c *Container) initGRPC() error {
 		},
 		JWTManager: c.JWTManager,
 		Logger:     c.Logger,
+		Services:   c.Services,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("init grpc server: %w", err)
 	}
-
-	grpcTransport.RegisterServices(grpcServer, c.GRPCHandlers)
 
 	c.GRPC = grpcServer
 
@@ -196,56 +175,25 @@ func (c *Container) initGRPC() error {
 }
 
 func (c *Container) initGateway(ctx context.Context) error {
-	gatewayMux := runtime.NewServeMux(
-		runtime.WithMiddlewares(httpMiddleware.AuthMiddleware(c.JWTManager)),
-	)
-
-	mux := http.NewServeMux()
-
-	loggingMiddleware := httpMiddleware.Logging(c.Logger)
-	loggedGateway := loggingMiddleware(gatewayMux)
-	mux.Handle("/", loggedGateway)
-
-	if err := userv1.RegisterUserV1HandlerServer(ctx, gatewayMux, c.GRPCHandlers.User); err != nil {
-		return fmt.Errorf("register user grpc-gateway handler: %w", err)
-	}
-	if err := authv1.RegisterAuthV1HandlerServer(ctx, gatewayMux, c.GRPCHandlers.Auth); err != nil {
-		return fmt.Errorf("register auth grpc-gateway handler: %w", err)
-	}
-
-	if err := registerSwaggerHandlers(mux); err != nil {
-		return err
-	}
-
-	c.Gateway = mux
-
-	return nil
-}
-
-func registerSwaggerHandlers(mux *http.ServeMux) error {
-	for _, route := range swaggerRoutes {
-		if err := registerSwaggerHandler(mux, route); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func registerSwaggerHandler(mux *http.ServeMux, route swaggerRoute) error {
-	handler, err := swagger.NewHandler(route.openAPIURL)
+	handler, cancel, err := gatewayTransport.NewProxy(ctx, gatewayTransport.Config{
+		GRPCAddress: c.Cfg.GRPC().Address(),
+		TLS:         c.Cfg.TLS(),
+	})
 	if err != nil {
-		return fmt.Errorf("init %s swagger-ui handler: %w", route.name, err)
+		return fmt.Errorf("build grpc-gateway proxy: %w", err)
 	}
 
-	redirectPath := route.basePath + "/"
-	mux.Handle(redirectPath, http.StripPrefix(route.basePath, handler))
-	mux.Handle(route.basePath, http.RedirectHandler(redirectPath, http.StatusMovedPermanently))
+	c.Gateway = handler
+	c.gatewayCancel = cancel
 
 	return nil
 }
 
 func (c *Container) Close() error {
+	if c.gatewayCancel != nil {
+		c.gatewayCancel()
+	}
+
 	if c.DB != nil {
 		return c.DB.Close()
 	}

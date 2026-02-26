@@ -29,6 +29,7 @@ func LoggingInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		duration := time.Since(startedAt)
 
 		code := status.Code(err)
+
 		remoteAddr := ""
 		if p, ok := peer.FromContext(ctx); ok && p != nil && p.Addr != nil {
 			remoteAddr = p.Addr.String()

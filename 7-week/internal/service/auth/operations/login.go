@@ -3,11 +3,10 @@ package operations
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"golang.org/x/crypto/bcrypt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
@@ -31,24 +30,24 @@ func Login(
 	if err != nil {
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyPasswordHash), []byte(input.Password))
 		if pgxscan.NotFound(err) {
-			return domainAuth.TokenPair{}, status.Error(codes.Unauthenticated, domainAuth.ErrInvalidCredentials.Error())
+			return domainAuth.TokenPair{}, domainAuth.ErrInvalidCredentials
 		}
 
-		return domainAuth.TokenPair{}, status.Error(codes.Internal, "failed to authenticate user")
+		return domainAuth.TokenPair{}, fmt.Errorf("%w: %v", domainAuth.ErrAuthentication, err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(credentials.PasswordHash), []byte(input.Password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return domainAuth.TokenPair{}, status.Error(codes.Unauthenticated, domainAuth.ErrInvalidCredentials.Error())
+			return domainAuth.TokenPair{}, domainAuth.ErrInvalidCredentials
 		}
 
-		return domainAuth.TokenPair{}, status.Error(codes.Internal, "failed to authenticate user")
+		return domainAuth.TokenPair{}, fmt.Errorf("%w: %v", domainAuth.ErrAuthentication, err)
 	}
 
 	tokenPair, err := generateTokenPair(jwtManager, credentials.ID, int32(credentials.Role))
 	if err != nil {
-		return domainAuth.TokenPair{}, status.Error(codes.Internal, "failed to issue auth tokens")
+		return domainAuth.TokenPair{}, fmt.Errorf("%w: %v", domainAuth.ErrIssueTokens, err)
 	}
 
 	return tokenPair, nil

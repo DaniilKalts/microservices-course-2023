@@ -1,0 +1,5 @@
+# Exclude Environment Variables
+.env
+
+# Exclude Build Artifacts
+build/

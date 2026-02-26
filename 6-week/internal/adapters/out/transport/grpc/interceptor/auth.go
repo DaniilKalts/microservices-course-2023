@@ -24,10 +24,10 @@ const (
 	userItemPathPrefix = "/api/v1/users/"
 )
 
+var authenticatedMethods = map[string]struct{}{}
+
 var adminOnlyMethods = map[string]struct{}{
 	userv1.UserV1_Create_FullMethodName: {},
-	userv1.UserV1_List_FullMethodName:   {},
-	userv1.UserV1_Get_FullMethodName:    {},
 	userv1.UserV1_Update_FullMethodName: {},
 	userv1.UserV1_Delete_FullMethodName: {},
 }
@@ -39,7 +39,8 @@ func AuthInterceptor(jwtManager jwt.Manager) grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (any, error) {
-		if !requiresAdminRole(info.FullMethod) {
+		requiredRole, requiresAuth := requiredRole(info.FullMethod)
+		if !requiresAuth {
 			return handler(ctx, req)
 		}
 
@@ -48,7 +49,7 @@ func AuthInterceptor(jwtManager jwt.Manager) grpc.UnaryServerInterceptor {
 			return nil, err
 		}
 
-		if err = authorizeAdminAccess(token, jwtManager); err != nil {
+		if err = authorize(token, jwtManager, requiredRole); err != nil {
 			return nil, err
 		}
 
@@ -60,12 +61,13 @@ func AuthMiddleware(jwtManager jwt.Manager) runtime.Middleware {
 	return func(next runtime.HandlerFunc) runtime.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
 			fullMethod := gatewayMethod(r.Method, r.URL.Path)
-			if !requiresAdminRole(fullMethod) {
+			requiredRole, requiresAuth := requiredRole(fullMethod)
+			if !requiresAuth {
 				next(w, r, pathParams)
 				return
 			}
 
-			if err := authorizeAdminAccess(r.Header.Get("Authorization"), jwtManager); err != nil {
+			if err := authorize(r.Header.Get("Authorization"), jwtManager, requiredRole); err != nil {
 				writeGatewayError(w, err)
 				return
 			}
@@ -75,10 +77,16 @@ func AuthMiddleware(jwtManager jwt.Manager) runtime.Middleware {
 	}
 }
 
-func requiresAdminRole(fullMethod string) bool {
-	_, ok := adminOnlyMethods[fullMethod]
+func requiredRole(fullMethod string) (domainUser.Role, bool) {
+	if _, ok := authenticatedMethods[fullMethod]; ok {
+		return domainUser.RoleUser, true
+	}
 
-	return ok
+	if _, ok := adminOnlyMethods[fullMethod]; ok {
+		return domainUser.RoleAdmin, true
+	}
+
+	return 0, false
 }
 
 func accessTokenFromContext(ctx context.Context) (string, error) {
@@ -97,7 +105,7 @@ func accessTokenFromContext(ctx context.Context) (string, error) {
 	return "", status.Error(codes.Unauthenticated, "authorization token is required")
 }
 
-func authorizeAdminAccess(token string, jwtManager jwt.Manager) error {
+func authorize(token string, jwtManager jwt.Manager, requiredRole domainUser.Role) error {
 	if jwtManager == nil {
 		return status.Error(codes.Internal, "jwt manager is not configured")
 	}
@@ -111,11 +119,22 @@ func authorizeAdminAccess(token string, jwtManager jwt.Manager) error {
 		return status.Error(codes.Unauthenticated, "invalid access token")
 	}
 
-	if claims.RoleID != int32(domainUser.RoleAdmin) {
-		return status.Error(codes.PermissionDenied, "admin role is required")
+	if !hasRequiredRole(claims.RoleID, requiredRole) {
+		return status.Error(codes.PermissionDenied, "insufficient role permissions")
 	}
 
 	return nil
+}
+
+func hasRequiredRole(roleID int32, requiredRole domainUser.Role) bool {
+	switch requiredRole {
+	case domainUser.RoleUser:
+		return roleID == int32(domainUser.RoleUser) || roleID == int32(domainUser.RoleAdmin)
+	case domainUser.RoleAdmin:
+		return roleID == int32(domainUser.RoleAdmin)
+	default:
+		return false
+	}
 }
 
 func gatewayMethod(httpMethod, path string) string {

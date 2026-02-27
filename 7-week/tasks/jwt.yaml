@@ -1,0 +1,85 @@
+version: "3"
+method: none
+
+tasks:
+  generate:
+    desc: 🔑 Generate RS256 JWT private/public keys
+    silent: true
+    cmds:
+      - |
+        JWT_PRIVATE_KEY_PATH="{{.JWT_PRIVATE_KEY_FILE}}"
+        JWT_PUBLIC_KEY_PATH="{{.JWT_PUBLIC_KEY_FILE}}"
+
+        if [ -f "{{.ENV_FILE}}" ]; then
+          set -a
+          . "{{.ENV_FILE}}"
+          set +a
+        fi
+
+        if [ -n "${JWT_PRIVATE_KEY_FILE}" ]; then
+          JWT_PRIVATE_KEY_PATH="${JWT_PRIVATE_KEY_FILE}"
+        fi
+
+        if [ -n "${JWT_PUBLIC_KEY_FILE}" ]; then
+          JWT_PUBLIC_KEY_PATH="${JWT_PUBLIC_KEY_FILE}"
+        fi
+
+        if [ -f "${JWT_PRIVATE_KEY_PATH}" ] && [ -f "${JWT_PUBLIC_KEY_PATH}" ]; then
+          echo "🔑 JWT keys already exist, skip generation"
+          exit 0
+        fi
+
+        mkdir -p "$(dirname "${JWT_PRIVATE_KEY_PATH}")"
+        mkdir -p "$(dirname "${JWT_PUBLIC_KEY_PATH}")"
+
+        echo "🔑 Generating RS256 JWT keys..."
+        openssl genpkey -quiet -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "${JWT_PRIVATE_KEY_PATH}" >/dev/null 2>&1
+        openssl rsa -pubout -in "${JWT_PRIVATE_KEY_PATH}" -out "${JWT_PUBLIC_KEY_PATH}" >/dev/null 2>&1
+        echo "✅ JWT keys generated"
+      - |
+        JWT_PRIVATE_KEY_PATH="{{.JWT_PRIVATE_KEY_FILE}}"
+        JWT_PUBLIC_KEY_PATH="{{.JWT_PUBLIC_KEY_FILE}}"
+
+        if [ -f "{{.ENV_FILE}}" ]; then
+          set -a
+          . "{{.ENV_FILE}}"
+          set +a
+        fi
+
+        if [ -n "${JWT_PRIVATE_KEY_FILE}" ]; then
+          JWT_PRIVATE_KEY_PATH="${JWT_PRIVATE_KEY_FILE}"
+        fi
+
+        if [ -n "${JWT_PUBLIC_KEY_FILE}" ]; then
+          JWT_PUBLIC_KEY_PATH="${JWT_PUBLIC_KEY_FILE}"
+        fi
+
+        chmod 644 "${JWT_PRIVATE_KEY_PATH}"
+        chmod 644 "${JWT_PUBLIC_KEY_PATH}"
+
+  verify:
+    desc: ✅ Verify RS256 JWT key pair
+    silent: true
+    cmds:
+      - |
+        JWT_PRIVATE_KEY_PATH="{{.JWT_PRIVATE_KEY_FILE}}"
+        JWT_PUBLIC_KEY_PATH="{{.JWT_PUBLIC_KEY_FILE}}"
+
+        if [ -f "{{.ENV_FILE}}" ]; then
+          set -a
+          . "{{.ENV_FILE}}"
+          set +a
+        fi
+
+        if [ -n "${JWT_PRIVATE_KEY_FILE}" ]; then
+          JWT_PRIVATE_KEY_PATH="${JWT_PRIVATE_KEY_FILE}"
+        fi
+
+        if [ -n "${JWT_PUBLIC_KEY_FILE}" ]; then
+          JWT_PUBLIC_KEY_PATH="${JWT_PUBLIC_KEY_FILE}"
+        fi
+
+        test -f "${JWT_PRIVATE_KEY_PATH}"
+        test -f "${JWT_PUBLIC_KEY_PATH}"
+        openssl pkey -in "${JWT_PRIVATE_KEY_PATH}" -check -noout
+        openssl rsa -pubin -in "${JWT_PUBLIC_KEY_PATH}" -text -noout

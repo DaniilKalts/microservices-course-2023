@@ -19,7 +19,7 @@ RUN apk add --no-cache postgresql-client
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
 # Copy the migration script and ensure it is executable
-COPY migrations/migrate.sh .
+COPY deployments/migrations/migrate.sh .
 RUN chmod +x ./migrate.sh
 
 # Run the migration script on container start

@@ -48,10 +48,13 @@ internal/
   service/
     auth/
     user/
-migrations/
-  00001_create_users_table.sql
-  Dockerfile
-  migrate.sh
+deployments/
+  migrations/
+    00001_create_users_table.sql
+    Dockerfile
+    migrate.sh
+  prometheus/
+    prometheus.yml
 proto/
   auth/v1/
   user/v1/
@@ -98,7 +101,7 @@ Swagger UI: `http://localhost:8000/swagger/`
 ```bash
 cp .env.example .env
 docker compose up -d postgres
-./migrations/migrate.sh
+./deployments/migrations/migrate.sh
 task generate
 task run-user
 ```

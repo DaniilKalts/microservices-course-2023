@@ -1,0 +1,117 @@
+version: "3"
+method: none
+
+tasks:
+  generate:
+    desc: 🔐 Generate TLS cert and key with certbot
+    silent: true
+    cmds:
+      - |
+        TLS_CERT_PATH="{{.TLS_CERT_FILE}}"
+        TLS_KEY_PATH="{{.TLS_KEY_FILE}}"
+        CERTBOT_CONFIG_DIR="{{.TLS_DIR}}/certbot/config"
+        CERTBOT_WORK_DIR="{{.TLS_DIR}}/certbot/work"
+        CERTBOT_LOGS_DIR="{{.TLS_DIR}}/certbot/logs"
+
+        if [ -f "{{.ENV_FILE}}" ]; then
+          set -a
+          . "{{.ENV_FILE}}"
+          set +a
+        fi
+
+        if [ -n "${TLS_CERT_FILE}" ]; then
+          TLS_CERT_PATH="${TLS_CERT_FILE}"
+        fi
+
+        if [ -n "${TLS_KEY_FILE}" ]; then
+          TLS_KEY_PATH="${TLS_KEY_FILE}"
+        fi
+
+        if [ -f "${TLS_CERT_PATH}" ] && [ -f "${TLS_KEY_PATH}" ]; then
+          echo "🔐 TLS cert and key already exist, skip generation"
+          exit 0
+        fi
+
+        : "${TLS_CERTBOT_DOMAIN:?TLS_CERTBOT_DOMAIN is not set}"
+
+        mkdir -p "$(dirname "${TLS_CERT_PATH}")"
+        mkdir -p "$(dirname "${TLS_KEY_PATH}")"
+        mkdir -p "${CERTBOT_CONFIG_DIR}" "${CERTBOT_WORK_DIR}" "${CERTBOT_LOGS_DIR}"
+
+        if [ "${TLS_CERTBOT_DOMAIN}" = "localhost" ] || [ "${TLS_CERTBOT_DOMAIN}" = "127.0.0.1" ]; then
+          if ! command -v openssl >/dev/null 2>&1; then
+            echo "❌ Error: openssl not found"
+            echo "👉 Install openssl, then rerun: task tls:generate"
+            exit 1
+          fi
+
+          TLS_SAN="DNS:localhost,IP:127.0.0.1"
+          TLS_CN="localhost"
+          if [ "${TLS_CERTBOT_DOMAIN}" = "127.0.0.1" ]; then
+            TLS_SAN="IP:127.0.0.1,DNS:localhost"
+            TLS_CN="127.0.0.1"
+          fi
+
+          echo "🔐 Generating self-signed TLS cert for localhost..."
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 365 \
+            -keyout "${TLS_KEY_PATH}" \
+            -out "${TLS_CERT_PATH}" \
+            -subj "/CN=${TLS_CN}" \
+            -addext "subjectAltName=${TLS_SAN}" >/dev/null 2>&1
+
+          chmod 644 "${TLS_CERT_PATH}"
+          chmod 600 "${TLS_KEY_PATH}"
+          echo "✅ Self-signed TLS cert and key generated for localhost"
+          exit 0
+        fi
+
+        if ! command -v certbot >/dev/null 2>&1; then
+          echo "❌ Error: certbot not found"
+          echo "👉 Run 'task install-deps' to auto-install certbot"
+          exit 1
+        fi
+
+        CERTBOT_STAGING_ARG=""
+        if [ "${TLS_CERTBOT_STAGING:-false}" = "true" ]; then
+          CERTBOT_STAGING_ARG="--staging"
+        fi
+
+        CERTBOT_EMAIL_ARG="--register-unsafely-without-email"
+        if [ -n "${TLS_CERTBOT_EMAIL}" ]; then
+          CERTBOT_EMAIL_ARG="--email ${TLS_CERTBOT_EMAIL}"
+        fi
+
+        echo "🔐 Requesting certificate from Let's Encrypt via certbot..."
+        certbot certonly --non-interactive --agree-tos --standalone \
+          ${CERTBOT_STAGING_ARG} \
+          ${CERTBOT_EMAIL_ARG} \
+          --preferred-challenges http \
+          --config-dir "${CERTBOT_CONFIG_DIR}" \
+          --work-dir "${CERTBOT_WORK_DIR}" \
+          --logs-dir "${CERTBOT_LOGS_DIR}" \
+          -d "${TLS_CERTBOT_DOMAIN}"
+
+        CERTBOT_CERT_PATH="${CERTBOT_CONFIG_DIR}/live/${TLS_CERTBOT_DOMAIN}/fullchain.pem"
+        CERTBOT_KEY_PATH="${CERTBOT_CONFIG_DIR}/live/${TLS_CERTBOT_DOMAIN}/privkey.pem"
+
+        if [ ! -f "${CERTBOT_CERT_PATH}" ] || [ ! -f "${CERTBOT_KEY_PATH}" ]; then
+          echo "❌ Error: certbot did not produce certificate files"
+          exit 1
+        fi
+
+        cp "${CERTBOT_CERT_PATH}" "${TLS_CERT_PATH}"
+        cp "${CERTBOT_KEY_PATH}" "${TLS_KEY_PATH}"
+
+        chmod 644 "${TLS_CERT_PATH}"
+        chmod 600 "${TLS_KEY_PATH}"
+        echo "✅ TLS cert and key generated with certbot"
+
+  verify:
+    desc: ✅ Verify dev TLS cert and key
+    silent: true
+    cmds:
+      - test -f "{{.TLS_CERT_FILE}}"
+      - test -f "{{.TLS_KEY_FILE}}"
+      - openssl x509 -in "{{.TLS_CERT_FILE}}" -noout -subject -issuer -dates -ext subjectAltName
+      - openssl x509 -noout -modulus -in "{{.TLS_CERT_FILE}}" | openssl md5
+      - openssl rsa -noout -modulus -in "{{.TLS_KEY_FILE}}" | openssl md5

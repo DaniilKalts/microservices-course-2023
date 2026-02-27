@@ -33,6 +33,7 @@ type Deps struct {
 func NewServer(deps Deps) (*grpc.Server, error) {
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
+			interceptor.MetricsInterceptor(),
 			interceptor.LoggingInterceptor(deps.Logger),
 			interceptor.AuthInterceptor(deps.JWTManager),
 			interceptor.ValidationInterceptor(),

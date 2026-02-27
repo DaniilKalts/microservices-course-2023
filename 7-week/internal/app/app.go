@@ -53,7 +53,9 @@ func (a *App) Run(ctx context.Context) error {
 		ReadHeaderTimeout: gatewayReadHeaderTimeout,
 	}
 
-	serveErr := make(chan error, 2)
+	prometheusServer := a.c.Prometheus
+
+	serveErr := make(chan error, 3)
 
 	go func() {
 		serveErr <- serveGRPC(a.c.GRPC, grpcListener)
@@ -61,6 +63,10 @@ func (a *App) Run(ctx context.Context) error {
 
 	go func() {
 		serveErr <- serveGateway(gatewayServer, a.c.Cfg.TLS())
+	}()
+
+	go func() {
+		serveErr <- servePrometheus(prometheusServer)
 	}()
 
 	stop := make(chan os.Signal, 1)
@@ -75,7 +81,7 @@ func (a *App) Run(ctx context.Context) error {
 	case <-stop:
 	}
 
-	a.shutdown(shutdownTimeout, gatewayServer)
+	a.shutdown(shutdownTimeout, gatewayServer, prometheusServer)
 
 	return runErr
 }
@@ -102,12 +108,20 @@ func serveGateway(server *http.Server, tlsCfg config.TLSConfig) (err error) {
 	return nil
 }
 
-func (a *App) shutdown(timeout time.Duration, gatewayServer *http.Server) {
+func servePrometheus(server *http.Server) error {
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("prometheus server: %w", err)
+	}
+
+	return nil
+}
+
+func (a *App) shutdown(timeout time.Duration, gatewayServer *http.Server, prometheusServer *http.Server) {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
@@ -117,6 +131,11 @@ func (a *App) shutdown(timeout time.Duration, gatewayServer *http.Server) {
 	go func() {
 		defer wg.Done()
 		_ = gatewayServer.Shutdown(shutdownCtx)
+	}()
+
+	go func() {
+		defer wg.Done()
+		_ = prometheusServer.Shutdown(shutdownCtx)
 	}()
 
 	wg.Wait()

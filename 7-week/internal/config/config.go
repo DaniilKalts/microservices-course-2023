@@ -14,6 +14,10 @@ type GatewayConfig interface {
 	Address() string
 }
 
+type PrometheusConfig interface {
+	Address() string
+}
+
 type TLSConfig interface {
 	Enabled() bool
 	CertFile() string
@@ -43,6 +47,7 @@ type Config interface {
 	Postgres() PostgresConfig
 	GRPC() GRPCConfig
 	Gateway() GatewayConfig
+	Prometheus() PrometheusConfig
 	TLS() TLSConfig
 	JWT() JWTConfig
 	Zap() ZapConfig

@@ -5,12 +5,13 @@ import (
 )
 
 type appConfig struct {
-	postgres config.PostgresConfig
-	grpc     config.GRPCConfig
-	gateway  config.GatewayConfig
-	tls      config.TLSConfig
-	jwt      config.JWTConfig
-	zap      config.ZapConfig
+	postgres   config.PostgresConfig
+	grpc       config.GRPCConfig
+	gateway    config.GatewayConfig
+	prometheus config.PrometheusConfig
+	tls        config.TLSConfig
+	jwt        config.JWTConfig
+	zap        config.ZapConfig
 }
 
 func NewConfig() (config.Config, error) {
@@ -25,6 +26,11 @@ func NewConfig() (config.Config, error) {
 	}
 
 	gatewayConfig, err := NewGatewayConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	prometheusConfig, err := NewPrometheusConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -45,12 +51,13 @@ func NewConfig() (config.Config, error) {
 	}
 
 	return &appConfig{
-		postgres: postgresConfig,
-		grpc:     grpcConfig,
-		gateway:  gatewayConfig,
-		tls:      tlsConfig,
-		jwt:      jwtConfig,
-		zap:      zapConfig,
+		postgres:   postgresConfig,
+		grpc:       grpcConfig,
+		gateway:    gatewayConfig,
+		prometheus: prometheusConfig,
+		tls:        tlsConfig,
+		jwt:        jwtConfig,
+		zap:        zapConfig,
 	}, nil
 }
 
@@ -64,6 +71,10 @@ func (cfg *appConfig) GRPC() config.GRPCConfig {
 
 func (cfg *appConfig) Gateway() config.GatewayConfig {
 	return cfg.gateway
+}
+
+func (cfg *appConfig) Prometheus() config.PrometheusConfig {
+	return cfg.prometheus
 }
 
 func (cfg *appConfig) TLS() config.TLSConfig {

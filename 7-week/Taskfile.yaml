@@ -28,6 +28,13 @@ vars:
   BUILD_TESTS_DIR: "{{.BUILD_DIR}}/tests"
 
   # - - -
+  # gRPC load testing (ghz)
+  # - - -
+  GHZ_TARGET: '{{default "localhost:50051" .GHZ_TARGET}}'
+  GHZ_TOTAL: '{{default "100" .GHZ_TOTAL}}'
+  GHZ_CONCURRENCY: '{{default "10" .GHZ_CONCURRENCY}}'
+
+  # - - -
   # TLS (development)
   # - - -
   TLS_DIR: "{{.BUILD_DIR}}/tls"
@@ -57,7 +64,7 @@ tasks:
   # Tooling and code generation
   # - - -
   install-deps:
-    desc: 🛠️ Install protobuf toolchain, certbot, statik, minimock, and gotestsum
+    desc: 🛠️ Install protobuf toolchain, certbot, statik, minimock, gotestsum, and ghz
     deps: [check-os]
     status:
       - command -v protoc >/dev/null 2>&1
@@ -69,6 +76,7 @@ tasks:
       - test -x "$(go env GOPATH)/bin/statik"
       - test -x "$(go env GOPATH)/bin/minimock"
       - test -x "$(go env GOPATH)/bin/gotestsum"
+      - test -x "$(go env GOPATH)/bin/ghz"
       - command -v certbot >/dev/null 2>&1
     silent: true
     cmds:
@@ -146,6 +154,7 @@ tasks:
       - go install github.com/rakyll/statik@latest
       - go install github.com/gojuno/minimock/v3/cmd/minimock@latest
       - go install gotest.tools/gotestsum@latest
+      - go install github.com/bojand/ghz/cmd/ghz@latest
       - echo "🎉 All dependencies installed!"
 
   generate:
@@ -436,6 +445,43 @@ tasks:
         export PATH="$(go env GOPATH)/bin:$PATH"
         gotestsum -- -coverprofile="{{.BUILD_TESTS_DIR}}/coverage.out" ./internal/...
       - go tool cover -html="{{.BUILD_TESTS_DIR}}/coverage.out" -o "{{.BUILD_TESTS_DIR}}/coverage.html"
+
+  # - - -
+  # gRPC load tests
+  # - - -
+  ghz:list-users:
+    desc: 📶 Send ghz requests to List users (expected success)
+    deps: [install-deps]
+    silent: true
+    cmds:
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        ghz \
+          --insecure \
+          --proto proto/user/v1/user.proto \
+          --import-paths proto,third_party/proto \
+          --call user.v1.UserV1.List \
+          --data '{}' \
+          --total "{{.GHZ_TOTAL}}" \
+          --concurrency "{{.GHZ_CONCURRENCY}}" \
+          "{{.GHZ_TARGET}}"
+
+  ghz:delete-user-fail:
+    desc: ❌ Send ghz requests to Delete user id=0 (expected fail)
+    deps: [install-deps]
+    silent: true
+    cmds:
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        ghz \
+          --insecure \
+          --proto proto/user/v1/user.proto \
+          --import-paths proto,third_party/proto \
+          --call user.v1.UserV1.Delete \
+          --data '{"id":"0"}' \
+          --total "{{.GHZ_TOTAL}}" \
+          --concurrency "{{.GHZ_CONCURRENCY}}" \
+          "{{.GHZ_TARGET}}"
 
   # - - -
   # Cleanup

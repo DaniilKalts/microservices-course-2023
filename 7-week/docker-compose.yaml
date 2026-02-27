@@ -42,6 +42,7 @@ services:
       - .env
     ports:
       - "8000:8000"
+      - "2112:2112"
       - "50051:50051"
     volumes:
       - ./build:/app/build:ro
@@ -51,45 +52,17 @@ services:
       migrator:
         condition: service_completed_successfully
 
-  # chat_service:
-  #   image: ${CHAT_SERVICE_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-chat-service}:${TAG:-latest}
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #     target: chat
-  #   container_name: microservices-course-2023-chat-service
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - GRPC_HOST=${CHAT_GRPC_HOST}
-  #     - GRPC_PORT=${CHAT_GRPC_PORT}
-  #   ports:
-  #     - "50051:50051"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     migrator:
-  #       condition: service_completed_successfully
-
-  # user_service:
-  #   image: ${USER_SERVICE_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-user-service}:${TAG:-latest}
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #     target: user
-  #   container_name: microservices-course-2023-user-service
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - GRPC_HOST=${USER_GRPC_HOST}
-  #     - GRPC_PORT=${USER_GRPC_PORT}
-  #   ports:
-  #     - "50052:50052"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     migrator:
-  #       condition: service_completed_successfully
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: microservices-course-2023-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
+  prometheus_data:

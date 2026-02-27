@@ -10,6 +10,7 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/database/postgres"
 	gatewayTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/gateway"
+	prometheusTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/prometheus"
 	grpcTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database/transaction"
@@ -35,6 +36,7 @@ type Container struct {
 
 	GRPC          *grpc.Server
 	Gateway       http.Handler
+	Prometheus    *http.Server
 	gatewayCancel context.CancelFunc
 }
 
@@ -64,6 +66,9 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 	if err := container.initGateway(ctx); err != nil {
 		return nil, err
 	}
+	if err := container.initPrometheus(); err != nil {
+		return nil, err
+	}
 
 	return container, nil
 }
@@ -83,7 +88,7 @@ func (c *Container) initConfig(configPath string) error {
 	return nil
 }
 
-func (c *Container) initLogger()  error {
+func (c *Container) initLogger() error {
 	loggerInstance, err := logger.New(logger.Config{
 		Level:            c.Cfg.Zap().Level(),
 		Encoding:         c.Cfg.Zap().Encoding(),
@@ -185,6 +190,19 @@ func (c *Container) initGateway(ctx context.Context) error {
 
 	c.Gateway = handler
 	c.gatewayCancel = cancel
+
+	return nil
+}
+
+func (c *Container) initPrometheus() error {
+	server, err := prometheusTransport.NewServer(prometheusTransport.Config{
+		Address: c.Cfg.Prometheus().Address(),
+	})
+	if err != nil {
+		return fmt.Errorf("init prometheus server: %w", err)
+	}
+
+	c.Prometheus = server
 
 	return nil
 }

@@ -19,24 +19,38 @@ tasks:
           set +a
         fi
 
-        if [ -n "${TLS_CERT_FILE}" ]; then
+        if [ -n "${TLS_CERT_FILE:-}" ]; then
           TLS_CERT_PATH="${TLS_CERT_FILE}"
         fi
 
-        if [ -n "${TLS_KEY_FILE}" ]; then
+        if [ -n "${TLS_KEY_FILE:-}" ]; then
           TLS_KEY_PATH="${TLS_KEY_FILE}"
         fi
 
-        if [ -f "${TLS_CERT_PATH}" ] && [ -f "${TLS_KEY_PATH}" ]; then
-          echo "🔐 TLS cert and key already exist, skip generation"
-          exit 0
-        fi
+        ensure_tls_permissions() {
+          cert_path="$1"
+          key_path="$2"
 
-        : "${TLS_CERTBOT_DOMAIN:?TLS_CERTBOT_DOMAIN is not set}"
+          if [ -f "${cert_path}" ]; then
+            chmod 644 "${cert_path}"
+          fi
+
+          if [ -f "${key_path}" ]; then
+            chmod 644 "${key_path}"
+          fi
+        }
 
         mkdir -p "$(dirname "${TLS_CERT_PATH}")"
         mkdir -p "$(dirname "${TLS_KEY_PATH}")"
         mkdir -p "${CERTBOT_CONFIG_DIR}" "${CERTBOT_WORK_DIR}" "${CERTBOT_LOGS_DIR}"
+
+        if [ -f "${TLS_CERT_PATH}" ] && [ -f "${TLS_KEY_PATH}" ]; then
+          ensure_tls_permissions "${TLS_CERT_PATH}" "${TLS_KEY_PATH}"
+          echo "🔐 TLS cert and key already exist, permissions synchronized"
+          exit 0
+        fi
+
+        : "${TLS_CERTBOT_DOMAIN:?TLS_CERTBOT_DOMAIN is not set}"
 
         if [ "${TLS_CERTBOT_DOMAIN}" = "localhost" ] || [ "${TLS_CERTBOT_DOMAIN}" = "127.0.0.1" ]; then
           if ! command -v openssl >/dev/null 2>&1; then
@@ -59,8 +73,7 @@ tasks:
             -subj "/CN=${TLS_CN}" \
             -addext "subjectAltName=${TLS_SAN}" >/dev/null 2>&1
 
-          chmod 644 "${TLS_CERT_PATH}"
-          chmod 600 "${TLS_KEY_PATH}"
+          ensure_tls_permissions "${TLS_CERT_PATH}" "${TLS_KEY_PATH}"
           echo "✅ Self-signed TLS cert and key generated for localhost"
           exit 0
         fi
@@ -102,8 +115,7 @@ tasks:
         cp "${CERTBOT_CERT_PATH}" "${TLS_CERT_PATH}"
         cp "${CERTBOT_KEY_PATH}" "${TLS_KEY_PATH}"
 
-        chmod 644 "${TLS_CERT_PATH}"
-        chmod 600 "${TLS_KEY_PATH}"
+        ensure_tls_permissions "${TLS_CERT_PATH}" "${TLS_KEY_PATH}"
         echo "✅ TLS cert and key generated with certbot"
 
   verify:

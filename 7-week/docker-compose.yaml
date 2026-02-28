@@ -37,7 +37,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: microservices-course-2023-api
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "1000:1000"
     env_file:
       - .env
     ports:

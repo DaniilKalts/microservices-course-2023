@@ -16,7 +16,7 @@ services:
       retries: 5
 
   migrator:
-    image: ${MIGRATOR_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-migrator}:${TAG:-latest}
+    image: daniilkalts2006/microservices-course-2023-migrator:latest
     build:
       context: .
       dockerfile: deployments/migrations/Dockerfile
@@ -32,7 +32,7 @@ services:
     restart: on-failure
 
   api:
-    image: ${MIGRATOR_IMAGE_NAME:-daniilkalts2006/microservices-course-2023-api}:${TAG:-latest}
+    image: daniilkalts2006/microservices-course-2023-api:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -79,8 +79,25 @@ services:
       - ./deployments/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./deployments/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
       - alertmanager_data:/alertmanager
+    
+  grafana:
+    image: grafana/grafana:12.4.0
+    container_name: microservices-course-2023-grafana
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deployments/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    depends_on:
+      - prometheus
 
 volumes:
   postgres_data:
   prometheus_data:
   alertmanager_data:
+  grafana_data:

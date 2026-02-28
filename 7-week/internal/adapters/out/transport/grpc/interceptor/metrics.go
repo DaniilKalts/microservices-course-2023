@@ -24,7 +24,6 @@ func MetricsInterceptor() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (any, error) {
 		startedAt := time.Now()
-		metrics.RequestCounter.Inc()
 
 		resp, err := handler(ctx, req)
 

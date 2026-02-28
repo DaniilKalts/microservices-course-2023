@@ -1,0 +1,56 @@
+global:
+  # Problem disappeared? Wait 5 minutes before sending "✅ RESOLVED"
+  # In case it comes back 10 seconds later — avoids false "all good" messages
+  resolve_timeout: 5m
+
+route:
+  # Who receives the alerts (see "receivers" section below)
+  receiver: telegram
+
+  # Group alerts together by these labels into a single Telegram message.
+  # Without this: 10 things break → 10 separate messages. With this: 1 message.
+  group_by:
+    - alertname
+    - service
+
+  # First alert just fired? Wait 30 seconds before sending a message.
+  # Maybe more related alerts are about to come in — we'll bundle them together.
+  group_wait: 30s
+
+  # A new alert joined an existing group?
+  # Wait 5 minutes before sending an update about that group.
+  group_interval: 5m
+
+  # Problem is still happening and not resolved?
+  # Send a reminder every 2 hours. (1 minute = spam, nobody wants that)
+  repeat_interval: 2h
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      - bot_token: __TELEGRAM_BOT_TOKEN__
+        chat_id: __TELEGRAM_CHAT_ID__
+        parse_mode: HTML
+
+        # Also send a message when the problem is fixed (not just when it starts)
+        send_resolved: true
+
+        message: |
+          {{ if eq .Status "firing" }}🔴 <b>FIRING</b>{{ else }}✅ <b>RESOLVED</b>{{ end }} — <b>{{ .CommonLabels.alertname }}</b>
+          {{- if .CommonAnnotations.summary }}
+          <i>{{ .CommonAnnotations.summary }}</i>
+          {{- end }}
+
+          {{- if .CommonLabels.service }}
+          <b>Service:</b> <code>{{ .CommonLabels.service }}</code>
+          {{- end }}
+          {{- if .CommonLabels.severity }}
+          <b>Severity:</b> <code>{{ .CommonLabels.severity }}</code>
+          {{- end }}
+          <b>Alerts:</b> <code>{{ len .Alerts }}</code>
+
+          {{- if .CommonAnnotations.description }}
+          <b>Details:</b> {{ .CommonAnnotations.description }}
+          {{- end }}
+
+          <a href="{{ (index .Alerts 0).GeneratorURL }}">Open in Prometheus →</a>

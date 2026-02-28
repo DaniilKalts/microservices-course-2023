@@ -1,0 +1,30 @@
+groups:
+  - name: termachat-grpc-alerts
+    rules:
+      - alert: HighGrpcErrorRate
+        expr: |
+          (
+            # Count how many error responses happened in the last 5 minutes...
+            sum(increase(termachat_grpc_responses_total{status="error"}[5m]))
+            /
+            # ...divided by ALL responses in the last 5 minutes = error rate
+            sum(increase(termachat_grpc_responses_total[5m]))
+          ) > 0.01  # Fire alert if error rate is above 1%
+
+          and
+
+          # Safety guard: only alert if there were at least 10 requests total.
+          # Without this: 1 error out of 1 request = 100% error rate → false alarm!
+          sum(increase(termachat_grpc_responses_total[5m])) > 10
+
+        # Don't scream immediately — wait 2 minutes to make sure it's a real problem,
+        # not just a random one-time spike
+        for: 2m
+
+        labels:
+          severity: warning
+          service: termachat-api
+
+        annotations:
+          summary: gRPC error rate is above 1%
+          description: gRPC error responses are above 1% over the last 5 minutes.

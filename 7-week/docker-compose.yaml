@@ -59,10 +59,28 @@ services:
       - "9090:9090"
     volumes:
       - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deployments/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     depends_on:
       - api
+      - alertmanager
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: microservices-course-2023-alertmanager
+    env_file:
+      - .env
+    entrypoint:
+      - "/bin/sh"
+      - "/etc/alertmanager/entrypoint.sh"
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./deployments/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./deployments/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+      - alertmanager_data:/alertmanager
 
 volumes:
   postgres_data:
   prometheus_data:
+  alertmanager_data:

@@ -1,9 +1,31 @@
 global:
-  scrape_interval: 5s
-  evaluation_interval: 5s
+  # How often Prometheus visits your service and asks "how are you doing?"
+  scrape_interval: 15s
+
+  # How long Prometheus waits for an answer before giving up and leaving
+  # Must always be LESS than scrape_interval
+  scrape_timeout: 10s
+
+  # How often Prometheus looks at its notes and checks "should I fire an alert?"
+  # Keep this equal to scrape_interval
+  evaluation_interval: 15s
+
+# Load alert rules from this file
+rule_files:
+  - "alerts.yml"
+
+# Tell Prometheus where Alertmanager lives
+# (Alertmanager is the one who actually sends you Telegram messages)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
 
 scrape_configs:
+  # A named job — you can have multiple services here
   - job_name: "termachat"
     static_configs:
       - targets:
+          # The address of your service that exposes metrics
           - "api:2112"

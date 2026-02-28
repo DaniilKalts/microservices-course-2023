@@ -1,13 +1,8 @@
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
-
-var RequestCounter = prometheus.NewCounter(prometheus.CounterOpts{
-	Namespace: "termachat",
-	Subsystem: "grpc",
-	Name:      "requests_total",
-	Help:      "Number of incoming gRPC requests",
-})
+import (
+	"github.com/prometheus/client_golang/prometheus"
+)
 
 var ResponseCounter = prometheus.NewCounterVec(
 	prometheus.CounterOpts{
@@ -33,5 +28,5 @@ var RequestDuration = prometheus.NewHistogramVec(
 )
 
 func init() {
-	prometheus.MustRegister(RequestCounter, ResponseCounter, RequestDuration)
+	prometheus.MustRegister(ResponseCounter, RequestDuration)
 }

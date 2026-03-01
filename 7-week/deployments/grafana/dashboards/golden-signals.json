@@ -15,10 +15,10 @@
       }
     ]
   },
-  "description": "A collection of the most canonical charts.",
+  "description": "Golden signals and host capacity for the TermaChat monolith, including request traffic (RPS).",
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
   "links": [],
   "panels": [
     {
@@ -26,7 +26,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Average host CPU utilization from node-exporter over the last 5 minutes. Sustained high values indicate CPU pressure that can increase latency, error rate, and request queueing.",
+      "description": "Average non-idle CPU utilization per host over 5m. Sustained high values indicate CPU pressure that increases latency and queueing.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -50,7 +50,7 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -91,7 +91,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 12,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 0
@@ -99,28 +99,30 @@
       "id": 3,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "__auto",
+          "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\"}[5m])))",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "CPU Usage (%) ",
+      "title": "CPU Usage (%)",
       "type": "timeseries"
     },
     {
@@ -128,7 +130,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Host memory utilization based on available vs total memory. Rising or sustained high usage indicates memory pressure and elevated risk of reclaim/thrashing/OOM impacts on service stability.",
+      "description": "Host memory utilization using MemAvailable/TOTAL. Sustained elevation indicates memory pressure and higher reclaim/OOM risk.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -152,7 +154,7 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -193,7 +195,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 12,
+        "h": 8,
         "w": 12,
         "x": 12,
         "y": 0
@@ -201,23 +203,25 @@
       "id": 4,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))",
-          "legendFormat": "__auto",
+          "expr": "100 * (1 - (node_memory_MemAvailable_bytes{job=\"node\"} / node_memory_MemTotal_bytes{job=\"node\"}))",
+          "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
         }
@@ -230,7 +234,102 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Absolute host memory in bytes (displayed as GiB by Grafana IEC units): used, available, and total. Use this to understand capacity, not only pressure percentage.",
+      "description": "Incoming unary gRPC requests per second over 1m. This is the primary traffic signal for correlating load with latency and errors.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "12.4.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(rate(termachat_grpc_duration_seconds_count{job=\"termachat\"}[1m]))",
+          "legendFormat": "rps",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Request Rate (RPS)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Absolute host memory capacity: used, available, and total. Complements memory percentage with real-size context.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -254,7 +353,7 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -283,26 +382,74 @@
           },
           "unit": "bytes"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* used"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* available"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* total"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 15,
-        "w": 12,
-        "x": 12,
-        "y": 12
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 24
       },
       "id": 5,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "12.4.0",
@@ -337,7 +484,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "99th percentile gRPC response latency over the selected window. This shows tail performance (the slowest 1% of requests) and is the key signal for user-perceived slowness under load.",
+      "description": "99th percentile gRPC latency over 5m (tail latency). Tracks user-visible slowness under load.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -361,7 +508,7 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -387,43 +534,47 @@
               },
               {
                 "color": "#EAB839",
-                "value": 1
+                "value": 250
               },
               {
-                "color": "dark-red",
-                "value": 5
+                "color": "red",
+                "value": 500
               }
             ]
-          }
+          },
+          "unit": "ms",
+          "min": 0
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 8
       },
       "id": 2,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "12.4.0",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, sum by (le) (rate(termachat_grpc_duration_seconds_bucket[5m])))",
-          "legendFormat": "__auto",
+          "expr": "1000 * histogram_quantile(0.99, sum by (le) (rate(termachat_grpc_duration_seconds_bucket{job=\"termachat\"}[5m])))",
+          "legendFormat": "p99",
           "range": true,
           "refId": "A"
         }
@@ -439,8 +590,7 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "dark-red",
-            "mode": "fixed"
+            "mode": "palette-classic"
           },
           "custom": {
             "axisBorderShow": false,
@@ -460,7 +610,7 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -493,28 +643,33 @@
                 "value": 5
               }
             ]
-          }
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 19
+        "x": 12,
+        "y": 8
       },
       "id": 1,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "12.4.0",
@@ -525,31 +680,36 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "100 * sum(rate(termachat_grpc_responses_total{status=\"error\"}[5m])) / sum(rate(termachat_grpc_responses_total[5m]))",
-          "legendFormat": "__auto",
+          "expr": "100 * sum(rate(termachat_grpc_responses_total{job=\"termachat\",status=\"error\"}[5m])) / clamp_min(sum(rate(termachat_grpc_responses_total{job=\"termachat\"}[5m])), 0.001)",
+          "legendFormat": "error %",
           "range": true,
           "refId": "A"
         }
       ],
       "title": "Error Rate (%)",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "gRPC error responses as a percentage of total responses over 5m. Correlates directly with service reliability."
     }
   ],
   "preload": false,
-  "refresh": "auto",
+  "refresh": "30s",
   "schemaVersion": 42,
-  "tags": [],
+  "tags": [
+    "termachat",
+    "golden-signals",
+    "observability"
+  ],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-30m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Golden Signals",
+  "title": "TermaChat Monolith - Golden Signals",
   "uid": "adgckls",
-  "version": 18,
+  "version": 20,
   "weekStart": ""
 }

@@ -52,6 +52,21 @@ services:
       migrator:
         condition: service_completed_successfully
 
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: microservices-course-2023-node-exporter
+    restart: unless-stopped
+    command:
+      - "--path.rootfs=/host"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+
   prometheus:
     image: prom/prometheus:v2.52.0
     container_name: microservices-course-2023-prometheus
@@ -64,6 +79,7 @@ services:
     depends_on:
       - api
       - alertmanager
+      - node-exporter
 
   alertmanager:
     image: prom/alertmanager:v0.28.1

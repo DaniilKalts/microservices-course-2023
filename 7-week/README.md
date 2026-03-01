@@ -13,6 +13,7 @@
 - [x] Add `prometheus` service with scrape configuration in `docker-compose.yaml`
 - [x] Add `alertmanager` service and wire Prometheus alerts
 - [x] Add `grafana` service with provisioned Prometheus datasource
+- [x] Add `node-exporter` service for host CPU/memory/saturation metrics
 - [ ] Add `loki` service for centralized log storage
 - [ ] Add `promtail` service to collect and ship logs to Loki
 - [ ] Add `jaeger` service and tracing export from HTTP/gRPC flows
@@ -112,6 +113,7 @@ docker compose up -d --build
 - API Gateway: `http://localhost:8000`
 - Swagger UI: `http://localhost:8000/swagger/`
 - App metrics endpoint: `http://localhost:2112/metrics`
+- Node Exporter metrics endpoint: `http://localhost:9100/metrics`
 - Prometheus: `http://localhost:9090`
 - Alertmanager: `http://localhost:9093`
 - Grafana: `http://localhost:3000` (credentials from `.env`, default `admin/admin`)

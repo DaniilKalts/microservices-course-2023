@@ -1,30 +1,63 @@
+# ============================================================
+# alerts.yml — Alert rule definitions
+#
+# Prometheus evaluates these rules on every evaluation_interval
+# (15s in prometheus.yml). When a rule's expression is true
+# for longer than the "for" duration, the alert is fired and
+# sent to Alertmanager.
+#
+# Alert lifecycle:
+#   Expression true → "PENDING" → (for duration passes) → "FIRING"
+#   Expression false again → Alertmanager waits resolve_timeout → "RESOLVED"
+# ============================================================
+
 groups:
+  # A group is a named collection of related alert rules.
+  # Rules inside the same group are evaluated together.
   - name: termachat-grpc-alerts
     rules:
-      - alert: HighGrpcErrorRate
+
+      - alert: HighGrpcErrorRate   # Name shown in Telegram, Prometheus UI, and logs
+
+        # Expression breakdown:
+        #   PART 1 — error rate:
+        #     Numerator:   sum(increase(...{status="error"}[5m]))
+        #                  → how many error responses occurred in the last 5 minutes
+        #                  → increase() measures counter growth over a time window
+        #                  → sum() aggregates across all instances/pods
+        #     Denominator: sum(increase(...[5m]))
+        #                  → total responses (errors + successes) in the last 5 minutes
+        #     Result:      errors / total = error rate as a fraction (0.05 = 5%)
+        #     Threshold:   > 0.01 → fire if more than 1% of requests are errors
+        #
+        #   PART 2 — minimum traffic guard (joined with "and"):
+        #     sum(increase(...[5m])) > 10
+        #     → only evaluate the error rate if at least 10 requests happened
+        #     → without this: 1 error out of 2 requests = 50% error rate → false alarm!
+        #     → both conditions must be true simultaneously for the alert to fire
         expr: |
           (
-            # Count how many error responses happened in the last 5 minutes...
             sum(increase(termachat_grpc_responses_total{status="error"}[5m]))
             /
-            # ...divided by ALL responses in the last 5 minutes = error rate
             sum(increase(termachat_grpc_responses_total[5m]))
-          ) > 0.01  # Fire alert if error rate is above 1%
-
+          ) > 0.01
           and
-
-          # Safety guard: only alert if there were at least 10 requests total.
-          # Without this: 1 error out of 1 request = 100% error rate → false alarm!
           sum(increase(termachat_grpc_responses_total[5m])) > 10
 
-        # Don't scream immediately — wait 2 minutes to make sure it's a real problem,
-        # not just a random one-time spike
+        # "for" — how long the expression must stay true before the alert fires.
+        # This avoids alerting on brief, self-healing spikes.
+        # Timeline: spike happens → enters PENDING state → 2 min pass → enters FIRING state → Alertmanager notified.
         for: 2m
 
+        # Labels are key-value metadata attached to the alert.
+        # Alertmanager uses them for routing (which receiver to use)
+        # and grouping (which alerts to bundle into one message).
         labels:
-          severity: warning
-          service: termachat-api
+          severity: warning          # Informational tag. Could be: info | warning | critical
+          service: termachat-api     # Used in Alertmanager's group_by to bundle related alerts
 
+        # Annotations are human-readable descriptions — shown in the notification message.
+        # They do NOT affect routing or grouping, only the message content.
         annotations:
-          summary: gRPC error rate is above 1%
-          description: gRPC error responses are above 1% over the last 5 minutes.
+          summary: gRPC error rate is above 1%                                         # Short one-liner, shown as the alert title
+          description: gRPC error responses are above 1% over the last 5 minutes.     # Longer explanation shown in the message body

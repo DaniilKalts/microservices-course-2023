@@ -7,6 +7,7 @@ import (
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/user/operations"
+	"go.uber.org/zap"
 )
 
 type Repository interface {
@@ -19,11 +20,15 @@ type Repository interface {
 }
 
 type repository struct {
-	dbc database.Client
+	dbc    database.Client
+	logger *zap.Logger
 }
 
-func NewRepository(dbc database.Client) Repository {
-	return &repository{dbc: dbc}
+func NewRepository(dbc database.Client, logger *zap.Logger) Repository {
+	return &repository{
+		dbc:    dbc,
+		logger: logger,
+	}
 }
 
 func (r *repository) Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error) {

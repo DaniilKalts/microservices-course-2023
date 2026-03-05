@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
@@ -26,8 +27,8 @@ type App struct {
 	c *Container
 }
 
-func New(ctx context.Context, configPath string) (*App, error) {
-	c, err := Build(ctx, configPath)
+func New(ctx context.Context, cfg config.Config, logger *zap.Logger) (*App, error) {
+	c, err := Build(ctx, cfg, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +37,12 @@ func New(ctx context.Context, configPath string) (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	logger := a.Logger().Named("app")
+
 	defer func() {
-		_ = a.c.Close()
+		if err := a.c.Close(); err != nil {
+			logger.Error("failed to close application resources", zap.Error(err))
+		}
 	}()
 
 	grpcAddr := a.c.Cfg.GRPC().Address()
@@ -45,6 +50,8 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("listen grpc %s: %w", grpcAddr, err)
 	}
+
+	logger.Info("grpc listener initialized", zap.String("address", grpcAddr))
 
 	gatewayAddr := a.c.Cfg.Gateway().Address()
 	gatewayServer := &http.Server{
@@ -55,17 +62,27 @@ func (a *App) Run(ctx context.Context) error {
 
 	prometheusServer := a.c.Prometheus
 
+	logger.Info(
+		"starting application servers",
+		zap.String("grpc_address", grpcAddr),
+		zap.String("gateway_address", gatewayAddr),
+		zap.String("prometheus_address", prometheusServer.Addr),
+	)
+
 	serveErr := make(chan error, 3)
 
 	go func() {
+		logger.Info("grpc server started")
 		serveErr <- serveGRPC(a.c.GRPC, grpcListener)
 	}()
 
 	go func() {
+		logger.Info("http gateway server started")
 		serveErr <- serveGateway(gatewayServer, a.c.Cfg.TLS())
 	}()
 
 	go func() {
+		logger.Info("prometheus server started")
 		serveErr <- servePrometheus(prometheusServer)
 	}()
 
@@ -76,14 +93,29 @@ func (a *App) Run(ctx context.Context) error {
 	var runErr error
 	select {
 	case runErr = <-serveErr:
+		if runErr != nil {
+			logger.Error("application server exited with error", zap.Error(runErr))
+		}
 	case <-ctx.Done():
 		runErr = ctx.Err()
-	case <-stop:
+		logger.Warn("application context canceled", zap.Error(runErr))
+	case sig := <-stop:
+		logger.Info("shutdown signal received", zap.String("signal", sig.String()))
 	}
 
+	logger.Info("shutting down application servers")
 	a.shutdown(shutdownTimeout, gatewayServer, prometheusServer)
+	logger.Info("application servers stopped")
 
 	return runErr
+}
+
+func (a *App) Logger() *zap.Logger {
+	if a == nil || a.c == nil || a.c.Logger == nil {
+		panic("app logger is not initialized")
+	}
+
+	return a.c.Logger
 }
 
 func serveGRPC(server *grpc.Server, lis net.Listener) error {
@@ -117,6 +149,8 @@ func servePrometheus(server *http.Server) error {
 }
 
 func (a *App) shutdown(timeout time.Duration, gatewayServer *http.Server, prometheusServer *http.Server) {
+	logger := a.Logger().Named("shutdown")
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -130,18 +164,24 @@ func (a *App) shutdown(timeout time.Duration, gatewayServer *http.Server, promet
 
 	go func() {
 		defer wg.Done()
-		_ = gatewayServer.Shutdown(shutdownCtx)
+		if err := gatewayServer.Shutdown(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("failed to shutdown gateway server", zap.Error(err))
+		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		_ = prometheusServer.Shutdown(shutdownCtx)
+		if err := prometheusServer.Shutdown(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error("failed to shutdown prometheus server", zap.Error(err))
+		}
 	}()
 
 	wg.Wait()
 }
 
 func (a *App) gracefulStopGRPC(timeout time.Duration) {
+	logger := a.Logger().Named("shutdown.grpc")
+
 	done := make(chan struct{})
 	go func() {
 		a.c.GRPC.GracefulStop()
@@ -153,7 +193,9 @@ func (a *App) gracefulStopGRPC(timeout time.Duration) {
 
 	select {
 	case <-done:
+		logger.Info("grpc server stopped gracefully")
 	case <-timer.C:
+		logger.Warn("grpc graceful stop timeout reached, forcing stop", zap.Duration("timeout", timeout))
 		a.c.GRPC.Stop()
 	}
 }

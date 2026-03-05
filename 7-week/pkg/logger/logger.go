@@ -21,14 +21,24 @@ func New(cfg Config) (*zap.Logger, error) {
 		return nil, fmt.Errorf("parse zap level: %w", err)
 	}
 
+	outputPaths := parsePaths(cfg.OutputPaths)
+	if len(outputPaths) == 0 {
+		outputPaths = []string{"stdout"}
+	}
+
+	errorOutputPaths := parsePaths(cfg.ErrorOutputPaths)
+	if len(errorOutputPaths) == 0 {
+		errorOutputPaths = []string{"stderr"}
+	}
+
 	zapConfig := zap.Config{
 		Level:            level,
 		Development:      false,
 		DisableCaller:    false,
 		Sampling:         nil,
 		Encoding:         cfg.Encoding,
-		OutputPaths:      parsePaths(cfg.OutputPaths),
-		ErrorOutputPaths: parsePaths(cfg.ErrorOutputPaths),
+		OutputPaths:      outputPaths,
+		ErrorOutputPaths: errorOutputPaths,
 		EncoderConfig: zapcore.EncoderConfig{
 			MessageKey:   "message",
 			LevelKey:     "level",

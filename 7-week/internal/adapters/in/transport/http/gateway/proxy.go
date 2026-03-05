@@ -25,6 +25,19 @@ type Config struct {
 	TLS         config.TLSConfig
 }
 
+type proxyHandler struct {
+	http.Handler
+	conn *grpc.ClientConn
+}
+
+func (h *proxyHandler) Close() error {
+	if h == nil || h.conn == nil {
+		return nil
+	}
+
+	return h.conn.Close()
+}
+
 type swaggerRoute struct {
 	name       string
 	basePath   string
@@ -37,41 +50,45 @@ var swaggerRoutes = []swaggerRoute{
 	{name: "auth", basePath: swaggerBasePath + "/auth", openAPIURL: "gen/openapi/auth/v1/auth.swagger.json"},
 }
 
-func NewProxy(ctx context.Context, cfg Config) (http.Handler, context.CancelFunc, error) {
+func NewProxy(ctx context.Context, cfg Config) (http.Handler, error) {
 	gatewayMux := runtime.NewServeMux()
-
-	gatewayCtx, cancel := context.WithCancel(ctx)
 
 	grpcEndpoint, err := grpcGatewayEndpoint(cfg.GRPCAddress)
 	if err != nil {
-		cancel()
-		return nil, nil, fmt.Errorf("prepare grpc endpoint for gateway: %w", err)
+		return nil, fmt.Errorf("prepare grpc endpoint for gateway: %w", err)
 	}
 
 	dialOpts, err := grpcGatewayDialOptions(cfg.TLS)
 	if err != nil {
-		cancel()
-		return nil, nil, err
+		return nil, err
+	}
+
+	conn, err := grpc.NewClient(grpcEndpoint, dialOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("dial grpc endpoint for gateway: %w", err)
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/", gatewayMux)
 
-	if err := userv1.RegisterUserV1HandlerFromEndpoint(gatewayCtx, gatewayMux, grpcEndpoint, dialOpts); err != nil {
-		cancel()
-		return nil, nil, fmt.Errorf("register user grpc-gateway handler: %w", err)
+	if err := userv1.RegisterUserV1Handler(ctx, gatewayMux, conn); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("register user grpc-gateway handler: %w", err)
 	}
-	if err := authv1.RegisterAuthV1HandlerFromEndpoint(gatewayCtx, gatewayMux, grpcEndpoint, dialOpts); err != nil {
-		cancel()
-		return nil, nil, fmt.Errorf("register auth grpc-gateway handler: %w", err)
+	if err := authv1.RegisterAuthV1Handler(ctx, gatewayMux, conn); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("register auth grpc-gateway handler: %w", err)
 	}
 
 	if err := registerSwaggerHandlers(mux); err != nil {
-		cancel()
-		return nil, nil, err
+		_ = conn.Close()
+		return nil, err
 	}
 
-	return mux, cancel, nil
+	return &proxyHandler{
+		Handler: mux,
+		conn:    conn,
+	}, nil
 }
 
 func grpcGatewayEndpoint(address string) (string, error) {

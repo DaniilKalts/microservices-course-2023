@@ -6,6 +6,7 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user/operations"
+	"go.uber.org/zap"
 )
 
 type Service interface {
@@ -17,11 +18,15 @@ type Service interface {
 }
 
 type service struct {
-	repo repository.UserRepository
+	repo   repository.UserRepository
+	logger *zap.Logger
 }
 
-func NewService(repo repository.UserRepository) Service {
-	return &service{repo: repo}
+func NewService(repo repository.UserRepository, logger *zap.Logger) Service {
+	return &service{
+		repo:   repo,
+		logger: logger,
+	}
 }
 
 func (s *service) Create(ctx context.Context, input operations.CreateInput) (string, error) {

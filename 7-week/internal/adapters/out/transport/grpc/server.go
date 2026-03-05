@@ -31,10 +31,15 @@ type Deps struct {
 }
 
 func NewServer(deps Deps) (*grpc.Server, error) {
+	logger := deps.Logger
+	if logger == nil {
+		return nil, errors.New("grpc logger is nil")
+	}
+
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptor.MetricsInterceptor(),
-			interceptor.LoggingInterceptor(deps.Logger),
+			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),
 			interceptor.AuthInterceptor(deps.JWTManager),
 			interceptor.ValidationInterceptor(),
 		),

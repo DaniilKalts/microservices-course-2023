@@ -9,6 +9,7 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/auth/operations"
 	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
+	"go.uber.org/zap"
 )
 
 type Service interface {
@@ -22,13 +23,20 @@ type service struct {
 	userService userService.Service
 	userRepo    repository.UserRepository
 	jwtManager  jwt.Manager
+	logger      *zap.Logger
 }
 
-func NewService(userSvc userService.Service, userRepo repository.UserRepository, jwtManager jwt.Manager) Service {
+func NewService(
+	userSvc userService.Service,
+	userRepo repository.UserRepository,
+	jwtManager jwt.Manager,
+	logger *zap.Logger,
+) Service {
 	return &service{
 		userService: userSvc,
 		userRepo:    userRepo,
 		jwtManager:  jwtManager,
+		logger:      logger,
 	}
 }
 

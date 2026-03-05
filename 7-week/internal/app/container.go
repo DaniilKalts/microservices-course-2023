@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -15,11 +16,9 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database/transaction"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config/env"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/logger"
 )
 
 type Container struct {
@@ -34,21 +33,25 @@ type Container struct {
 	Repositories repository.Repositories
 	Services     service.Services
 
-	GRPC          *grpc.Server
-	Gateway       http.Handler
-	Prometheus    *http.Server
-	gatewayCancel context.CancelFunc
+	GRPC       *grpc.Server
+	Gateway    http.Handler
+	Prometheus *http.Server
 }
 
-func Build(ctx context.Context, configPath string) (*Container, error) {
-	container := &Container{}
+func Build(ctx context.Context, cfg config.Config, logger *zap.Logger) (*Container, error) {
+	if cfg == nil {
+		return nil, errors.New("app config is nil")
+	}
 
-	if err := container.initConfig(configPath); err != nil {
-		return nil, err
+	if logger == nil {
+		return nil, errors.New("app logger is nil")
 	}
-	if err := container.initLogger(); err != nil {
-		return nil, err
+
+	container := &Container{
+		Cfg:    cfg,
+		Logger: logger,
 	}
+
 	if err := container.initDatabase(ctx); err != nil {
 		return nil, err
 	}
@@ -73,53 +76,37 @@ func Build(ctx context.Context, configPath string) (*Container, error) {
 	return container, nil
 }
 
-func (c *Container) initConfig(configPath string) error {
-	if err := config.Load(configPath); err != nil {
-		return fmt.Errorf("load dotenv config: %w", err)
-	}
-
-	cfg, err := env.NewConfig()
-	if err != nil {
-		return fmt.Errorf("load env config: %w", err)
-	}
-
-	c.Cfg = cfg
-
-	return nil
-}
-
-func (c *Container) initLogger() error {
-	loggerInstance, err := logger.New(logger.Config{
-		Level:            c.Cfg.Zap().Level(),
-		Encoding:         c.Cfg.Zap().Encoding(),
-		OutputPaths:      c.Cfg.Zap().OutputPaths(),
-		ErrorOutputPaths: c.Cfg.Zap().ErrorOutputPaths(),
-	})
-	if err != nil {
-		return fmt.Errorf("init logger: %w", err)
-	}
-
-	c.Logger = loggerInstance
-
-	return nil
-}
-
 func (c *Container) initDatabase(ctx context.Context) error {
-	db, err := postgres.New(ctx, c.Cfg.Postgres().DSN())
+	logger := c.Logger.Named("di.container.database")
+	logger.Info("connecting to postgres")
+
+	db, err := postgres.New(ctx, c.Cfg.Postgres().DSN(), c.Logger.Named("storage.postgres"))
 	if err != nil {
 		return fmt.Errorf("connect postgres: %w", err)
 	}
 
+	if err = db.DB().Ping(ctx); err != nil {
+		return fmt.Errorf("ping postgres: %w", err)
+	}
+
 	c.DB = db
+	logger.Info("postgres connected")
 
 	return nil
 }
 
 func (c *Container) initTxManager() {
+	logger := c.Logger.Named("di.container.tx")
+	logger.Info("initializing transaction manager")
+
 	c.Tx = transaction.NewTransactionManager(c.DB.DB())
+
+	logger.Info("transaction manager initialized")
 }
 
 func (c *Container) initJWTManager() error {
+	logger := c.Logger.Named("di.container.jwt")
+
 	privateKey, err := jwt.LoadPrivateKey(c.Cfg.JWT().PrivateKeyFile())
 	if err != nil {
 		return fmt.Errorf("load jwt private key: %w", err)
@@ -144,22 +131,35 @@ func (c *Container) initJWTManager() error {
 	}
 
 	c.JWTManager = jwtManager
+	logger.Info("jwt manager initialized")
 
 	return nil
 }
 
 func (c *Container) initRepositories() {
-	c.Repositories = repository.NewRepositories(repository.Deps{DB: c.DB})
+	logger := c.Logger.Named("di.container.repository")
+
+	c.Repositories = repository.NewRepositories(repository.Deps{
+		DB:     c.DB,
+		Logger: c.Logger.Named("repository"),
+	})
+	logger.Info("repositories initialized")
 }
 
 func (c *Container) initServices() {
+	logger := c.Logger.Named("di.container.service")
+
 	c.Services = service.NewServices(service.Deps{
 		Repositories: c.Repositories,
 		JWTManager:   c.JWTManager,
+		Logger:       c.Logger.Named("service"),
 	})
+	logger.Info("services initialized")
 }
 
 func (c *Container) initGRPC() error {
+	logger := c.Logger.Named("di.container.transport.grpc")
+
 	grpcServer, err := grpcTransport.NewServer(grpcTransport.Deps{
 		Config: grpcTransport.ServerConfig{
 			EnableTLS: c.Cfg.TLS().Enabled(),
@@ -167,7 +167,7 @@ func (c *Container) initGRPC() error {
 			KeyFile:   c.Cfg.TLS().KeyFile(),
 		},
 		JWTManager: c.JWTManager,
-		Logger:     c.Logger,
+		Logger:     c.Logger.Named("transport.grpc"),
 		Services:   c.Services,
 	})
 	if err != nil {
@@ -175,12 +175,15 @@ func (c *Container) initGRPC() error {
 	}
 
 	c.GRPC = grpcServer
+	logger.Info("grpc transport initialized")
 
 	return nil
 }
 
 func (c *Container) initGateway(ctx context.Context) error {
-	handler, cancel, err := gatewayTransport.NewProxy(ctx, gatewayTransport.Config{
+	logger := c.Logger.Named("di.container.transport.http.gateway")
+
+	handler, err := gatewayTransport.NewProxy(ctx, gatewayTransport.Config{
 		GRPCAddress: c.Cfg.GRPC().Address(),
 		TLS:         c.Cfg.TLS(),
 	})
@@ -189,12 +192,14 @@ func (c *Container) initGateway(ctx context.Context) error {
 	}
 
 	c.Gateway = handler
-	c.gatewayCancel = cancel
+	logger.Info("http gateway initialized")
 
 	return nil
 }
 
 func (c *Container) initPrometheus() error {
+	logger := c.Logger.Named("di.container.transport.http.prometheus")
+
 	server, err := prometheusTransport.NewServer(prometheusTransport.Config{
 		Address: c.Cfg.Prometheus().Address(),
 	})
@@ -203,18 +208,35 @@ func (c *Container) initPrometheus() error {
 	}
 
 	c.Prometheus = server
+	logger.Info("prometheus server initialized")
 
 	return nil
 }
 
 func (c *Container) Close() error {
-	if c.gatewayCancel != nil {
-		c.gatewayCancel()
+	if c.Logger != nil {
+		c.Logger.Named("di.container").Info("closing application resources")
+	}
+
+	var closeErr error
+
+	if gatewayCloser, ok := c.Gateway.(interface{ Close() error }); ok {
+		if err := gatewayCloser.Close(); err != nil {
+			closeErr = err
+			if c.Logger != nil {
+				c.Logger.Named("di.container.transport.http.gateway").Error("failed to close gateway grpc connection", zap.Error(err))
+			}
+		}
 	}
 
 	if c.DB != nil {
-		return c.DB.Close()
+		if err := c.DB.Close(); err != nil {
+			closeErr = err
+			if c.Logger != nil {
+				c.Logger.Named("di.container.database").Error("failed to close database client", zap.Error(err))
+			}
+		}
 	}
 
-	return nil
+	return closeErr
 }

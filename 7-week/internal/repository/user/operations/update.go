@@ -10,9 +10,10 @@ import (
 )
 
 type UpdateInput struct {
-	ID    string
-	Name  *string
-	Email *string
+	ID           string
+	Name         *string
+	Email        *string
+	PasswordHash *string
 }
 
 func Update(ctx context.Context, dbc database.Client, input UpdateInput) error {
@@ -25,6 +26,9 @@ func Update(ctx context.Context, dbc database.Client, input UpdateInput) error {
 	}
 	if input.Email != nil {
 		builderUpdate = builderUpdate.Set("email", *input.Email)
+	}
+	if input.PasswordHash != nil {
+		builderUpdate = builderUpdate.Set("password_hash", *input.PasswordHash)
 	}
 
 	builderUpdate = builderUpdate.Set("updated_at", time.Now())

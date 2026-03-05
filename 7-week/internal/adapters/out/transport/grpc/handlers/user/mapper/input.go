@@ -1,6 +1,8 @@
 package mapper
 
 import (
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	userOperations "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user/operations"
@@ -23,19 +25,26 @@ func ToGetInput(req *userv1.GetRequest) userOperations.GetInput {
 }
 
 func ToUpdateInput(req *userv1.UpdateRequest) userOperations.UpdateInput {
-	input := userOperations.UpdateInput{ID: req.GetId()}
-	if req.GetName() != nil {
-		name := req.GetName().GetValue()
-		input.Name = &name
+	return userOperations.UpdateInput{
+		ID:    req.GetId(),
+		Name:  stringValuePtr(req.GetName()),
+		Email: stringValuePtr(req.GetEmail()),
 	}
-	if req.GetEmail() != nil {
-		email := req.GetEmail().GetValue()
-		input.Email = &email
-	}
-
-	return input
 }
 
 func ToDeleteInput(req *userv1.DeleteRequest) userOperations.DeleteInput {
 	return userOperations.DeleteInput{ID: req.GetId()}
+}
+
+func stringValuePtr(value *wrapperspb.StringValue) *string {
+	if value == nil {
+		return nil
+	}
+
+	str := value.GetValue()
+	if str == "" {
+		return nil
+	}
+
+	return &str
 }

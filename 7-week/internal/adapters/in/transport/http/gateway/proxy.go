@@ -47,6 +47,7 @@ type swaggerRoute struct {
 var swaggerRoutes = []swaggerRoute{
 	{name: "merged", basePath: swaggerBasePath, openAPIURL: "gen/openapi/gateway.swagger.json"},
 	{name: "user", basePath: swaggerBasePath + "/user", openAPIURL: "gen/openapi/user/v1/user.swagger.json"},
+	{name: "profile", basePath: swaggerBasePath + "/profile", openAPIURL: "gen/openapi/user/v1/profile.swagger.json"},
 	{name: "auth", basePath: swaggerBasePath + "/auth", openAPIURL: "gen/openapi/auth/v1/auth.swagger.json"},
 }
 
@@ -74,6 +75,10 @@ func NewProxy(ctx context.Context, cfg Config) (http.Handler, error) {
 	if err := userv1.RegisterUserV1Handler(ctx, gatewayMux, conn); err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("register user grpc-gateway handler: %w", err)
+	}
+	if err := userv1.RegisterProfileV1Handler(ctx, gatewayMux, conn); err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("register profile grpc-gateway handler: %w", err)
 	}
 	if err := authv1.RegisterAuthV1Handler(ctx, gatewayMux, conn); err != nil {
 		_ = conn.Close()

@@ -13,9 +13,9 @@ option go_package = "github.com/DaniilKalts/microservices-course-2023/7-week/gen
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     info: {
-        title: "Chat API"
+        title: "User Admin API"
         version: "1.0.0"
-        description: "RESTful gateway API for real-time chat."
+        description: "RESTful gateway API for admin-managed user lifecycle operations."
         contact: {
             name: "Daniil Kalts"
             email: "gopher@gmail.com"
@@ -38,19 +38,19 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 
 service UserV1 {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
-        name: "👤 User"
-        description: "Manages user records, profile retrieval, and lifecycle operations."
+        name: "🛡️ User Admin"
+        description: "Admin-only user lifecycle operations for managed user resources."
     };
 
     rpc Create(CreateRequest) returns (CreateResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users"
+            post: "/api/v1/admin/users"
             body: "*"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Create a new user"
-            description: "Creates a new user record with name, email, and password fields. Requires authorization and returns the newly created user ID."
-            tags: "👤 User"
+            summary: "Create a user (admin)"
+            description: "Creates a managed user record with name, email, and password fields. Requires admin authorization and returns the created user ID."
+            tags: "🛡️ User Admin"
             operation_id: "createUser"
             security: {
                 security_requirement: {
@@ -62,12 +62,12 @@ service UserV1 {
     };
     rpc List(google.protobuf.Empty) returns (ListResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users"
+            get: "/api/v1/admin/users"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Retrieve all users"
-            description: "Retrieves the complete list of users. Requires authorization and returns an array of user objects."
-            tags: "👤 User"
+            summary: "List users (admin)"
+            description: "Retrieves all managed users. Requires admin authorization and returns an array of user objects."
+            tags: "🛡️ User Admin"
             operation_id: "listUsers"
             security: {
                 security_requirement: {
@@ -79,12 +79,12 @@ service UserV1 {
     };
     rpc Get(GetRequest) returns (GetResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/{id}"
+            get: "/api/v1/admin/users/{id}"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Retrieve a user by ID"
-            description: "Retrieves a single user by UUID from the path parameter. Requires authorization and returns the matching user object."
-            tags: "👤 User"
+            summary: "Get user by ID (admin)"
+            description: "Retrieves a managed user by UUID from the path parameter. Requires admin authorization and returns the matching user object."
+            tags: "🛡️ User Admin"
             operation_id: "getUser"
             security: {
                 security_requirement: {
@@ -96,13 +96,13 @@ service UserV1 {
     };
     rpc Update(UpdateRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            patch: "/api/v1/users/{id}"
-            body: "*" 
+            patch: "/api/v1/admin/users/{id}"
+            body: "*"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Update user fields partially"
-            description: "Applies partial updates to the user's mutable fields by UUID. Requires authorization and returns an empty response when successful."
-            tags: "👤 User"
+            summary: "Update user fields (admin)"
+            description: "Applies partial updates to mutable managed-user fields by UUID. Requires admin authorization and returns an empty response when successful."
+            tags: "🛡️ User Admin"
             operation_id: "updateUser"
             security: {
                 security_requirement: {
@@ -114,12 +114,12 @@ service UserV1 {
     };
     rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            delete: "/api/v1/users/{id}"
+            delete: "/api/v1/admin/users/{id}"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Delete a user by ID"
-            description: "Deletes the user identified by the UUID path parameter. Requires authorization and returns an empty response on success."
-            tags: "👤 User"
+            summary: "Delete user (admin)"
+            description: "Deletes the managed user identified by UUID. Requires admin authorization and returns an empty response on success."
+            tags: "🛡️ User Admin"
             operation_id: "deleteUser"
             security: {
                 security_requirement: {
@@ -203,7 +203,7 @@ message UpdateRequest {
     }];
     google.protobuf.StringValue email = 3 [(validate.rules).string = {
         email: true,
-        max_len: 254,   
+        max_len: 254,
         ignore_empty: true
     }];
 }

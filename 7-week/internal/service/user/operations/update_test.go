@@ -3,9 +3,11 @@ package operations
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 
 	repositoryMocks "github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/mocks"
 	userRepositoryOperations "github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/user/operations"
@@ -107,4 +109,44 @@ func TestUpdate_PartialPatch_DoesNotOverwriteOtherFields(t *testing.T) {
 	require.NotNil(t, gotInput.Name)
 	require.Equal(t, name, *gotInput.Name)
 	require.Nil(t, gotInput.Email)
+}
+
+func TestUpdate_WithPassword_HashesBeforeRepositoryCall(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	id := "u-1"
+	password := "Secret123"
+	input := UpdateInput{ID: id, Password: &password}
+
+	var gotInput userRepositoryOperations.UpdateInput
+
+	repo := repositoryMocks.NewUserRepositoryMock(t)
+	repo.UpdateMock.Set(func(_ context.Context, updateInput userRepositoryOperations.UpdateInput) error {
+		gotInput = updateInput
+		return nil
+	})
+
+	err := Update(ctx, repo, input)
+
+	require.NoError(t, err)
+	require.NotNil(t, gotInput.PasswordHash)
+	require.NoError(t, bcrypt.CompareHashAndPassword([]byte(*gotInput.PasswordHash), []byte(password)))
+	require.Equal(t, uint64(1), repo.UpdateAfterCounter())
+}
+
+func TestUpdate_WithPasswordHashError(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	id := "u-1"
+	password := strings.Repeat("a", 73)
+	input := UpdateInput{ID: id, Password: &password}
+
+	repo := repositoryMocks.NewUserRepositoryMock(t)
+
+	err := Update(ctx, repo, input)
+
+	require.Error(t, err)
+	require.Equal(t, uint64(0), repo.UpdateAfterCounter())
 }

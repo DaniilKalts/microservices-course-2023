@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Chat API",
-    "description": "RESTful gateway API for real-time chat.",
+    "title": "User Admin API",
+    "description": "RESTful gateway API for admin-managed user lifecycle operations.",
     "version": "1.0.0",
     "contact": {
       "name": "Daniil Kalts",
@@ -11,8 +11,8 @@
   },
   "tags": [
     {
-      "name": "👤 User",
-      "description": "Manages user records, profile retrieval, and lifecycle operations."
+      "name": "🛡️ User Admin",
+      "description": "Admin-only user lifecycle operations for managed user resources."
     }
   ],
   "consumes": [
@@ -22,10 +22,10 @@
     "application/json"
   ],
   "paths": {
-    "/api/v1/users": {
+    "/api/v1/admin/users": {
       "get": {
-        "summary": "Retrieve all users",
-        "description": "Retrieves the complete list of users. Requires authorization and returns an array of user objects.",
+        "summary": "List users (admin)",
+        "description": "Retrieves all managed users. Requires admin authorization and returns an array of user objects.",
         "operationId": "listUsers",
         "responses": {
           "200": {
@@ -42,7 +42,7 @@
           }
         },
         "tags": [
-          "👤 User"
+          "🛡️ User Admin"
         ],
         "security": [
           {
@@ -51,8 +51,8 @@
         ]
       },
       "post": {
-        "summary": "Create a new user",
-        "description": "Creates a new user record with name, email, and password fields. Requires authorization and returns the newly created user ID.",
+        "summary": "Create a user (admin)",
+        "description": "Creates a managed user record with name, email, and password fields. Requires admin authorization and returns the created user ID.",
         "operationId": "createUser",
         "responses": {
           "200": {
@@ -79,7 +79,7 @@
           }
         ],
         "tags": [
-          "👤 User"
+          "🛡️ User Admin"
         ],
         "security": [
           {
@@ -88,10 +88,10 @@
         ]
       }
     },
-    "/api/v1/users/{id}": {
+    "/api/v1/admin/users/{id}": {
       "get": {
-        "summary": "Retrieve a user by ID",
-        "description": "Retrieves a single user by UUID from the path parameter. Requires authorization and returns the matching user object.",
+        "summary": "Get user by ID (admin)",
+        "description": "Retrieves a managed user by UUID from the path parameter. Requires admin authorization and returns the matching user object.",
         "operationId": "getUser",
         "responses": {
           "200": {
@@ -116,7 +116,7 @@
           }
         ],
         "tags": [
-          "👤 User"
+          "🛡️ User Admin"
         ],
         "security": [
           {
@@ -125,8 +125,8 @@
         ]
       },
       "delete": {
-        "summary": "Delete a user by ID",
-        "description": "Deletes the user identified by the UUID path parameter. Requires authorization and returns an empty response on success.",
+        "summary": "Delete user (admin)",
+        "description": "Deletes the managed user identified by UUID. Requires admin authorization and returns an empty response on success.",
         "operationId": "deleteUser",
         "responses": {
           "200": {
@@ -152,7 +152,7 @@
           }
         ],
         "tags": [
-          "👤 User"
+          "🛡️ User Admin"
         ],
         "security": [
           {
@@ -161,8 +161,8 @@
         ]
       },
       "patch": {
-        "summary": "Update user fields partially",
-        "description": "Applies partial updates to the user's mutable fields by UUID. Requires authorization and returns an empty response when successful.",
+        "summary": "Update user fields (admin)",
+        "description": "Applies partial updates to mutable managed-user fields by UUID. Requires admin authorization and returns an empty response when successful.",
         "operationId": "updateUser",
         "responses": {
           "200": {
@@ -196,7 +196,7 @@
           }
         ],
         "tags": [
-          "👤 User"
+          "🛡️ User Admin"
         ],
         "security": [
           {

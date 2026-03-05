@@ -18,10 +18,17 @@ const (
 	authorizationMetadataKey = "authorization"
 )
 
+type claimsContextKey struct{}
+
 var methodAccessPolicy = map[string]domainUser.Role{
-	userv1.UserV1_Create_FullMethodName: domainUser.RoleAdmin,
-	userv1.UserV1_Update_FullMethodName: domainUser.RoleAdmin,
-	userv1.UserV1_Delete_FullMethodName: domainUser.RoleAdmin,
+	userv1.UserV1_Create_FullMethodName:           domainUser.RoleAdmin,
+	userv1.UserV1_List_FullMethodName:             domainUser.RoleAdmin,
+	userv1.UserV1_Get_FullMethodName:              domainUser.RoleAdmin,
+	userv1.UserV1_Update_FullMethodName:           domainUser.RoleAdmin,
+	userv1.UserV1_Delete_FullMethodName:           domainUser.RoleAdmin,
+	userv1.ProfileV1_GetProfile_FullMethodName:    domainUser.RoleUser,
+	userv1.ProfileV1_UpdateProfile_FullMethodName: domainUser.RoleUser,
+	userv1.ProfileV1_DeleteProfile_FullMethodName: domainUser.RoleUser,
 }
 
 func AuthInterceptor(jwtManager jwt.Manager) grpc.UnaryServerInterceptor {
@@ -41,12 +48,20 @@ func AuthInterceptor(jwtManager jwt.Manager) grpc.UnaryServerInterceptor {
 			return nil, err
 		}
 
-		if err = authorize(token, jwtManager, requiredRole); err != nil {
+		claims, err := authorize(token, jwtManager, requiredRole)
+		if err != nil {
 			return nil, err
 		}
 
+		ctx = context.WithValue(ctx, claimsContextKey{}, claims)
+
 		return handler(ctx, req)
 	}
+}
+
+func ClaimsFromContext(ctx context.Context) (*jwt.Claims, bool) {
+	claims, ok := ctx.Value(claimsContextKey{}).(*jwt.Claims)
+	return claims, ok
 }
 
 func requiredRole(fullMethod string) (domainUser.Role, bool) {
@@ -70,25 +85,25 @@ func accessTokenFromContext(ctx context.Context) (string, error) {
 	return "", status.Error(codes.Unauthenticated, "authorization token is required")
 }
 
-func authorize(token string, jwtManager jwt.Manager, requiredRole domainUser.Role) error {
+func authorize(token string, jwtManager jwt.Manager, requiredRole domainUser.Role) (*jwt.Claims, error) {
 	if jwtManager == nil {
-		return status.Error(codes.Internal, "jwt manager is not configured")
+		return nil, status.Error(codes.Internal, "jwt manager is not configured")
 	}
 
 	if strings.TrimSpace(token) == "" {
-		return status.Error(codes.Unauthenticated, "authorization token is required")
+		return nil, status.Error(codes.Unauthenticated, "authorization token is required")
 	}
 
 	claims, err := jwtManager.VerifyAccessToken(token)
 	if err != nil || claims == nil {
-		return status.Error(codes.Unauthenticated, "invalid access token")
+		return nil, status.Error(codes.Unauthenticated, "invalid access token")
 	}
 
 	if !hasRequiredRole(claims.RoleID, requiredRole) {
-		return status.Error(codes.PermissionDenied, "insufficient role permissions")
+		return nil, status.Error(codes.PermissionDenied, "insufficient role permissions")
 	}
 
-	return nil
+	return claims, nil
 }
 
 func hasRequiredRole(roleID int32, requiredRole domainUser.Role) bool {

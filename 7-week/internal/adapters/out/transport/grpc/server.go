@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"errors"
+	"fmt"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -14,6 +15,7 @@ import (
 	profileHandler "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/profile"
 	userHandler "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/interceptor"
+	authInterceptor "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/interceptor/auth"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
 )
@@ -29,6 +31,7 @@ type Deps struct {
 	JWTManager jwt.Manager
 	Logger     *zap.Logger
 	Services   service.Services
+	AuthPolicy authInterceptor.AccessPolicy
 }
 
 func NewServer(deps Deps) (*grpc.Server, error) {
@@ -37,11 +40,20 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 		return nil, errors.New("grpc logger is nil")
 	}
 
+	authPolicy := deps.AuthPolicy
+	if authPolicy.IsEmpty() {
+		var err error
+		authPolicy, err = authInterceptor.DefaultAccessPolicy()
+		if err != nil {
+			return nil, fmt.Errorf("build auth access policy: %w", err)
+		}
+	}
+
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptor.MetricsInterceptor(),
 			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),
-			interceptor.AuthInterceptor(deps.JWTManager),
+			authInterceptor.AuthInterceptor(deps.JWTManager, authPolicy),
 			interceptor.ValidationInterceptor(),
 		),
 	}

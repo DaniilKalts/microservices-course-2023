@@ -10,7 +10,8 @@ import (
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
 	profileMapper "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/profile/mapper"
 	userMapper "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/user/mapper"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/interceptor"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/interceptor/auth"
+	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	userOperations "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user/operations"
 )
@@ -65,9 +66,9 @@ func (h *Handler) DeleteProfile(ctx context.Context, _ *emptypb.Empty) (*emptypb
 }
 
 func currentUserID(ctx context.Context) (string, error) {
-	claims, ok := interceptor.ClaimsFromContext(ctx)
+	claims, ok := auth.ClaimsFromContext(ctx)
 	if !ok || claims == nil || claims.UserID == "" {
-		return "", status.Error(codes.Unauthenticated, "invalid access token")
+		return "", status.Error(codes.Unauthenticated, domainAuth.ErrInvalidAccessToken.Error())
 	}
 
 	return claims.UserID, nil

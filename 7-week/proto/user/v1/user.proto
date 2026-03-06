@@ -39,12 +39,12 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 service UserV1 {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
         name: "👤 Users"
-        description: "Admin-only user lifecycle operations for managed user resources."
+        description: "User lifecycle operations for managed user resources."
     };
 
     rpc Create(CreateRequest) returns (CreateResponse) {
         option (google.api.http) = {
-            post: "/api/v1/admin/users"
+            post: "/api/v1/users"
             body: "*"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -62,41 +62,29 @@ service UserV1 {
     };
     rpc List(google.protobuf.Empty) returns (ListResponse) {
         option (google.api.http) = {
-            get: "/api/v1/admin/users"
+            get: "/api/v1/users"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "List users (admin)"
-            description: "Retrieves all managed users. Requires admin authorization and returns an array of user objects."
+            summary: "List users"
+            description: "Retrieves all managed users and returns an array of user objects."
             tags: "👤 Users"
             operation_id: "listUsers"
-            security: {
-                security_requirement: {
-                    key: "BearerAuth"
-                    value: {}
-                }
-            }
         };
     };
     rpc Get(GetRequest) returns (GetResponse) {
         option (google.api.http) = {
-            get: "/api/v1/admin/users/{id}"
+            get: "/api/v1/users/{id}"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-            summary: "Get user by ID (admin)"
-            description: "Retrieves a managed user by UUID from the path parameter. Requires admin authorization and returns the matching user object."
+            summary: "Get user by ID"
+            description: "Retrieves a managed user by UUID from the path parameter and returns the matching user object."
             tags: "👤 Users"
             operation_id: "getUser"
-            security: {
-                security_requirement: {
-                    key: "BearerAuth"
-                    value: {}
-                }
-            }
         };
     };
     rpc Update(UpdateRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            patch: "/api/v1/admin/users/{id}"
+            patch: "/api/v1/users/{id}"
             body: "*"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -114,7 +102,7 @@ service UserV1 {
     };
     rpc Delete(DeleteRequest) returns (google.protobuf.Empty) {
         option (google.api.http) = {
-            delete: "/api/v1/admin/users/{id}"
+            delete: "/api/v1/users/{id}"
         };
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
             summary: "Delete user (admin)"

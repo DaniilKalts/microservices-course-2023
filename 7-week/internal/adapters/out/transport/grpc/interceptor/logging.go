@@ -30,18 +30,13 @@ func LoggingInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 			remoteAddr = p.Addr.String()
 		}
 
-		errField := zap.NamedError("error", nil)
-		if err != nil {
-			errField = zap.Error(err)
-		}
-
 		fields := []zap.Field{
 			zap.String("protocol", "grpc"),
 			zap.String("method", info.FullMethod),
 			zap.String("path", info.FullMethod),
 			zap.Int("status_code", int(code)),
 			zap.String("remote_addr", remoteAddr),
-			errField,
+			zap.NamedError("error", err),
 			zap.Float64("duration_ms", float64(duration)/float64(time.Millisecond)),
 		}
 

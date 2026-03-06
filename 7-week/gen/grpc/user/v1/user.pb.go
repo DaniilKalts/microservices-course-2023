@@ -549,43 +549,39 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\xb0\x01\x01R\x02id*\x1b\n" +
 	"\x04Role\x12\b\n" +
 	"\x04USER\x10\x00\x12\t\n" +
-	"\x05ADMIN\x10\x012\xe0\v\n" +
-	"\x06UserV1\x12\xa4\x02\n" +
-	"\x06Create\x12\x16.user.v1.CreateRequest\x1a\x17.user.v1.CreateResponse\"\xe8\x01\x92A\xc6\x01\n" +
+	"\x05ADMIN\x10\x012\xc5\n" +
+	"\n" +
+	"\x06UserV1\x12\x9e\x02\n" +
+	"\x06Create\x12\x16.user.v1.CreateRequest\x1a\x17.user.v1.CreateResponse\"\xe2\x01\x92A\xc6\x01\n" +
 	"\n" +
 	"👤 Users\x12\x15Create a user (admin)\x1a\x82\x01Creates a managed user record with name, email, and password fields. Requires admin authorization and returns the created user ID.*\n" +
 	"createUserb\x10\n" +
 	"\x0e\n" +
 	"\n" +
-	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/v1/admin/users\x12\xf5\x01\n" +
-	"\x04List\x12\x16.google.protobuf.Empty\x1a\x15.user.v1.ListResponse\"\xbd\x01\x92A\x9e\x01\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/api/v1/users\x12\xb5\x01\n" +
+	"\x04List\x12\x16.google.protobuf.Empty\x1a\x15.user.v1.ListResponse\"~\x92Af\n" +
 	"\n" +
-	"👤 Users\x12\x12List users (admin)\x1a_Retrieves all managed users. Requires admin authorization and returns an array of user objects.*\tlistUsersb\x10\n" +
-	"\x0e\n" +
+	"👤 Users\x12\n" +
+	"List users\x1aARetrieves all managed users and returns an array of user objects.*\tlistUsers\x82\xd3\xe4\x93\x02\x0f\x12\r/api/v1/users\x12\xd6\x01\n" +
+	"\x03Get\x12\x13.user.v1.GetRequest\x1a\x14.user.v1.GetResponse\"\xa3\x01\x92A\x85\x01\n" +
 	"\n" +
-	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x15\x12\x13/api/v1/admin/users\x12\x94\x02\n" +
-	"\x03Get\x12\x13.user.v1.GetRequest\x1a\x14.user.v1.GetResponse\"\xe1\x01\x92A\xbd\x01\n" +
-	"\n" +
-	"👤 Users\x12\x16Get user by ID (admin)\x1a|Retrieves a managed user by UUID from the path parameter. Requires admin authorization and returns the matching user object.*\agetUserb\x10\n" +
-	"\x0e\n" +
-	"\n" +
-	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x1a\x12\x18/api/v1/admin/users/{id}\x12\xb6\x02\n" +
-	"\x06Update\x12\x16.user.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\"\xfb\x01\x92A\xd4\x01\n" +
+	"👤 Users\x12\x0eGet user by ID\x1a^Retrieves a managed user by UUID from the path parameter and returns the matching user object.*\agetUser\x82\xd3\xe4\x93\x02\x14\x12\x12/api/v1/users/{id}\x12\xb0\x02\n" +
+	"\x06Update\x12\x16.user.v1.UpdateRequest\x1a\x16.google.protobuf.Empty\"\xf5\x01\x92A\xd4\x01\n" +
 	"\n" +
 	"👤 Users\x12\x1aUpdate user fields (admin)\x1a\x8b\x01Applies partial updates to mutable managed-user fields by UUID. Requires admin authorization and returns an empty response when successful.*\n" +
 	"updateUserb\x10\n" +
 	"\x0e\n" +
 	"\n" +
-	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x1d:\x01*2\x18/api/v1/admin/users/{id}\x12\x93\x02\n" +
-	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\xd8\x01\x92A\xb4\x01\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x17:\x01*2\x12/api/v1/users/{id}\x12\x8d\x02\n" +
+	"\x06Delete\x12\x16.user.v1.DeleteRequest\x1a\x16.google.protobuf.Empty\"\xd2\x01\x92A\xb4\x01\n" +
 	"\n" +
 	"👤 Users\x12\x13Delete user (admin)\x1asDeletes the managed user identified by UUID. Requires admin authorization and returns an empty response on success.*\n" +
 	"deleteUserb\x10\n" +
 	"\x0e\n" +
 	"\n" +
-	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x1a*\x18/api/v1/admin/users/{id}\x1aQ\x92AN\n" +
+	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x14*\x12/api/v1/users/{id}\x1aF\x92AC\n" +
 	"\n" +
-	"👤 Users\x12@Admin-only user lifecycle operations for managed user resources.B\xc6\x02\x92A\xf1\x01\x12{\n" +
+	"👤 Users\x125User lifecycle operations for managed user resources.B\xc6\x02\x92A\xf1\x01\x12{\n" +
 	"\x0eUser Admin API\x12@RESTful gateway API for admin-managed user lifecycle operations.\" \n" +
 	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.02\x10application/json:\x10application/jsonZN\n" +
 	"L\n" +

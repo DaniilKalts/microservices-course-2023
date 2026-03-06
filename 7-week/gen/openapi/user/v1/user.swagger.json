@@ -12,7 +12,7 @@
   "tags": [
     {
       "name": "👤 Users",
-      "description": "Admin-only user lifecycle operations for managed user resources."
+      "description": "User lifecycle operations for managed user resources."
     }
   ],
   "consumes": [
@@ -22,10 +22,10 @@
     "application/json"
   ],
   "paths": {
-    "/api/v1/admin/users": {
+    "/api/v1/users": {
       "get": {
-        "summary": "List users (admin)",
-        "description": "Retrieves all managed users. Requires admin authorization and returns an array of user objects.",
+        "summary": "List users",
+        "description": "Retrieves all managed users and returns an array of user objects.",
         "operationId": "listUsers",
         "responses": {
           "200": {
@@ -43,11 +43,6 @@
         },
         "tags": [
           "👤 Users"
-        ],
-        "security": [
-          {
-            "BearerAuth": []
-          }
         ]
       },
       "post": {
@@ -88,10 +83,10 @@
         ]
       }
     },
-    "/api/v1/admin/users/{id}": {
+    "/api/v1/users/{id}": {
       "get": {
-        "summary": "Get user by ID (admin)",
-        "description": "Retrieves a managed user by UUID from the path parameter. Requires admin authorization and returns the matching user object.",
+        "summary": "Get user by ID",
+        "description": "Retrieves a managed user by UUID from the path parameter and returns the matching user object.",
         "operationId": "getUser",
         "responses": {
           "200": {
@@ -117,11 +112,6 @@
         ],
         "tags": [
           "👤 Users"
-        ],
-        "security": [
-          {
-            "BearerAuth": []
-          }
         ]
       },
       "delete": {

@@ -1,0 +1,45 @@
+# ============================================================
+# promtail.yml - Main Promtail configuration
+#
+# Promtail is a log shipping agent that:
+#   1. Discovers log sources (Docker containers here)
+#   2. Parses/enriches log lines with labels
+#   3. Pushes processed logs to Loki
+# ============================================================
+
+# -- Promtail HTTP/GRPC Server -------------------------------------
+server:
+  # Local HTTP endpoint for metrics and health checks.
+  http_listen_port: 9080
+  # Disable gRPC server (0 means "off").
+  grpc_listen_port: 0
+
+# -- Read Offsets (Checkpointing) ----------------------------------
+positions:
+  # File where Promtail remembers the last read position per log source.
+  # Prevents re-reading full logs after restart.
+  filename: /tmp/positions.yaml
+
+# -- Loki Push Targets ----------------------------------------------
+clients:
+  - # Loki ingestion endpoint (Docker service name + default Loki port).
+    url: http://loki:3100/loki/api/v1/push
+
+# -- Log Discovery + Processing Pipeline ----------------------------
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - # Read container metadata/log streams from Docker Engine API.
+        host: unix:///var/run/docker.sock
+        # Refresh discovered container targets every 5 seconds.
+        refresh_interval: 5s
+    pipeline_stages:
+      - # Decode Docker JSON log envelope and extract the actual message.
+        docker: {}
+    relabel_configs:
+      - # stdout/stderr stream label
+        source_labels: [__meta_docker_container_log_stream]
+        target_label: stream
+      - # Set Loki's "job" label to the compose service name
+        source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: job

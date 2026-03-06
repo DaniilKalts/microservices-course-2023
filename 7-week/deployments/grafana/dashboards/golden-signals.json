@@ -689,6 +689,49 @@
       "title": "Error Rate (%)",
       "type": "timeseries",
       "description": "gRPC error responses as a percentage of total responses over 5m. Correlates directly with service reliability."
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Live and historical application logs from Loki for fast incident triage. Filter by job and stream directly in-panel to correlate with latency/error spikes above.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 7,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "pluginVersion": "12.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "expr": "{job=\"api\"}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "API Logs (Loki)",
+      "type": "logs"
     }
   ],
   "preload": false,
@@ -710,6 +753,6 @@
   "timezone": "browser",
   "title": "TermaChat Monolith - Golden Signals",
   "uid": "adgckls",
-  "version": 20,
+  "version": 21,
   "weekStart": ""
 }

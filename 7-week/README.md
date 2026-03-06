@@ -14,10 +14,11 @@
 - [x] Add `alertmanager` service and wire Prometheus alerts
 - [x] Add `grafana` service with provisioned Prometheus datasource
 - [x] Add `node-exporter` service for host CPU/memory/saturation metrics
-- [ ] Add `loki` service for centralized log storage
-- [ ] Add `promtail` service to collect and ship logs to Loki
+- [x] Add `loki` service for centralized log storage
+- [x] Add `promtail` service to collect and ship logs to Loki
 - [ ] Add `jaeger` service and tracing export from HTTP/gRPC flows
-- [ ] Add Grafana data sources for Loki and Jaeger
+- [x] Add Grafana datasource for Loki
+- [ ] Add Grafana datasource for Jaeger
 - [ ] Add dashboards and a simple observability smoke-check guide
 
 - - -
@@ -61,11 +62,13 @@ deployments/
         datasources.yml
   jaeger/
   loki/
+    loki.yml
   migrations/
     00001_create_users_table.sql
     Dockerfile
     migrate.sh
   promtail/
+    promtail.yml
   prometheus/
     alerts.yml
     prometheus.yml
@@ -117,8 +120,19 @@ docker compose up -d --build
 - Prometheus: `http://localhost:9090`
 - Alertmanager: `http://localhost:9093`
 - Grafana: `http://localhost:3000` (credentials from `.env`, default `admin/admin`)
-- Loki (planned): `http://localhost:3100`
+- Loki: `http://localhost:3100`
 - Jaeger UI (planned): `http://localhost:16686`
+
+### Loki Logs in Grafana
+
+- Open Grafana Explore: `http://localhost:3000/explore`
+- Select datasource: `Loki`
+- Try these LogQL queries:
+  - `{compose_service="api"}`
+  - `{compose_service="api", stream="stderr"}`
+  - `{compose_service="api", level="info"}`
+  - `{compose_service="api"} | json | level="error"`
+- If no logs appear, check Promtail logs and verify Promtail is a modern version (`grafana/promtail:3.6.0` in `docker-compose.yaml`) so Docker discovery can talk to newer Docker API versions.
 
 ### 2) Run Locally (Go)
 

@@ -95,6 +95,31 @@ services:
       - ./deployments/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./deployments/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
       - alertmanager_data:/alertmanager
+
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: microservices-course-2023-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./deployments/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+
+  promtail:
+    image: grafana/promtail:3.6.0
+    container_name: microservices-course-2023-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail.yml
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./deployments/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_data:/tmp
+    depends_on:
+      - loki
     
   grafana:
     image: grafana/grafana:12.4.0
@@ -111,9 +136,12 @@ services:
       - ./deployments/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     depends_on:
       - prometheus
+      - loki
 
 volumes:
   postgres_data:
   prometheus_data:
   alertmanager_data:
+  loki_data:
+  promtail_data:
   grafana_data:

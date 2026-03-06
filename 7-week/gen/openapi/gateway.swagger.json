@@ -15,7 +15,7 @@
       "description": "Handles account registration, authentication, and token lifecycle operations."
     },
     {
-      "name": "🛡️ User Admin",
+      "name": "👤 Users",
       "description": "Admin-only user lifecycle operations for managed user resources."
     },
     {
@@ -50,7 +50,7 @@
           }
         },
         "tags": [
-          "🛡️ User Admin"
+          "👤 Users"
         ],
         "security": [
           {
@@ -87,7 +87,7 @@
           }
         ],
         "tags": [
-          "🛡️ User Admin"
+          "👤 Users"
         ],
         "security": [
           {
@@ -124,7 +124,7 @@
           }
         ],
         "tags": [
-          "🛡️ User Admin"
+          "👤 Users"
         ],
         "security": [
           {
@@ -160,7 +160,7 @@
           }
         ],
         "tags": [
-          "🛡️ User Admin"
+          "👤 Users"
         ],
         "security": [
           {
@@ -204,7 +204,7 @@
           }
         ],
         "tags": [
-          "🛡️ User Admin"
+          "👤 Users"
         ],
         "security": [
           {

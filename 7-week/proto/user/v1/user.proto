@@ -38,7 +38,7 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 
 service UserV1 {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
-        name: "🛡️ User Admin"
+        name: "👤 Users"
         description: "Admin-only user lifecycle operations for managed user resources."
     };
 
@@ -50,7 +50,7 @@ service UserV1 {
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
             summary: "Create a user (admin)"
             description: "Creates a managed user record with name, email, and password fields. Requires admin authorization and returns the created user ID."
-            tags: "🛡️ User Admin"
+            tags: "👤 Users"
             operation_id: "createUser"
             security: {
                 security_requirement: {
@@ -67,7 +67,7 @@ service UserV1 {
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
             summary: "List users (admin)"
             description: "Retrieves all managed users. Requires admin authorization and returns an array of user objects."
-            tags: "🛡️ User Admin"
+            tags: "👤 Users"
             operation_id: "listUsers"
             security: {
                 security_requirement: {
@@ -84,7 +84,7 @@ service UserV1 {
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
             summary: "Get user by ID (admin)"
             description: "Retrieves a managed user by UUID from the path parameter. Requires admin authorization and returns the matching user object."
-            tags: "🛡️ User Admin"
+            tags: "👤 Users"
             operation_id: "getUser"
             security: {
                 security_requirement: {
@@ -102,7 +102,7 @@ service UserV1 {
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
             summary: "Update user fields (admin)"
             description: "Applies partial updates to mutable managed-user fields by UUID. Requires admin authorization and returns an empty response when successful."
-            tags: "🛡️ User Admin"
+            tags: "👤 Users"
             operation_id: "updateUser"
             security: {
                 security_requirement: {
@@ -119,7 +119,7 @@ service UserV1 {
         option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
             summary: "Delete user (admin)"
             description: "Deletes the managed user identified by UUID. Requires admin authorization and returns an empty response on success."
-            tags: "🛡️ User Admin"
+            tags: "👤 Users"
             operation_id: "deleteUser"
             security: {
                 security_requirement: {

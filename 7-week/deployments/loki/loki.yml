@@ -1,0 +1,92 @@
+# ============================================================
+# loki.yml - Main Loki configuration
+#
+# Loki is a logging backend that:
+#   1. Receives logs from Promtail
+#   2. Stores log chunks and label indexes
+#   3. Serves log queries (usually through Grafana)
+# ============================================================
+
+# Enables/disables authentication for Loki API endpoints.
+# false is common for local Docker setups behind a private network.
+auth_enabled: false
+
+# -- Loki API Server ------------------------------------------------
+server:
+  # HTTP API port (ingestion + query endpoints).
+  http_listen_port: 3100
+  # gRPC port used by internal Loki components.
+  grpc_listen_port: 9096
+
+# -- Common Single-Binary Settings ---------------------------------
+common:
+  # Address used by this Loki instance in ring membership.
+  instance_addr: 127.0.0.1
+  # Base directory where Loki stores local data/state.
+  path_prefix: /loki
+  # Number of replicas for log data.
+  # 1 means single-node mode (no redundancy).
+  replication_factor: 1
+  ring:
+    kvstore:
+      # In-memory ring store for single-instance deployment.
+      store: inmemory
+
+# -- Index Schema ---------------------------------------------------
+schema_config:
+  configs:
+    - # Apply this schema from January 1, 2024 onward.
+      from: 2024-01-01
+      # boltdb-shipper keeps indexes locally and ships metadata.
+      store: boltdb-shipper
+      # Store log chunks on local filesystem.
+      object_store: filesystem
+      # Loki index schema version.
+      schema: v11
+      index:
+        # Prefix used when creating index tables/files.
+        prefix: index_
+        # Create a new index period every 24h.
+        period: 24h
+
+# -- Storage Paths --------------------------------------------------
+storage_config:
+  boltdb_shipper:
+    # Where active index files are written.
+    active_index_directory: /loki/index
+    # Local cache for BoltDB shipper.
+    cache_location: /loki/boltdb-cache
+    # Shared store type for index shipping metadata.
+    shared_store: filesystem
+  filesystem:
+    # Where compressed log chunks are stored.
+    directory: /loki/chunks
+
+# -- Compaction -----------------------------------------------------
+compactor:
+  # Working directory for compaction process temporary files.
+  working_directory: /loki/compactor
+
+# -- Ingestion Limits -----------------------------------------------
+limits_config:
+  # Reject incoming logs that are too old.
+  reject_old_samples: true
+  # Maximum accepted log age (168h = 7 days).
+  reject_old_samples_max_age: 168h
+
+# -- Query Behavior -------------------------------------------------
+chunk_store_config:
+  # How far back queriers can look in chunk store.
+  # 0s means no explicit look-back limit here.
+  max_look_back_period: 0s
+
+# -- Legacy Retention Manager --------------------------------------
+table_manager:
+  # Disabled because retention is not managed by table-manager here.
+  retention_deletes_enabled: false
+  retention_period: 0s
+
+# -- Telemetry ------------------------------------------------------
+analytics:
+  # Disable anonymous usage reporting.
+  reporting_enabled: false

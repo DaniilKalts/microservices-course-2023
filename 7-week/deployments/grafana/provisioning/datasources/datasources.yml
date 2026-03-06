@@ -1,14 +1,41 @@
+# ============================================================
+# datasources.yml - Grafana datasource provisioning
+#
+# This file auto-registers data sources in Grafana at startup:
+#   1. Prometheus for metrics
+#   2. Loki for logs
+# It keeps dashboards portable and avoids manual UI setup.
+# ============================================================
+
+# Provisioning schema version understood by Grafana.
 apiVersion: 1
 
-deleteDatasources:
-  - name: Prometheus
-    orgId: 1
+# Remove provisioned datasources that are no longer in this file.
+# Keeps Grafana datasource state consistent with Git config.
+prune: true
 
+# -- Datasource Definitions -----------------------------------------
 datasources:
-  - name: Prometheus
+  - # Human-readable datasource name shown in Grafana UI.
+    name: Prometheus
+    # Stable unique ID used by dashboards and links.
     uid: prometheus
+    # Grafana datasource plugin type.
     type: prometheus
+    # Server-side access: Grafana queries Prometheus directly.
     access: proxy
+    # Must match docker-compose service "prometheus" on canonical port 9090.
     url: http://prometheus:9090
+    # Default datasource selected in Grafana panels/explore.
     isDefault: true
+    # Prevent UI edits to keep config managed via code.
+    editable: false
+
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    # Must match docker-compose service "loki" on canonical port 3100.
+    url: http://loki:3100
+    isDefault: false
     editable: false

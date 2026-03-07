@@ -12,7 +12,7 @@ import (
 
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/user/operations"
+	mm_user "github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/user"
 	"github.com/gojuno/minimock/v3"
 )
 
@@ -56,9 +56,9 @@ type UserRepositoryMock struct {
 	beforeListCounter uint64
 	ListMock          mUserRepositoryMockList
 
-	funcUpdate          func(ctx context.Context, input operations.UpdateInput) (err error)
+	funcUpdate          func(ctx context.Context, input mm_user.UpdateInput) (err error)
 	funcUpdateOrigin    string
-	inspectFuncUpdate   func(ctx context.Context, input operations.UpdateInput)
+	inspectFuncUpdate   func(ctx context.Context, input mm_user.UpdateInput)
 	afterUpdateCounter  uint64
 	beforeUpdateCounter uint64
 	UpdateMock          mUserRepositoryMockUpdate
@@ -1836,13 +1836,13 @@ type UserRepositoryMockUpdateExpectation struct {
 // UserRepositoryMockUpdateParams contains parameters of the Repository.Update
 type UserRepositoryMockUpdateParams struct {
 	ctx   context.Context
-	input operations.UpdateInput
+	input mm_user.UpdateInput
 }
 
 // UserRepositoryMockUpdateParamPtrs contains pointers to parameters of the Repository.Update
 type UserRepositoryMockUpdateParamPtrs struct {
 	ctx   *context.Context
-	input *operations.UpdateInput
+	input *mm_user.UpdateInput
 }
 
 // UserRepositoryMockUpdateResults contains results of the Repository.Update
@@ -1868,7 +1868,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) Optional() *mUserRepositoryMockUpdate
 }
 
 // Expect sets up expected params for Repository.Update
-func (mmUpdate *mUserRepositoryMockUpdate) Expect(ctx context.Context, input operations.UpdateInput) *mUserRepositoryMockUpdate {
+func (mmUpdate *mUserRepositoryMockUpdate) Expect(ctx context.Context, input mm_user.UpdateInput) *mUserRepositoryMockUpdate {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by Set")
 	}
@@ -1916,7 +1916,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) ExpectCtxParam1(ctx context.Context) 
 }
 
 // ExpectInputParam2 sets up expected param input for Repository.Update
-func (mmUpdate *mUserRepositoryMockUpdate) ExpectInputParam2(input operations.UpdateInput) *mUserRepositoryMockUpdate {
+func (mmUpdate *mUserRepositoryMockUpdate) ExpectInputParam2(input mm_user.UpdateInput) *mUserRepositoryMockUpdate {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by Set")
 	}
@@ -1939,7 +1939,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) ExpectInputParam2(input operations.Up
 }
 
 // Inspect accepts an inspector function that has same arguments as the Repository.Update
-func (mmUpdate *mUserRepositoryMockUpdate) Inspect(f func(ctx context.Context, input operations.UpdateInput)) *mUserRepositoryMockUpdate {
+func (mmUpdate *mUserRepositoryMockUpdate) Inspect(f func(ctx context.Context, input mm_user.UpdateInput)) *mUserRepositoryMockUpdate {
 	if mmUpdate.mock.inspectFuncUpdate != nil {
 		mmUpdate.mock.t.Fatalf("Inspect function is already set for UserRepositoryMock.Update")
 	}
@@ -1964,7 +1964,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) Return(err error) *UserRepositoryMock
 }
 
 // Set uses given function f to mock the Repository.Update method
-func (mmUpdate *mUserRepositoryMockUpdate) Set(f func(ctx context.Context, input operations.UpdateInput) (err error)) *UserRepositoryMock {
+func (mmUpdate *mUserRepositoryMockUpdate) Set(f func(ctx context.Context, input mm_user.UpdateInput) (err error)) *UserRepositoryMock {
 	if mmUpdate.defaultExpectation != nil {
 		mmUpdate.mock.t.Fatalf("Default expectation is already set for the Repository.Update method")
 	}
@@ -1980,7 +1980,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) Set(f func(ctx context.Context, input
 
 // When sets expectation for the Repository.Update which will trigger the result defined by the following
 // Then helper
-func (mmUpdate *mUserRepositoryMockUpdate) When(ctx context.Context, input operations.UpdateInput) *UserRepositoryMockUpdateExpectation {
+func (mmUpdate *mUserRepositoryMockUpdate) When(ctx context.Context, input mm_user.UpdateInput) *UserRepositoryMockUpdateExpectation {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserRepositoryMock.Update mock is already set by Set")
 	}
@@ -2022,7 +2022,7 @@ func (mmUpdate *mUserRepositoryMockUpdate) invocationsDone() bool {
 }
 
 // Update implements mm_user.Repository
-func (mmUpdate *UserRepositoryMock) Update(ctx context.Context, input operations.UpdateInput) (err error) {
+func (mmUpdate *UserRepositoryMock) Update(ctx context.Context, input mm_user.UpdateInput) (err error) {
 	mm_atomic.AddUint64(&mmUpdate.beforeUpdateCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdate.afterUpdateCounter, 1)
 

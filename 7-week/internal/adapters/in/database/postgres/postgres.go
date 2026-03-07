@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -42,7 +43,14 @@ func (p *pg) ScanOneContext(ctx context.Context, dest interface{}, q database.Qu
 		return err
 	}
 
-	return pgxscan.ScanOne(dest, row)
+	if err = pgxscan.ScanOne(dest, row); err != nil {
+		if pgxscan.NotFound(err) {
+			return database.ErrNotFound
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (p *pg) ScanAllContext(ctx context.Context, dest interface{}, q database.Query, args ...interface{}) error {
@@ -76,9 +84,10 @@ func (p *pg) ExecContext(ctx context.Context, q database.Query, args ...interfac
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogKV("event", "error", "message", err.Error())
+		return tag, translateErr(err)
 	}
 
-	return tag, err
+	return tag, nil
 }
 
 func (p *pg) QueryContext(ctx context.Context, q database.Query, args ...interface{}) (pgx.Rows, error) {
@@ -103,9 +112,10 @@ func (p *pg) QueryContext(ctx context.Context, q database.Query, args ...interfa
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogKV("event", "error", "message", err.Error())
+		return rows, translateErr(err)
 	}
 
-	return rows, err
+	return rows, nil
 }
 
 func (p *pg) QueryRowContext(ctx context.Context, q database.Query, args ...interface{}) pgx.Row {
@@ -192,4 +202,14 @@ func (p *pg) startDBSpan(ctx context.Context, operationName string, q database.Q
 	span.SetTag("db.query_name", q.Name)
 
 	return span, spanCtx
+}
+
+const pgUniqueViolationCode = "23505"
+
+func translateErr(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolationCode {
+		return fmt.Errorf("%w: %s", database.ErrUniqueViolation, pgErr.Message)
+	}
+	return err
 }

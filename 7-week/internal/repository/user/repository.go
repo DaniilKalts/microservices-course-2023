@@ -2,77 +2,210 @@ package user
 
 import (
 	"context"
+	"errors"
+	"time"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/user/operations"
-	"github.com/opentracing/opentracing-go"
-	"go.uber.org/zap"
 )
+
+var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+var (
+	ErrNotFound          = errors.New("user not found")
+	ErrEmailAlreadyExists = errors.New("email already exists")
+	ErrNoFieldsToUpdate  = errors.New("no fields to update")
+)
+
+type UpdateInput struct {
+	ID           string
+	Name         *string
+	Email        *string
+	PasswordHash *string
+}
 
 type Repository interface {
 	Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error)
 	List(ctx context.Context) ([]domainUser.User, error)
 	GetByID(ctx context.Context, id string) (*domainUser.User, error)
 	GetCredentialsByEmail(ctx context.Context, email string) (*domainAuth.Credentials, error)
-	Update(ctx context.Context, input operations.UpdateInput) error
+	Update(ctx context.Context, input UpdateInput) error
 	Delete(ctx context.Context, id string) error
 }
 
 type repository struct {
-	dbc    database.Client
-	logger *zap.Logger
+	dbc database.Client
 }
 
-func NewRepository(dbc database.Client, logger *zap.Logger) Repository {
-	return &repository{
-		dbc:    dbc,
-		logger: logger,
-	}
+func NewRepository(dbc database.Client) Repository {
+	return &repository{dbc: dbc}
 }
 
-func (r *repository) Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error) {
+func (repo *repository) Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.Create")
 	defer span.Finish()
 
-	return operations.Create(ctx, r.dbc, operations.CreateInput{
-		User:         user,
-		PasswordHash: passwordHash,
-	})
+	u := toDBUser(user, passwordHash)
+
+	query, args, err := psql.Insert("users").
+		Columns("id", "name", "email", "password_hash", "role").
+		Values(u.ID, u.Name, u.Email, u.PasswordHash, u.Role).
+		Suffix("RETURNING id").
+		ToSql()
+	if err != nil {
+		return "", err
+	}
+
+	var userID string
+	if err = repo.dbc.DB().ScanOneContext(ctx, &userID, database.Query{Name: "user.Create", QueryRaw: query}, args...); err != nil {
+		if errors.Is(err, database.ErrUniqueViolation) {
+			return "", ErrEmailAlreadyExists
+		}
+		return "", err
+	}
+
+	return userID, nil
 }
 
-func (r *repository) List(ctx context.Context) ([]domainUser.User, error) {
+func (repo *repository) List(ctx context.Context) ([]domainUser.User, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.List")
 	defer span.Finish()
 
-	return operations.List(ctx, r.dbc)
+	query, args, err := psql.Select(userColumns...).
+		From("users").
+		OrderBy("created_at DESC").
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var users []dbUser
+	if err = repo.dbc.DB().ScanAllContext(ctx, &users, database.Query{Name: "user.List", QueryRaw: query}, args...); err != nil {
+		return nil, err
+	}
+
+	return toDomainUsers(users), nil
 }
 
-func (r *repository) GetByID(ctx context.Context, id string) (*domainUser.User, error) {
+func (repo *repository) GetByID(ctx context.Context, id string) (*domainUser.User, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.GetByID")
 	defer span.Finish()
 
-	return operations.GetByID(ctx, r.dbc, operations.GetByIDInput{ID: id})
+	query, args, err := psql.Select(userColumns...).
+		From("users").
+		Where(sq.Eq{"id": id}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var user dbUser
+	if err = repo.dbc.DB().ScanOneContext(ctx, &user, database.Query{Name: "user.GetByID", QueryRaw: query}, args...); err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return toDomainUser(&user), nil
 }
 
-func (r *repository) GetCredentialsByEmail(ctx context.Context, email string) (*domainAuth.Credentials, error) {
+func (repo *repository) GetCredentialsByEmail(ctx context.Context, email string) (*domainAuth.Credentials, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.GetCredentialsByEmail")
 	defer span.Finish()
 
-	return operations.GetCredentialsByEmail(ctx, r.dbc, operations.GetCredentialsByEmailInput{Email: email})
+	query, args, err := psql.Select("id", "password_hash", "role").
+		From("users").
+		Where(sq.Eq{"email": email}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var user dbUser
+	if err = repo.dbc.DB().ScanOneContext(ctx, &user, database.Query{Name: "user.GetCredentialsByEmail", QueryRaw: query}, args...); err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return toCredentials(&user), nil
 }
 
-func (r *repository) Update(ctx context.Context, input operations.UpdateInput) error {
+func (repo *repository) Update(ctx context.Context, input UpdateInput) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.Update")
 	defer span.Finish()
 
-	return operations.Update(ctx, r.dbc, input)
+	builderUpdate := psql.Update("users").
+		Where(sq.Eq{"id": input.ID})
+
+	hasFields := false
+
+	if input.Name != nil {
+		builderUpdate = builderUpdate.Set("name", *input.Name)
+		hasFields = true
+	}
+	if input.Email != nil {
+		builderUpdate = builderUpdate.Set("email", *input.Email)
+		hasFields = true
+	}
+	if input.PasswordHash != nil {
+		builderUpdate = builderUpdate.Set("password_hash", *input.PasswordHash)
+		hasFields = true
+	}
+
+	if !hasFields {
+		return ErrNoFieldsToUpdate
+	}
+
+	builderUpdate = builderUpdate.Set("updated_at", time.Now())
+
+	query, args, err := builderUpdate.ToSql()
+	if err != nil {
+		return err
+	}
+
+	result, err := repo.dbc.DB().ExecContext(ctx, database.Query{Name: "user.Update", QueryRaw: query}, args...)
+	if err != nil {
+		if errors.Is(err, database.ErrUniqueViolation) {
+			return ErrEmailAlreadyExists
+		}
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }
 
-func (r *repository) Delete(ctx context.Context, id string) error {
+func (repo *repository) Delete(ctx context.Context, id string) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.Delete")
 	defer span.Finish()
 
-	return operations.Delete(ctx, r.dbc, operations.DeleteInput{ID: id})
+	query, args, err := psql.Delete("users").
+		Where(sq.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	result, err := repo.dbc.DB().ExecContext(ctx, database.Query{Name: "user.Delete", QueryRaw: query}, args...)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }

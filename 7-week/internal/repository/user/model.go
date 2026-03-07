@@ -1,8 +1,10 @@
-package model
+package user
 
 import "time"
 
-type DBUser struct {
+var userColumns = []string{"id", "name", "email", "role", "created_at", "updated_at"}
+
+type dbUser struct {
 	ID           string    `db:"id"`
 	Name         string    `db:"name"`
 	Email        string    `db:"email"`

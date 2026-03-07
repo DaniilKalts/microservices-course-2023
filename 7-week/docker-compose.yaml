@@ -93,8 +93,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./deployments/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./deployments/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./deployments/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deployments/observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     depends_on:
       - api
@@ -113,8 +113,8 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./deployments/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ./deployments/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+      - ./deployments/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./deployments/observability/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
       - alertmanager_data:/alertmanager
     restart: unless-stopped
 
@@ -125,7 +125,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./deployments/loki/loki.yml:/etc/loki/loki.yml:ro
+      - ./deployments/observability/loki/loki.yml:/etc/loki/loki.yml:ro
       - loki_data:/loki
     restart: unless-stopped
 
@@ -136,7 +136,7 @@ services:
     ports:
       - "9080:9080"
     volumes:
-      - ./deployments/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - ./deployments/observability/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - promtail_data:/tmp
     depends_on:
@@ -154,7 +154,7 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./deployments/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./deployments/observability/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     depends_on:
       - prometheus
       - loki

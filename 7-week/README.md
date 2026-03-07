@@ -53,25 +53,25 @@ internal/
     auth/
     user/
 deployments/
-  alertmanager/
-    alertmanager.yml
-    entrypoint.sh
-  grafana/
-    provisioning/
-      datasources/
-        datasources.yml
-  jaeger/
-  loki/
-    loki.yml
   migrations/
     00001_create_users_table.sql
     Dockerfile
     migrate.sh
-  promtail/
-    promtail.yml
-  prometheus/
-    alerts.yml
-    prometheus.yml
+  observability/
+    alertmanager/
+      alertmanager.yml
+      entrypoint.sh
+    grafana/
+      provisioning/
+        datasources/
+          datasources.yml
+    loki/
+      loki.yml
+    promtail/
+      promtail.yml
+    prometheus/
+      alerts.yml
+      prometheus.yml
 proto/
   auth/v1/
   user/v1/
@@ -121,7 +121,7 @@ docker compose up -d --build
 - Alertmanager: `http://localhost:9093`
 - Grafana: `http://localhost:3000` (credentials from `.env`, default `admin/admin`)
 - Loki: `http://localhost:3100`
-- Jaeger UI (planned): `http://localhost:16686`
+- Jaeger UI: `http://localhost:16686`
 
 ### Loki Logs in Grafana
 

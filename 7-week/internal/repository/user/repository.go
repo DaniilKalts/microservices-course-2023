@@ -7,6 +7,7 @@ import (
 	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/user/operations"
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +33,9 @@ func NewRepository(dbc database.Client, logger *zap.Logger) Repository {
 }
 
 func (r *repository) Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.Create")
+	defer span.Finish()
+
 	return operations.Create(ctx, r.dbc, operations.CreateInput{
 		User:         user,
 		PasswordHash: passwordHash,
@@ -39,21 +43,36 @@ func (r *repository) Create(ctx context.Context, user *domainUser.User, password
 }
 
 func (r *repository) List(ctx context.Context) ([]domainUser.User, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.List")
+	defer span.Finish()
+
 	return operations.List(ctx, r.dbc)
 }
 
 func (r *repository) GetByID(ctx context.Context, id string) (*domainUser.User, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.GetByID")
+	defer span.Finish()
+
 	return operations.GetByID(ctx, r.dbc, operations.GetByIDInput{ID: id})
 }
 
 func (r *repository) GetCredentialsByEmail(ctx context.Context, email string) (*domainAuth.Credentials, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.GetCredentialsByEmail")
+	defer span.Finish()
+
 	return operations.GetCredentialsByEmail(ctx, r.dbc, operations.GetCredentialsByEmailInput{Email: email})
 }
 
 func (r *repository) Update(ctx context.Context, input operations.UpdateInput) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.Update")
+	defer span.Finish()
+
 	return operations.Update(ctx, r.dbc, input)
 }
 
 func (r *repository) Delete(ctx context.Context, id string) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.Delete")
+	defer span.Finish()
+
 	return operations.Delete(ctx, r.dbc, operations.DeleteInput{ID: id})
 }

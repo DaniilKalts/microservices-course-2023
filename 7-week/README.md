@@ -16,7 +16,7 @@
 - [x] Add `node-exporter` service for host CPU/memory/saturation metrics
 - [x] Add `loki` service for centralized log storage
 - [x] Add `promtail` service to collect and ship logs to Loki
-- [ ] Add `jaeger` service and tracing export from HTTP/gRPC flows
+- [x] Add `jaeger` service and tracing export from HTTP/gRPC flows
 - [x] Add Grafana datasource for Loki
 - [ ] Add Grafana datasource for Jaeger
 - [ ] Add dashboards and a simple observability smoke-check guide

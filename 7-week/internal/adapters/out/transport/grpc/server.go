@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -32,6 +33,7 @@ type Deps struct {
 	Logger     *zap.Logger
 	Services   service.Services
 	AuthPolicy authInterceptor.AccessPolicy
+	Tracer     opentracing.Tracer
 }
 
 func NewServer(deps Deps) (*grpc.Server, error) {
@@ -52,6 +54,7 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptor.MetricsInterceptor(),
+			interceptor.TracingInterceptor(deps.Tracer),
 			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),
 			authInterceptor.AuthInterceptor(deps.JWTManager, authPolicy),
 			interceptor.ValidationInterceptor(),

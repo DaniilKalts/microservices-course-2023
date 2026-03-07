@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/opentracing/opentracing-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -91,7 +92,7 @@ func NewProxy(ctx context.Context, cfg Config) (http.Handler, error) {
 	}
 
 	return &proxyHandler{
-		Handler: mux,
+		Handler: WithTracing(mux, opentracing.GlobalTracer()),
 		conn:    conn,
 	}, nil
 }
@@ -114,8 +115,13 @@ func grpcGatewayDialOptions(tlsCfg config.TLSConfig) ([]grpc.DialOption, error) 
 		return nil, errors.New("tls config is nil")
 	}
 
+	traceInterceptor := grpc.WithChainUnaryInterceptor(TracingClientInterceptor(opentracing.GlobalTracer()))
+
 	if !tlsCfg.Enabled() {
-		return []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}, nil
+		return []grpc.DialOption{
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			traceInterceptor,
+		}, nil
 	}
 
 	clientCreds, err := credentials.NewClientTLSFromFile(tlsCfg.CertFile(), "")
@@ -123,7 +129,10 @@ func grpcGatewayDialOptions(tlsCfg config.TLSConfig) ([]grpc.DialOption, error) 
 		return nil, fmt.Errorf("load gateway grpc tls cert: %w", err)
 	}
 
-	return []grpc.DialOption{grpc.WithTransportCredentials(clientCreds)}, nil
+	return []grpc.DialOption{
+		grpc.WithTransportCredentials(clientCreds),
+		traceInterceptor,
+	}, nil
 }
 
 func registerSwaggerHandlers(mux *http.ServeMux) error {

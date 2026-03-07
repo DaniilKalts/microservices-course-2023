@@ -43,6 +43,14 @@ type ZapConfig interface {
 	ErrorOutputPaths() string
 }
 
+type TracingConfig interface {
+	Enabled() bool
+	ServiceName() string
+	JaegerAgentHostPort() string
+	SamplerType() string
+	SamplerParam() float64
+}
+
 type Config interface {
 	Postgres() PostgresConfig
 	GRPC() GRPCConfig
@@ -51,4 +59,5 @@ type Config interface {
 	TLS() TLSConfig
 	JWT() JWTConfig
 	Zap() ZapConfig
+	Tracing() TracingConfig
 }

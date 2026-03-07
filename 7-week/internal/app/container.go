@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -19,6 +21,7 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
 type Container struct {
@@ -27,6 +30,8 @@ type Container struct {
 	DB         database.Client
 	Tx         database.TxManager
 	JWTManager jwt.Manager
+	Tracer     opentracing.Tracer
+	tracerStop io.Closer
 
 	Logger *zap.Logger
 
@@ -52,6 +57,9 @@ func Build(ctx context.Context, cfg config.Config, logger *zap.Logger) (*Contain
 		Logger: logger,
 	}
 
+	if err := container.initTracer(); err != nil {
+		return nil, err
+	}
 	if err := container.initDatabase(ctx); err != nil {
 		return nil, err
 	}
@@ -136,6 +144,41 @@ func (c *Container) initJWTManager() error {
 	return nil
 }
 
+func (c *Container) initTracer() error {
+	logger := c.Logger.Named("di.container.tracing")
+	tracingCfg := c.Cfg.Tracing()
+
+	if tracingCfg == nil || !tracingCfg.Enabled() {
+		c.Tracer = opentracing.GlobalTracer()
+		logger.Info("tracing disabled")
+		return nil
+	}
+
+	tracer, closer, err := tracing.NewJaegerTracer(tracing.Config{
+		ServiceName:   tracingCfg.ServiceName(),
+		AgentHostPort: tracingCfg.JaegerAgentHostPort(),
+		SamplerType:   tracingCfg.SamplerType(),
+		SamplerParam:  tracingCfg.SamplerParam(),
+	})
+	if err != nil {
+		return fmt.Errorf("init tracer: %w", err)
+	}
+
+	opentracing.SetGlobalTracer(tracer)
+	c.Tracer = tracer
+	c.tracerStop = closer
+
+	logger.Info(
+		"tracing initialized",
+		zap.String("service_name", tracingCfg.ServiceName()),
+		zap.String("jaeger_agent", tracingCfg.JaegerAgentHostPort()),
+		zap.String("sampler_type", tracingCfg.SamplerType()),
+		zap.Float64("sampler_param", tracingCfg.SamplerParam()),
+	)
+
+	return nil
+}
+
 func (c *Container) initRepositories() {
 	logger := c.Logger.Named("di.container.repository")
 
@@ -169,6 +212,7 @@ func (c *Container) initGRPC() error {
 		JWTManager: c.JWTManager,
 		Logger:     c.Logger.Named("transport.grpc"),
 		Services:   c.Services,
+		Tracer:     c.Tracer,
 	})
 	if err != nil {
 		return fmt.Errorf("init grpc server: %w", err)
@@ -234,6 +278,15 @@ func (c *Container) Close() error {
 			closeErr = err
 			if c.Logger != nil {
 				c.Logger.Named("di.container.database").Error("failed to close database client", zap.Error(err))
+			}
+		}
+	}
+
+	if c.tracerStop != nil {
+		if err := c.tracerStop.Close(); err != nil {
+			closeErr = err
+			if c.Logger != nil {
+				c.Logger.Named("di.container.tracing").Error("failed to close tracer", zap.Error(err))
 			}
 		}
 	}

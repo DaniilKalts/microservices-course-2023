@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"go.uber.org/zap"
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
@@ -53,6 +55,9 @@ func (p *pg) ScanAllContext(ctx context.Context, dest interface{}, q database.Qu
 }
 
 func (p *pg) ExecContext(ctx context.Context, q database.Query, args ...interface{}) (pgconn.CommandTag, error) {
+	span, ctx := p.startDBSpan(ctx, "db.exec", q)
+	defer span.Finish()
+
 	startedAt := time.Now()
 
 	var (
@@ -68,11 +73,18 @@ func (p *pg) ExecContext(ctx context.Context, q database.Query, args ...interfac
 	}
 
 	p.logQuery("exec", q, args, time.Since(startedAt), err)
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
+	}
 
 	return tag, err
 }
 
 func (p *pg) QueryContext(ctx context.Context, q database.Query, args ...interface{}) (pgx.Rows, error) {
+	span, ctx := p.startDBSpan(ctx, "db.query", q)
+	defer span.Finish()
+
 	startedAt := time.Now()
 
 	var (
@@ -88,11 +100,18 @@ func (p *pg) QueryContext(ctx context.Context, q database.Query, args ...interfa
 	}
 
 	p.logQuery("query", q, args, time.Since(startedAt), err)
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
+	}
 
 	return rows, err
 }
 
 func (p *pg) QueryRowContext(ctx context.Context, q database.Query, args ...interface{}) pgx.Row {
+	span, ctx := p.startDBSpan(ctx, "db.query_row", q)
+	defer span.Finish()
+
 	startedAt := time.Now()
 
 	var row pgx.Row
@@ -110,11 +129,35 @@ func (p *pg) QueryRowContext(ctx context.Context, q database.Query, args ...inte
 }
 
 func (p *pg) Ping(ctx context.Context) error {
-	return p.pool.Ping(ctx)
+	span, ctx := opentracing.StartSpanFromContext(ctx, "db.ping")
+	defer span.Finish()
+
+	span.SetTag("component", "database")
+	span.SetTag("db.system", "postgresql")
+
+	err := p.pool.Ping(ctx)
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
+	}
+
+	return err
 }
 
 func (p *pg) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error) {
-	return p.pool.BeginTx(ctx, txOptions)
+	span, ctx := opentracing.StartSpanFromContext(ctx, "db.begin_tx")
+	defer span.Finish()
+
+	span.SetTag("component", "database")
+	span.SetTag("db.system", "postgresql")
+
+	tx, err := p.pool.BeginTx(ctx, txOptions)
+	if err != nil {
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
+	}
+
+	return tx, err
 }
 
 func (p *pg) Close() {
@@ -140,4 +183,13 @@ func (p *pg) logQuery(operation string, q database.Query, args []interface{}, du
 	}
 
 	p.logger.Debug("database operation completed", fields...)
+}
+
+func (p *pg) startDBSpan(ctx context.Context, operationName string, q database.Query) (opentracing.Span, context.Context) {
+	span, spanCtx := opentracing.StartSpanFromContext(ctx, operationName)
+	span.SetTag("component", "database")
+	span.SetTag("db.system", "postgresql")
+	span.SetTag("db.query_name", q.Name)
+
+	return span, spanCtx
 }

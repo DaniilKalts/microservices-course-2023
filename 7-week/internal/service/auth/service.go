@@ -9,6 +9,7 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/auth/operations"
 	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 )
 
@@ -41,17 +42,29 @@ func NewService(
 }
 
 func (s *service) Register(ctx context.Context, input operations.RegisterInput) (domainUser.User, domainAuth.TokenPair, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.auth.Register")
+	defer span.Finish()
+
 	return operations.Register(ctx, s.userService, s.jwtManager, input)
 }
 
 func (s *service) Login(ctx context.Context, input operations.LoginInput) (domainAuth.TokenPair, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.auth.Login")
+	defer span.Finish()
+
 	return operations.Login(ctx, s.userRepo, s.jwtManager, input)
 }
 
 func (s *service) Logout(ctx context.Context, input operations.LogoutInput) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.auth.Logout")
+	defer span.Finish()
+
 	return operations.Logout(ctx, s.jwtManager, input)
 }
 
 func (s *service) Refresh(ctx context.Context, input operations.RefreshInput) (domainAuth.TokenPair, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.auth.Refresh")
+	defer span.Finish()
+
 	return operations.Refresh(ctx, s.jwtManager, input)
 }

@@ -12,6 +12,7 @@ type appConfig struct {
 	tls        config.TLSConfig
 	jwt        config.JWTConfig
 	zap        config.ZapConfig
+	tracing    config.TracingConfig
 }
 
 func NewConfig() (config.Config, error) {
@@ -50,6 +51,11 @@ func NewConfig() (config.Config, error) {
 		return nil, err
 	}
 
+	tracingConfig, err := NewTracingConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &appConfig{
 		postgres:   postgresConfig,
 		grpc:       grpcConfig,
@@ -58,6 +64,7 @@ func NewConfig() (config.Config, error) {
 		tls:        tlsConfig,
 		jwt:        jwtConfig,
 		zap:        zapConfig,
+		tracing:    tracingConfig,
 	}, nil
 }
 
@@ -87,4 +94,8 @@ func (cfg *appConfig) JWT() config.JWTConfig {
 
 func (cfg *appConfig) Zap() config.ZapConfig {
 	return cfg.zap
+}
+
+func (cfg *appConfig) Tracing() config.TracingConfig {
+	return cfg.tracing
 }

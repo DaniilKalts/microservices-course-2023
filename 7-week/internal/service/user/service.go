@@ -6,6 +6,7 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user/operations"
+	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 )
 
@@ -30,21 +31,36 @@ func NewService(repo repository.UserRepository, logger *zap.Logger) Service {
 }
 
 func (s *service) Create(ctx context.Context, input operations.CreateInput) (string, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.user.Create")
+	defer span.Finish()
+
 	return operations.Create(ctx, s.repo, input)
 }
 
 func (s *service) List(ctx context.Context) ([]domainUser.User, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.user.List")
+	defer span.Finish()
+
 	return operations.List(ctx, s.repo)
 }
 
 func (s *service) Get(ctx context.Context, input operations.GetInput) (*domainUser.User, error) {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.user.Get")
+	defer span.Finish()
+
 	return operations.Get(ctx, s.repo, input)
 }
 
 func (s *service) Update(ctx context.Context, input operations.UpdateInput) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.user.Update")
+	defer span.Finish()
+
 	return operations.Update(ctx, s.repo, input)
 }
 
 func (s *service) Delete(ctx context.Context, input operations.DeleteInput) error {
+	span, ctx := opentracing.StartSpanFromContext(ctx, "service.user.Delete")
+	defer span.Finish()
+
 	return operations.Delete(ctx, s.repo, input)
 }

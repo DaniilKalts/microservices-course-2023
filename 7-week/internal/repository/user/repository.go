@@ -9,17 +9,10 @@ import (
 	"github.com/opentracing/opentracing-go"
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
-	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 )
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-
-var (
-	ErrNotFound          = errors.New("user not found")
-	ErrEmailAlreadyExists = errors.New("email already exists")
-	ErrNoFieldsToUpdate  = errors.New("no fields to update")
-)
 
 type UpdateInput struct {
 	ID           string
@@ -32,7 +25,7 @@ type Repository interface {
 	Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error)
 	List(ctx context.Context) ([]domainUser.User, error)
 	GetByID(ctx context.Context, id string) (*domainUser.User, error)
-	GetCredentialsByEmail(ctx context.Context, email string) (*domainAuth.Credentials, error)
+	GetCredentialsByEmail(ctx context.Context, email string) (*domainUser.Credentials, error)
 	Update(ctx context.Context, input UpdateInput) error
 	Delete(ctx context.Context, id string) error
 }
@@ -115,7 +108,7 @@ func (repo *repository) GetByID(ctx context.Context, id string) (*domainUser.Use
 	return toDomainUser(&user), nil
 }
 
-func (repo *repository) GetCredentialsByEmail(ctx context.Context, email string) (*domainAuth.Credentials, error) {
+func (repo *repository) GetCredentialsByEmail(ctx context.Context, email string) (*domainUser.Credentials, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.GetCredentialsByEmail")
 	defer span.Finish()
 

@@ -10,7 +10,6 @@ import (
 	mm_atomic "sync/atomic"
 	mm_time "time"
 
-	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	mm_user "github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/user"
 	"github.com/gojuno/minimock/v3"
@@ -42,7 +41,7 @@ type UserRepositoryMock struct {
 	beforeGetByIDCounter uint64
 	GetByIDMock          mUserRepositoryMockGetByID
 
-	funcGetCredentialsByEmail          func(ctx context.Context, email string) (cp1 *domainAuth.Credentials, err error)
+	funcGetCredentialsByEmail          func(ctx context.Context, email string) (cp1 *domainUser.Credentials, err error)
 	funcGetCredentialsByEmailOrigin    string
 	inspectFuncGetCredentialsByEmail   func(ctx context.Context, email string)
 	afterGetCredentialsByEmailCounter  uint64
@@ -1192,7 +1191,7 @@ type UserRepositoryMockGetCredentialsByEmailParamPtrs struct {
 
 // UserRepositoryMockGetCredentialsByEmailResults contains results of the Repository.GetCredentialsByEmail
 type UserRepositoryMockGetCredentialsByEmailResults struct {
-	cp1 *domainAuth.Credentials
+	cp1 *domainUser.Credentials
 	err error
 }
 
@@ -1296,7 +1295,7 @@ func (mmGetCredentialsByEmail *mUserRepositoryMockGetCredentialsByEmail) Inspect
 }
 
 // Return sets up results that will be returned by Repository.GetCredentialsByEmail
-func (mmGetCredentialsByEmail *mUserRepositoryMockGetCredentialsByEmail) Return(cp1 *domainAuth.Credentials, err error) *UserRepositoryMock {
+func (mmGetCredentialsByEmail *mUserRepositoryMockGetCredentialsByEmail) Return(cp1 *domainUser.Credentials, err error) *UserRepositoryMock {
 	if mmGetCredentialsByEmail.mock.funcGetCredentialsByEmail != nil {
 		mmGetCredentialsByEmail.mock.t.Fatalf("UserRepositoryMock.GetCredentialsByEmail mock is already set by Set")
 	}
@@ -1310,7 +1309,7 @@ func (mmGetCredentialsByEmail *mUserRepositoryMockGetCredentialsByEmail) Return(
 }
 
 // Set uses given function f to mock the Repository.GetCredentialsByEmail method
-func (mmGetCredentialsByEmail *mUserRepositoryMockGetCredentialsByEmail) Set(f func(ctx context.Context, email string) (cp1 *domainAuth.Credentials, err error)) *UserRepositoryMock {
+func (mmGetCredentialsByEmail *mUserRepositoryMockGetCredentialsByEmail) Set(f func(ctx context.Context, email string) (cp1 *domainUser.Credentials, err error)) *UserRepositoryMock {
 	if mmGetCredentialsByEmail.defaultExpectation != nil {
 		mmGetCredentialsByEmail.mock.t.Fatalf("Default expectation is already set for the Repository.GetCredentialsByEmail method")
 	}
@@ -1341,7 +1340,7 @@ func (mmGetCredentialsByEmail *mUserRepositoryMockGetCredentialsByEmail) When(ct
 }
 
 // Then sets up Repository.GetCredentialsByEmail return parameters for the expectation previously defined by the When method
-func (e *UserRepositoryMockGetCredentialsByEmailExpectation) Then(cp1 *domainAuth.Credentials, err error) *UserRepositoryMock {
+func (e *UserRepositoryMockGetCredentialsByEmailExpectation) Then(cp1 *domainUser.Credentials, err error) *UserRepositoryMock {
 	e.results = &UserRepositoryMockGetCredentialsByEmailResults{cp1, err}
 	return e.mock
 }
@@ -1368,7 +1367,7 @@ func (mmGetCredentialsByEmail *mUserRepositoryMockGetCredentialsByEmail) invocat
 }
 
 // GetCredentialsByEmail implements mm_user.Repository
-func (mmGetCredentialsByEmail *UserRepositoryMock) GetCredentialsByEmail(ctx context.Context, email string) (cp1 *domainAuth.Credentials, err error) {
+func (mmGetCredentialsByEmail *UserRepositoryMock) GetCredentialsByEmail(ctx context.Context, email string) (cp1 *domainUser.Credentials, err error) {
 	mm_atomic.AddUint64(&mmGetCredentialsByEmail.beforeGetCredentialsByEmailCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetCredentialsByEmail.afterGetCredentialsByEmailCounter, 1)
 

@@ -1,7 +1,6 @@
 package user
 
 import (
-	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 )
 
@@ -34,8 +33,8 @@ func toDomainUsers(users []dbUser) []domainUser.User {
 	return result
 }
 
-func toCredentials(u *dbUser) *domainAuth.Credentials {
-	return &domainAuth.Credentials{
+func toCredentials(u *dbUser) *domainUser.Credentials {
+	return &domainUser.Credentials{
 		ID:           u.ID,
 		PasswordHash: u.PasswordHash,
 		Role:         domainUser.Role(u.Role),

@@ -6,28 +6,26 @@ import (
 	"fmt"
 	"os"
 
-	"go.uber.org/zap"
-
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/app"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/logger"
 )
 
-var configPath string
-
-func init() {
-	flag.StringVar(&configPath, "config-path", ".env", "path to config file")
-}
-
 func main() {
+	configPath := flag.String("config-path", ".env", "path to config file")
+
 	flag.Parse()
 
-	ctx := context.Background()
+	if err := run(*configPath); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "application error: %v\n", err)
+		os.Exit(1)
+	}
+}
 
+func run(configPath string) error {
 	cfg, err := config.Load(configPath)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("load config: %w", err)
 	}
 
 	appLogger, err := logger.New(logger.Config{
@@ -37,23 +35,17 @@ func main() {
 		ErrorOutputPaths: cfg.Zap.ErrorOutputPaths,
 	})
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to initialize logger: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("initialize logger: %w", err)
 	}
+	defer func() { _ = appLogger.Sync() }()
+
+	ctx := context.Background()
 
 	a, err := app.New(ctx, cfg, appLogger)
 	if err != nil {
-		exitWithLoggerError(appLogger, "failed to initialize app", err)
+		return fmt.Errorf("initialize app: %w", err)
 	}
-	if err = a.Run(ctx); err != nil {
-		exitWithLoggerError(appLogger, "application exited with error", err)
-	}
+	defer func() { _ = a.Close() }()
 
-	_ = appLogger.Sync()
-}
-
-func exitWithLoggerError(logger *zap.Logger, message string, err error) {
-	logger.Error(message, zap.Error(err))
-	_ = logger.Sync()
-	os.Exit(1)
+	return a.Run(ctx)
 }

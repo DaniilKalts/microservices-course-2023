@@ -6,89 +6,126 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/database/postgres"
+	grpcTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/grpc"
 	gatewayTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/gateway"
 	prometheusTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/prometheus"
-	grpcTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/database/postgres"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database/transaction"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/metrics"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
-type Container struct {
-	Cfg config.Config
+const (
+	gatewayReadHeaderTimeout = 5 * time.Second
+	shutdownTimeout          = 5 * time.Second
+	grpcGracefulStopTimeout  = 3 * time.Second
+)
 
-	DB         database.Client
-	Tx         database.TxManager
-	JWTManager jwt.Manager
-	Tracer     opentracing.Tracer
+type App struct {
+	cfg    *config.Config
+	logger *zap.Logger
+
+	db         database.Client
+	jwtManager jwt.Manager
+	tracer     opentracing.Tracer
 	tracerStop io.Closer
 
-	Logger *zap.Logger
-
-	Repositories repository.Repositories
-	Services     service.Services
-
-	GRPC       *grpc.Server
-	Gateway    http.Handler
-	Prometheus *http.Server
+	grpc          *grpc.Server
+	gateway       *gatewayTransport.Proxy
+	gatewayServer *http.Server
+	prometheus    *http.Server
 }
 
-func Build(ctx context.Context, cfg config.Config, logger *zap.Logger) (*Container, error) {
+func New(ctx context.Context, cfg *config.Config, logger *zap.Logger) (*App, error) {
 	if cfg == nil {
-		return nil, errors.New("app config is nil")
+		return nil, errors.New("config is nil")
 	}
-
 	if logger == nil {
-		return nil, errors.New("app logger is nil")
+		return nil, errors.New("logger is nil")
 	}
 
-	container := &Container{
-		Cfg:    cfg,
-		Logger: logger,
-	}
+	a := &App{cfg: cfg, logger: logger}
 
-	if err := container.initTracer(); err != nil {
-		return nil, err
-	}
-	if err := container.initDatabase(ctx); err != nil {
-		return nil, err
-	}
-	if err := container.initJWTManager(); err != nil {
+	if err := a.init(ctx); err != nil {
+		_ = a.Close()
 		return nil, err
 	}
 
-	container.initTxManager()
-	container.initRepositories()
-	container.initServices()
-
-	if err := container.initGRPC(); err != nil {
-		return nil, err
-	}
-	if err := container.initGateway(ctx); err != nil {
-		return nil, err
-	}
-	if err := container.initPrometheus(); err != nil {
-		return nil, err
-	}
-
-	return container, nil
+	return a, nil
 }
 
-func (c *Container) initDatabase(ctx context.Context) error {
-	logger := c.Logger.Named("di.container.database")
-	logger.Info("connecting to postgres")
+func (a *App) init(ctx context.Context) error {
+	if err := a.initTracer(); err != nil {
+		return err
+	}
+	if err := a.initDatabase(ctx); err != nil {
+		return err
+	}
+	if err := a.initJWTManager(); err != nil {
+		return err
+	}
 
-	db, err := postgres.New(ctx, c.Cfg.Postgres().DSN(), c.Logger.Named("storage.postgres"))
+	repos := repository.NewRepositories(a.db)
+	services := service.NewServices(service.Deps{
+		Repositories: repos,
+		JWTManager:   a.jwtManager,
+		Logger:       a.logger.Named("service"),
+	})
+
+	if err := a.initGRPC(services); err != nil {
+		return err
+	}
+	if err := a.initGateway(ctx); err != nil {
+		return err
+	}
+	a.initPrometheus()
+
+	return nil
+}
+
+func (a *App) initTracer() error {
+	tracingCfg := a.cfg.Tracing
+
+	if !tracingCfg.Enabled {
+		a.tracer = opentracing.GlobalTracer()
+		return nil
+	}
+
+	tracer, closer, err := tracing.NewJaegerTracer(tracing.Config{
+		ServiceName:   tracingCfg.ServiceName,
+		AgentHostPort: tracingCfg.JaegerAgentHostPort(),
+		SamplerType:   tracingCfg.SamplerType,
+		SamplerParam:  tracingCfg.SamplerParam,
+	})
+	if err != nil {
+		return fmt.Errorf("init tracer: %w", err)
+	}
+
+	opentracing.SetGlobalTracer(tracer)
+	a.tracer = tracer
+	a.tracerStop = closer
+
+	a.logger.Info("tracing initialized",
+		zap.String("service_name", tracingCfg.ServiceName),
+		zap.String("jaeger_agent", tracingCfg.JaegerAgentHostPort()),
+	)
+
+	return nil
+}
+
+func (a *App) initDatabase(ctx context.Context) error {
+	db, err := postgres.New(ctx, a.cfg.Postgres.DSN(), a.logger.Named("storage.postgres"))
 	if err != nil {
 		return fmt.Errorf("connect postgres: %w", err)
 	}
@@ -97,199 +134,169 @@ func (c *Container) initDatabase(ctx context.Context) error {
 		return fmt.Errorf("ping postgres: %w", err)
 	}
 
-	c.DB = db
-	logger.Info("postgres connected")
+	a.db = db
+	a.logger.Info("postgres connected")
 
 	return nil
 }
 
-func (c *Container) initTxManager() {
-	logger := c.Logger.Named("di.container.tx")
-	logger.Info("initializing transaction manager")
-
-	c.Tx = transaction.NewTransactionManager(c.DB.DB())
-
-	logger.Info("transaction manager initialized")
-}
-
-func (c *Container) initJWTManager() error {
-	logger := c.Logger.Named("di.container.jwt")
-
-	privateKey, err := jwt.LoadPrivateKey(c.Cfg.JWT().PrivateKeyFile())
+func (a *App) initJWTManager() error {
+	privateKey, err := jwt.LoadPrivateKey(a.cfg.JWT.PrivateKeyFile)
 	if err != nil {
 		return fmt.Errorf("load jwt private key: %w", err)
 	}
 
-	publicKey, err := jwt.LoadPublicKey(c.Cfg.JWT().PublicKeyFile())
+	publicKey, err := jwt.LoadPublicKey(a.cfg.JWT.PublicKeyFile)
 	if err != nil {
 		return fmt.Errorf("load jwt public key: %w", err)
 	}
 
 	jwtManager, err := jwt.NewManager(privateKey, publicKey, jwt.Config{
-		Issuer:          c.Cfg.JWT().Issuer(),
-		Subject:         c.Cfg.JWT().Subject(),
-		Audience:        c.Cfg.JWT().Audience(),
-		AccessTokenTTL:  c.Cfg.JWT().AccessExpiresAt(),
-		RefreshTokenTTL: c.Cfg.JWT().RefreshExpiresAt(),
-		NotBeforeOffset: c.Cfg.JWT().NotBefore(),
-		IssuedAtOffset:  c.Cfg.JWT().IssuedAt(),
+		Issuer:          a.cfg.JWT.Issuer,
+		Subject:         a.cfg.JWT.Subject,
+		Audience:        a.cfg.JWT.Audience,
+		AccessTokenTTL:  a.cfg.JWT.AccessExpiresAt,
+		RefreshTokenTTL: a.cfg.JWT.RefreshExpiresAt,
+		NotBeforeOffset: a.cfg.JWT.NotBefore,
+		IssuedAtOffset:  a.cfg.JWT.IssuedAt,
 	})
 	if err != nil {
 		return fmt.Errorf("init jwt manager: %w", err)
 	}
 
-	c.JWTManager = jwtManager
-	logger.Info("jwt manager initialized")
+	a.jwtManager = jwtManager
 
 	return nil
 }
 
-func (c *Container) initTracer() error {
-	logger := c.Logger.Named("di.container.tracing")
-	tracingCfg := c.Cfg.Tracing()
-
-	if tracingCfg == nil || !tracingCfg.Enabled() {
-		c.Tracer = opentracing.GlobalTracer()
-		logger.Info("tracing disabled")
-		return nil
-	}
-
-	tracer, closer, err := tracing.NewJaegerTracer(tracing.Config{
-		ServiceName:   tracingCfg.ServiceName(),
-		AgentHostPort: tracingCfg.JaegerAgentHostPort(),
-		SamplerType:   tracingCfg.SamplerType(),
-		SamplerParam:  tracingCfg.SamplerParam(),
-	})
-	if err != nil {
-		return fmt.Errorf("init tracer: %w", err)
-	}
-
-	opentracing.SetGlobalTracer(tracer)
-	c.Tracer = tracer
-	c.tracerStop = closer
-
-	logger.Info(
-		"tracing initialized",
-		zap.String("service_name", tracingCfg.ServiceName()),
-		zap.String("jaeger_agent", tracingCfg.JaegerAgentHostPort()),
-		zap.String("sampler_type", tracingCfg.SamplerType()),
-		zap.Float64("sampler_param", tracingCfg.SamplerParam()),
-	)
-
-	return nil
-}
-
-func (c *Container) initRepositories() {
-	logger := c.Logger.Named("di.container.repository")
-
-	c.Repositories = repository.NewRepositories(repository.Deps{
-		DB:     c.DB,
-		Logger: c.Logger.Named("repository"),
-	})
-	logger.Info("repositories initialized")
-}
-
-func (c *Container) initServices() {
-	logger := c.Logger.Named("di.container.service")
-
-	c.Services = service.NewServices(service.Deps{
-		Repositories: c.Repositories,
-		JWTManager:   c.JWTManager,
-		Logger:       c.Logger.Named("service"),
-	})
-	logger.Info("services initialized")
-}
-
-func (c *Container) initGRPC() error {
-	logger := c.Logger.Named("di.container.transport.grpc")
-
+func (a *App) initGRPC(services service.Services) error {
 	grpcServer, err := grpcTransport.NewServer(grpcTransport.Deps{
 		Config: grpcTransport.ServerConfig{
-			EnableTLS: c.Cfg.TLS().Enabled(),
-			CertFile:  c.Cfg.TLS().CertFile(),
-			KeyFile:   c.Cfg.TLS().KeyFile(),
+			EnableTLS: a.cfg.TLS.Enabled,
+			CertFile:  a.cfg.TLS.CertFile,
+			KeyFile:   a.cfg.TLS.KeyFile,
 		},
-		JWTManager: c.JWTManager,
-		Logger:     c.Logger.Named("transport.grpc"),
-		Services:   c.Services,
-		Tracer:     c.Tracer,
+		JWTManager:      a.jwtManager,
+		Logger:          a.logger.Named("transport.grpc"),
+		Services:        services,
+		Tracer:          a.tracer,
+		ResponseCounter: metrics.ResponseCounter,
+		RequestDuration: metrics.RequestDuration,
 	})
 	if err != nil {
 		return fmt.Errorf("init grpc server: %w", err)
 	}
 
-	c.GRPC = grpcServer
-	logger.Info("grpc transport initialized")
+	a.grpc = grpcServer
 
 	return nil
 }
 
-func (c *Container) initGateway(ctx context.Context) error {
-	logger := c.Logger.Named("di.container.transport.http.gateway")
-
-	handler, err := gatewayTransport.NewProxy(ctx, gatewayTransport.Config{
-		GRPCAddress: c.Cfg.GRPC().Address(),
-		TLS:         c.Cfg.TLS(),
+func (a *App) initGateway(ctx context.Context) error {
+	proxy, err := gatewayTransport.NewProxy(ctx, gatewayTransport.Config{
+		GRPCAddress: a.cfg.GRPC.Address(),
+		TLS:         a.cfg.TLS,
 	})
 	if err != nil {
 		return fmt.Errorf("build grpc-gateway proxy: %w", err)
 	}
 
-	c.Gateway = handler
-	logger.Info("http gateway initialized")
+	a.gateway = proxy
+	a.gatewayServer = &http.Server{
+		Addr:              a.cfg.Gateway.Address(),
+		Handler:           proxy,
+		ReadHeaderTimeout: gatewayReadHeaderTimeout,
+	}
 
 	return nil
 }
 
-func (c *Container) initPrometheus() error {
-	logger := c.Logger.Named("di.container.transport.http.prometheus")
-
-	server, err := prometheusTransport.NewServer(prometheusTransport.Config{
-		Address: c.Cfg.Prometheus().Address(),
+func (a *App) initPrometheus() {
+	a.prometheus = prometheusTransport.NewServer(prometheusTransport.Config{
+		Address: a.cfg.Prometheus.Address(),
 	})
-	if err != nil {
-		return fmt.Errorf("init prometheus server: %w", err)
-	}
-
-	c.Prometheus = server
-	logger.Info("prometheus server initialized")
-
-	return nil
 }
 
-func (c *Container) Close() error {
-	if c.Logger != nil {
-		c.Logger.Named("di.container").Info("closing application resources")
-	}
+func (a *App) Close() error {
+	a.stopServers()
 
-	var closeErr error
+	var errs []error
 
-	if gatewayCloser, ok := c.Gateway.(interface{ Close() error }); ok {
-		if err := gatewayCloser.Close(); err != nil {
-			closeErr = err
-			if c.Logger != nil {
-				c.Logger.Named("di.container.transport.http.gateway").Error("failed to close gateway grpc connection", zap.Error(err))
-			}
+	if a.gateway != nil {
+		if err := a.gateway.Close(); err != nil {
+			a.logger.Error("failed to close gateway", zap.Error(err))
+			errs = append(errs, err)
 		}
 	}
 
-	if c.DB != nil {
-		if err := c.DB.Close(); err != nil {
-			closeErr = err
-			if c.Logger != nil {
-				c.Logger.Named("di.container.database").Error("failed to close database client", zap.Error(err))
-			}
+	if a.db != nil {
+		if err := a.db.Close(); err != nil {
+			a.logger.Error("failed to close database", zap.Error(err))
+			errs = append(errs, err)
 		}
 	}
 
-	if c.tracerStop != nil {
-		if err := c.tracerStop.Close(); err != nil {
-			closeErr = err
-			if c.Logger != nil {
-				c.Logger.Named("di.container.tracing").Error("failed to close tracer", zap.Error(err))
-			}
+	if a.tracerStop != nil {
+		if err := a.tracerStop.Close(); err != nil {
+			a.logger.Error("failed to close tracer", zap.Error(err))
+			errs = append(errs, err)
 		}
 	}
 
-	return closeErr
+	return errors.Join(errs...)
+}
+
+func (a *App) stopServers() {
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	var wg sync.WaitGroup
+
+	if a.grpc != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			a.gracefulStopGRPC()
+		}()
+	}
+
+	if a.gatewayServer != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := a.gatewayServer.Shutdown(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				a.logger.Error("failed to shutdown gateway server", zap.Error(err))
+			}
+		}()
+	}
+
+	if a.prometheus != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := a.prometheus.Shutdown(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				a.logger.Error("failed to shutdown prometheus", zap.Error(err))
+			}
+		}()
+	}
+
+	wg.Wait()
+}
+
+func (a *App) gracefulStopGRPC() {
+	done := make(chan struct{})
+	go func() {
+		a.grpc.GracefulStop()
+		close(done)
+	}()
+
+	timer := time.NewTimer(grpcGracefulStopTimeout)
+	defer timer.Stop()
+
+	select {
+	case <-done:
+	case <-timer.C:
+		a.logger.Warn("grpc graceful stop timeout, forcing", zap.Duration("timeout", grpcGracefulStopTimeout))
+		a.grpc.Stop()
+	}
 }

@@ -2,7 +2,6 @@ package gateway
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,27 +15,27 @@ import (
 	authv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/auth/v1"
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/swagger"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
+	appconfig "github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
 )
 
 const swaggerBasePath = "/swagger"
 
 type Config struct {
 	GRPCAddress string
-	TLS         config.TLSConfig
+	TLS         appconfig.TLSConfig
 }
 
-type proxyHandler struct {
+type Proxy struct {
 	http.Handler
 	conn *grpc.ClientConn
 }
 
-func (h *proxyHandler) Close() error {
-	if h == nil || h.conn == nil {
+func (p *Proxy) Close() error {
+	if p == nil || p.conn == nil {
 		return nil
 	}
 
-	return h.conn.Close()
+	return p.conn.Close()
 }
 
 type swaggerRoute struct {
@@ -52,7 +51,7 @@ var swaggerRoutes = []swaggerRoute{
 	{name: "auth", basePath: swaggerBasePath + "/auth", openAPIURL: "gen/openapi/auth/v1/auth.swagger.json"},
 }
 
-func NewProxy(ctx context.Context, cfg Config) (http.Handler, error) {
+func NewProxy(ctx context.Context, cfg Config) (*Proxy, error) {
 	gatewayMux := runtime.NewServeMux()
 
 	grpcEndpoint, err := grpcGatewayEndpoint(cfg.GRPCAddress)
@@ -91,7 +90,7 @@ func NewProxy(ctx context.Context, cfg Config) (http.Handler, error) {
 		return nil, err
 	}
 
-	return &proxyHandler{
+	return &Proxy{
 		Handler: WithTracing(mux, opentracing.GlobalTracer()),
 		conn:    conn,
 	}, nil
@@ -110,21 +109,17 @@ func grpcGatewayEndpoint(address string) (string, error) {
 	return net.JoinHostPort(host, port), nil
 }
 
-func grpcGatewayDialOptions(tlsCfg config.TLSConfig) ([]grpc.DialOption, error) {
-	if tlsCfg == nil {
-		return nil, errors.New("tls config is nil")
-	}
-
+func grpcGatewayDialOptions(tlsCfg appconfig.TLSConfig) ([]grpc.DialOption, error) {
 	traceInterceptor := grpc.WithChainUnaryInterceptor(TracingClientInterceptor(opentracing.GlobalTracer()))
 
-	if !tlsCfg.Enabled() {
+	if !tlsCfg.Enabled {
 		return []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			traceInterceptor,
 		}, nil
 	}
 
-	clientCreds, err := credentials.NewClientTLSFromFile(tlsCfg.CertFile(), "")
+	clientCreds, err := credentials.NewClientTLSFromFile(tlsCfg.CertFile, "")
 	if err != nil {
 		return nil, fmt.Errorf("load gateway grpc tls cert: %w", err)
 	}

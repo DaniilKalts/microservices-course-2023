@@ -2,11 +2,11 @@ package mapper
 
 import (
 	authv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/auth/v1"
-	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
+	authService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/auth"
 )
 
-func ToProtoTokenPair(tokens domainAuth.TokenPair) *authv1.TokenPair {
+func ToProtoTokenPair(tokens authService.TokenPair) *authv1.TokenPair {
 	return &authv1.TokenPair{
 		AccessToken:           tokens.AccessToken,
 		RefreshToken:          tokens.RefreshToken,

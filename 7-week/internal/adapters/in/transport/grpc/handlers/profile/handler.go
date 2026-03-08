@@ -8,20 +8,18 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
-	profileMapper "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/profile/mapper"
-	userMapper "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/user/mapper"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/interceptor/auth"
-	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
-	userOperations "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user/operations"
+	profileMapper "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/grpc/handlers/profile/mapper"
+	userMapper "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/grpc/handlers/user/mapper"
+	authInterceptor "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/grpc/interceptor/auth"
+	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
 )
 
 type Handler struct {
 	userv1.UnimplementedProfileV1Server
-	userService service.UserService
+	userService userService.Service
 }
 
-func NewHandler(userService service.UserService) *Handler {
+func NewHandler(userService userService.Service) *Handler {
 	return &Handler{userService: userService}
 }
 
@@ -31,9 +29,9 @@ func (h *Handler) GetProfile(ctx context.Context, _ *emptypb.Empty) (*userv1.Get
 		return nil, err
 	}
 
-	entity, err := h.userService.Get(ctx, userOperations.GetInput{ID: userID})
+	entity, err := h.userService.Get(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, mapProfileError(err)
 	}
 
 	return &userv1.GetProfileResponse{User: userMapper.ToProtoUser(entity)}, nil
@@ -46,7 +44,7 @@ func (h *Handler) UpdateProfile(ctx context.Context, req *userv1.UpdateProfileRe
 	}
 
 	if err = h.userService.Update(ctx, profileMapper.ToUpdateInput(userID, req)); err != nil {
-		return nil, err
+		return nil, mapProfileError(err)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -58,17 +56,17 @@ func (h *Handler) DeleteProfile(ctx context.Context, _ *emptypb.Empty) (*emptypb
 		return nil, err
 	}
 
-	if err = h.userService.Delete(ctx, userOperations.DeleteInput{ID: userID}); err != nil {
-		return nil, err
+	if err = h.userService.Delete(ctx, userID); err != nil {
+		return nil, mapProfileError(err)
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
 func currentUserID(ctx context.Context) (string, error) {
-	claims, ok := auth.ClaimsFromContext(ctx)
+	claims, ok := authInterceptor.ClaimsFromContext(ctx)
 	if !ok || claims == nil || claims.UserID == "" {
-		return "", status.Error(codes.Unauthenticated, domainAuth.ErrInvalidAccessToken.Error())
+		return "", status.Error(codes.Unauthenticated, authInterceptor.ErrInvalidAccessToken.Error())
 	}
 
 	return claims.UserID, nil

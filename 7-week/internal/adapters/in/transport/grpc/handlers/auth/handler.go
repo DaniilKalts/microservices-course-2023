@@ -6,16 +6,16 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/auth/v1"
-	mapper "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/transport/grpc/handlers/auth/mapper"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
+	mapper "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/grpc/handlers/auth/mapper"
+	authService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/auth"
 )
 
 type Handler struct {
 	authv1.UnimplementedAuthV1Server
-	authService service.AuthService
+	authService authService.Service
 }
 
-func NewHandler(authService service.AuthService) *Handler {
+func NewHandler(authService authService.Service) *Handler {
 	return &Handler{authService: authService}
 }
 

@@ -4,11 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/metrics"
 )
 
 const (
@@ -16,7 +15,7 @@ const (
 	requestStatusError   = "error"
 )
 
-func MetricsInterceptor() grpc.UnaryServerInterceptor {
+func MetricsInterceptor(responseCounter *prometheus.CounterVec, requestDuration *prometheus.HistogramVec) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -30,8 +29,8 @@ func MetricsInterceptor() grpc.UnaryServerInterceptor {
 		requestStatus := responseStatus(err)
 		method := info.FullMethod
 
-		metrics.ResponseCounter.WithLabelValues(method, requestStatus).Inc()
-		metrics.RequestDuration.WithLabelValues(method, requestStatus).Observe(time.Since(startedAt).Seconds())
+		responseCounter.WithLabelValues(method, requestStatus).Inc()
+		requestDuration.WithLabelValues(method, requestStatus).Observe(time.Since(startedAt).Seconds())
 
 		return resp, err
 	}

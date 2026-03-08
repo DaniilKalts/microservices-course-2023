@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	domainAuth "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/auth"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
 )
 
@@ -19,7 +18,7 @@ func AuthInterceptor(jwtManager jwt.Manager, policy AccessPolicy) grpc.UnaryServ
 			_ *grpc.UnaryServerInfo,
 			_ grpc.UnaryHandler,
 		) (any, error) {
-			return nil, status.Error(codes.Internal, domainAuth.ErrAccessPolicyNotConfigured.Error())
+			return nil, status.Error(codes.Internal, ErrAccessPolicyNotConfigured.Error())
 		}
 	}
 
@@ -31,10 +30,10 @@ func AuthInterceptor(jwtManager jwt.Manager, policy AccessPolicy) grpc.UnaryServ
 	) (any, error) {
 		requiredGroup, ok := policy.GroupForMethod(info.FullMethod)
 		if !ok {
-			return nil, status.Error(codes.PermissionDenied, domainAuth.ErrAccessDenied.Error())
+			return nil, status.Error(codes.PermissionDenied, ErrAccessDenied.Error())
 		}
 
-		if requiredGroup == AccessGroupPublic {
+		if requiredGroup.IsPublic {
 			return handler(ctx, req)
 		}
 

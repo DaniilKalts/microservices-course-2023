@@ -1,19 +1,17 @@
 package service
 
 import (
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	authService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/auth"
 	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
+
+	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
 	"go.uber.org/zap"
 )
 
-type UserService = userService.Service
-type AuthService = authService.Service
-
 type Services struct {
-	User UserService
-	Auth AuthService
+	User userService.Service
+	Auth authService.Service
 }
 
 type Deps struct {
@@ -23,10 +21,9 @@ type Deps struct {
 }
 
 func NewServices(deps Deps) Services {
-	userSvc := userService.NewService(deps.Repositories.User, deps.Logger.Named("user"))
+	userSvc := userService.NewService(deps.Repositories.User)
 	authSvc := authService.NewService(
 		userSvc,
-		deps.Repositories.User,
 		deps.JWTManager,
 		deps.Logger.Named("auth"),
 	)

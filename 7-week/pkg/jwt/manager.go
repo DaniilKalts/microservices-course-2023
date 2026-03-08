@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	jwtv5 "github.com/golang-jwt/jwt/v5"
@@ -12,12 +13,8 @@ import (
 const (
 	defaultAccessTokenTTL  = 15 * time.Minute
 	defaultRefreshTokenTTL = 7 * 24 * time.Hour
-	defaultIssuedAtOffset  = 0 * time.Second
-	defaultNotBeforeOffset = 0 * time.Second
 
 	signingMethodAlgorithm = "RS256"
-
-	operationVerify = "verify"
 )
 
 type Manager interface {
@@ -66,8 +63,7 @@ func NewManager(privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey, cfg Config
 		return nil, errors.New("private and public keys must belong to the same key pair")
 	}
 
-	cfg, err := normalizeConfig(cfg)
-	if err != nil {
+	if err := validateConfig(cfg); err != nil {
 		return nil, err
 	}
 
@@ -77,8 +73,8 @@ func NewManager(privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey, cfg Config
 		issuer:          cfg.Issuer,
 		subject:         cfg.Subject,
 		audience:        cfg.Audience,
-		accessTokenTTL:  cfg.AccessTokenTTL,
-		refreshTokenTTL: cfg.RefreshTokenTTL,
+		accessTokenTTL:  withDefault(cfg.AccessTokenTTL, defaultAccessTokenTTL),
+		refreshTokenTTL: withDefault(cfg.RefreshTokenTTL, defaultRefreshTokenTTL),
 		issuedAtOffset:  cfg.IssuedAtOffset,
 		notBeforeOffset: cfg.NotBeforeOffset,
 	}, nil
@@ -92,40 +88,32 @@ func isMatchingKeyPair(privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey) boo
 	return privateKey.PublicKey.E == publicKey.E && privateKey.PublicKey.N.Cmp(publicKey.N) == 0
 }
 
-func normalizeConfig(cfg Config) (Config, error) {
+func validateConfig(cfg Config) error {
 	if cfg.AccessTokenTTL < 0 {
-		return Config{}, errors.New("access token ttl must be non-negative")
+		return errors.New("access token ttl must be non-negative")
 	}
 
 	if cfg.RefreshTokenTTL < 0 {
-		return Config{}, errors.New("refresh token ttl must be non-negative")
+		return errors.New("refresh token ttl must be non-negative")
 	}
 
 	if cfg.NotBeforeOffset < 0 {
-		return Config{}, errors.New("not-before offset must be non-negative")
+		return errors.New("not-before offset must be non-negative")
 	}
 
 	if cfg.IssuedAtOffset < 0 {
-		return Config{}, errors.New("issued-at offset must be non-negative")
+		return errors.New("issued-at offset must be non-negative")
 	}
 
-	if cfg.AccessTokenTTL == 0 {
-		cfg.AccessTokenTTL = defaultAccessTokenTTL
+	return nil
+}
+
+func withDefault(val, def time.Duration) time.Duration {
+	if val == 0 {
+		return def
 	}
 
-	if cfg.RefreshTokenTTL == 0 {
-		cfg.RefreshTokenTTL = defaultRefreshTokenTTL
-	}
-
-	if cfg.IssuedAtOffset == 0 {
-		cfg.IssuedAtOffset = defaultIssuedAtOffset
-	}
-
-	if cfg.NotBeforeOffset == 0 {
-		cfg.NotBeforeOffset = defaultNotBeforeOffset
-	}
-
-	return cfg, nil
+	return val
 }
 
 func (m *manager) GenerateAccessToken(claims Claims) (string, error) {
@@ -167,11 +155,11 @@ func (m *manager) verifyToken(tokenString, expectedTokenType string) (*Claims, e
 	}
 
 	if err = validateTokenType(claims.TokenType, expectedTokenType); err != nil {
-		return nil, fmt.Errorf("%s token: %w", operationVerify, err)
+		return nil, fmt.Errorf("verify token: %w", err)
 	}
 
 	if claims.ID == "" {
-		return nil, fmt.Errorf("%s token: %w", operationVerify, errTokenIDMissing)
+		return nil, fmt.Errorf("verify token: %w", ErrTokenIDMissing)
 	}
 
 	return claims, nil
@@ -194,7 +182,7 @@ func (m *manager) generateToken(claims Claims, ttl time.Duration, tokenType stri
 	return m.sign(prepared)
 }
 
-func (m *manager) sign(claims Claims) (string, error) {
+func (m *manager) sign(claims jwtClaims) (string, error) {
 	token := jwtv5.NewWithClaims(jwtv5.SigningMethodRS256, claims)
 
 	signed, err := token.SignedString(m.privateKey)
@@ -209,21 +197,21 @@ func (m *manager) parseClaims(
 	tokenString string,
 	parserOptions ...jwtv5.ParserOption,
 ) (*Claims, error) {
-	tokenString = normalizeToken(tokenString)
+	tokenString = strings.TrimSpace(tokenString)
 	if tokenString == "" {
-		return nil, fmt.Errorf("%s token: %w", operationVerify, errTokenEmpty)
+		return nil, fmt.Errorf("verify token: %w", ErrTokenEmpty)
 	}
 
-	claims := &Claims{}
+	jc := &jwtClaims{}
 
-	token, err := jwtv5.ParseWithClaims(tokenString, claims, m.publicKeyFunc, parserOptions...)
+	token, err := jwtv5.ParseWithClaims(tokenString, jc, m.publicKeyFunc, parserOptions...)
 	if err != nil {
-		return nil, fmt.Errorf("%s token: %w", operationVerify, err)
+		return nil, fmt.Errorf("verify token: %w", err)
 	}
 
 	if !token.Valid {
-		return nil, fmt.Errorf("%s token: token is invalid", operationVerify)
+		return nil, fmt.Errorf("verify token: token is invalid")
 	}
 
-	return claims, nil
+	return fromJWTClaims(jc), nil
 }

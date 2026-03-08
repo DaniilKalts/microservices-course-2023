@@ -6,8 +6,6 @@ tasks:
     desc: 🚀 Generate Go protobuf/grpc/gateway stubs and split+merged Swagger for all .proto files
     deps:
       - {task: ':install-deps'}
-      - {task: ':jwt:generate'}
-      - {task: ':tls:generate'}
     sources:
       - proto/**/*.proto
       - third_party/proto/**/*.proto

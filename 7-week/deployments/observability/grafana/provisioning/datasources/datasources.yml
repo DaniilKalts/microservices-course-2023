@@ -1,41 +1,31 @@
 # ============================================================
-# datasources.yml - Grafana datasource provisioning
+# datasources.yml — Grafana data source provisioning
 #
-# This file auto-registers data sources in Grafana at startup:
-#   1. Prometheus for metrics
-#   2. Loki for logs
-# It keeps dashboards portable and avoids manual UI setup.
+# Auto-registers Prometheus and Loki as data sources on
+# Grafana startup. No manual setup needed in the UI.
 # ============================================================
 
-# Provisioning schema version understood by Grafana.
 apiVersion: 1
 
-# Remove provisioned datasources that are no longer in this file.
-# Keeps Grafana datasource state consistent with Git config.
+# Remove any data source from Grafana that isn't listed here.
+# Keeps the UI in sync with this file.
 prune: true
 
-# -- Datasource Definitions -----------------------------------------
 datasources:
-  - # Human-readable datasource name shown in Grafana UI.
-    name: Prometheus
-    # Stable unique ID used by dashboards and links.
-    uid: prometheus
-    # Grafana datasource plugin type.
+  # Metrics — powers all dashboard panels except logs
+  - name: Prometheus
+    uid: prometheus                    # stable ID referenced by dashboard JSON
     type: prometheus
-    # Server-side access: Grafana queries Prometheus directly.
-    access: proxy
-    # Must match docker-compose service "prometheus" on canonical port 9090.
-    url: http://prometheus:9090
-    # Default datasource selected in Grafana panels/explore.
-    isDefault: true
-    # Prevent UI edits to keep config managed via code.
-    editable: false
+    access: proxy                      # Grafana queries Prometheus server-side
+    url: http://prometheus:9090        # docker-compose service name + default port
+    isDefault: true                    # pre-selected when creating new panels
+    editable: false                    # prevent UI edits — config lives in Git
 
+  # Logs — powers the log panel in the dashboard
   - name: Loki
     uid: loki
     type: loki
     access: proxy
-    # Must match docker-compose service "loki" on canonical port 3100.
     url: http://loki:3100
     isDefault: false
     editable: false

@@ -1,80 +1,62 @@
 # ============================================================
 # alertmanager.yml — Alertmanager configuration
 #
-# Alertmanager sits between Prometheus and you.
-# Prometheus detects problems and fires alerts.
-# Alertmanager receives those alerts and handles:
-#   - ROUTING   → which team/channel gets notified
-#   - GROUPING  → bundling related alerts into one message
-#   - THROTTLING → suppressing repeated/resolved spam
-#   - SENDING   → the actual Telegram/email/PagerDuty message
+# How it fits:
+#   [Prometheus] ──fires alert──> [Alertmanager] ──groups & throttles──> Telegram
+#
+# Alertmanager handles the "people" side:
+#   - Groups related alerts into one message (no spam)
+#   - Throttles repeats so you're not pinged every 15 seconds
+#   - Sends "resolved" when the problem goes away
+#
+# NOTE: __TELEGRAM_BOT_TOKEN__ and __TELEGRAM_CHAT_ID__ are
+# placeholders replaced at startup by entrypoint.sh using
+# environment variables from .env.
 # ============================================================
 
 global:
-  # After an alert stops firing (problem is fixed), how long Alertmanager
-  # waits before sending the "✅ RESOLVED" notification.
-  # Why wait? Because the problem might come back 10 seconds later —
-  # sending "all clear" prematurely would be misleading.
+  # After an alert stops firing, wait this long before sending
+  # the "resolved" notification — in case it flickers back.
   resolve_timeout: 5m
 
-# ── Routing Tree ─────────────────────────────────────────────
-# Defines how incoming alerts are matched and delivered.
-# Think of it as a decision tree: "which receiver handles this alert?"
-# This is the root (default) route — it catches all alerts that don't
-# match any child route. Child routes can be nested under "routes:" key.
+# ── Routing ─────────────────────────────────────────────────
+# Decides which receiver handles each alert.
+# This is the root (catch-all) route; child routes can be
+# nested under a "routes:" key for more specific matching.
 route:
-  # The receiver that handles all alerts (see "receivers" section below).
-  # Matches the name defined in the receivers list.
   receiver: telegram
 
-  # Group alerts by these label values before sending.
-  # Alerts with the same alertname + service are bundled into ONE message.
-  # Without grouping: 10 things break → 10 separate Telegram messages.
-  # With grouping:    10 things break → 1 Telegram message listing all of them.
-  group_by:
-    - alertname   # e.g. "HighGrpcErrorRate"
-    - service     # e.g. "termachat-api"
+  # Bundle alerts with the same name + service into one message.
+  # 10 things break → 1 message listing all 10 (not 10 messages).
+  group_by: [alertname, service]
 
-  # When a new alert group is created (first alert in a group arrives),
-  # wait this long before sending the first notification.
-  # Reason: more related alerts might arrive within those 30 seconds —
-  # better to send one bundled message than multiple partial ones.
+  # Wait 30s for related alerts to arrive before sending the
+  # first notification (batches them into one message).
   group_wait: 30s
 
-  # After a group notification was sent, a NEW alert joins the same group.
-  # Wait this long before sending an updated notification for that group.
-  # Prevents flooding you with updates every few seconds.
+  # A new alert joins an existing group — wait 5 min before
+  # sending an updated notification.
   group_interval: 5m
 
-  # The problem is still happening (alert keeps firing, not resolved).
-  # Send a reminder notification at this interval to make sure you haven't forgotten it.
-  # 2h = enough to remind you without spamming every few minutes.
+  # Problem still happening? Remind you every 2 hours.
   repeat_interval: 2h
 
-# ── Receivers ────────────────────────────────────────────────
-# A receiver is a named notification destination.
-# One receiver can include multiple integrations (e.g. Telegram + email).
+# ── Receivers ───────────────────────────────────────────────
+# Where notifications actually go. Name must match the route above.
 receivers:
-  - name: telegram   # Must match the "receiver" value in the route above
-
+  - name: telegram
     telegram_configs:
-      - bot_token: __TELEGRAM_BOT_TOKEN__   # Replace with your bot's token from @BotFather
-        chat_id: __TELEGRAM_CHAT_ID__       # Replace with your Telegram chat/channel ID (can be negative for groups)
-        parse_mode: HTML                    # Message supports HTML tags: <b>, <i>, <code>, <a href="">
+      - bot_token: __TELEGRAM_BOT_TOKEN__    # injected by entrypoint.sh
+        chat_id: __TELEGRAM_CHAT_ID__        # injected by entrypoint.sh
+        parse_mode: HTML
+        send_resolved: true                  # also notify when the problem is gone
 
-        # Also fire a notification when the alert is resolved (not just when it starts).
-        # Without this you'd only know a problem started, never that it ended.
-        send_resolved: true
-
-        # ── Message Template ─────────────────────────────────
-        # Go template that formats the Telegram message.
-        # Available variables:
-        #   .Status             → "firing" or "resolved"
-        #   .CommonLabels.*     → labels shared by ALL alerts in the group
-        #   .CommonAnnotations.*→ annotations shared by ALL alerts in the group
-        #   .Alerts             → list of individual alert objects in the group
-        #   len .Alerts         → how many alerts are in this group
-        #   (index .Alerts 0)   → the first alert object (used to get the Prometheus URL)
+        # Go template for the Telegram message.
+        # Available context:
+        #   .Status              → "firing" or "resolved"
+        #   .CommonLabels.*      → labels shared by all alerts in the group
+        #   .CommonAnnotations.* → annotations shared by all alerts
+        #   .Alerts              → list of individual alerts
         message: |
           {{ if eq .Status "firing" }}🔴 <b>FIRING</b>{{ else }}✅ <b>RESOLVED</b>{{ end }} — <b>{{ .CommonLabels.alertname }}</b>
           {{- if .CommonAnnotations.summary }}
@@ -93,5 +75,4 @@ receivers:
           <b>Details:</b> {{ .CommonAnnotations.description }}
           {{- end }}
 
-          {{/* Link back to the Prometheus expression that triggered this alert */}}
           <a href="{{ (index .Alerts 0).GeneratorURL }}">Open in Prometheus →</a>

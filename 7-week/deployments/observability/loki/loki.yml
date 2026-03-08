@@ -1,90 +1,74 @@
 # ============================================================
-# loki.yml - Main Loki configuration
+# loki.yml — Loki log storage configuration
 #
-# Loki is a logging backend that:
-#   1. Receives logs from Promtail
-#   2. Stores log chunks and label indexes
-#   3. Serves log queries (usually through Grafana)
+# How it fits:
+#   [Containers] ──logs──> [Promtail] ──push──> [Loki] <──query── [Grafana]
+#
+# Loki stores logs efficiently by only indexing labels (like
+# job="api"), not the full log text. Think of it as "grep for
+# your infrastructure" — you filter by labels first, then
+# search within the matching log streams.
 # ============================================================
 
-# Enables/disables authentication for Loki API endpoints.
-# false is common for local Docker setups behind a private network.
+# No authentication — safe for local Docker networks.
 auth_enabled: false
 
-# -- Loki API Server ------------------------------------------------
+# ── Server Ports ────────────────────────────────────────────
 server:
-  # HTTP API port (ingestion + query endpoints).
-  http_listen_port: 3100
-  # gRPC port used by internal Loki components.
-  grpc_listen_port: 9096
+  http_listen_port: 3100   # API: receives logs from Promtail, serves queries to Grafana
+  grpc_listen_port: 9096   # internal component communication
 
-# -- Common Single-Binary Settings ---------------------------------
+# ── Single-Node Settings ───────────────────────────────────
+# Loki can run as a distributed cluster, but here we run
+# everything in one process (single-binary mode).
 common:
-  # Address used by this Loki instance in ring membership.
   instance_addr: 127.0.0.1
-  # Base directory where Loki stores local data/state.
   path_prefix: /loki
-  # Number of replicas for log data.
-  # 1 means single-node mode (no redundancy).
-  replication_factor: 1
+  replication_factor: 1            # no replicas — single node
   ring:
     kvstore:
-      # In-memory ring store for single-instance deployment.
-      store: inmemory
+      store: inmemory              # in-memory ring — no external KV store needed
 
-# -- Index Schema ---------------------------------------------------
+# ── Index Schema ────────────────────────────────────────────
+# Defines how Loki indexes and stores log data.
+# TSDB + v13 is the recommended combo for Loki 3+.
 schema_config:
   configs:
-    - # Apply this schema from January 1, 2024 onward.
-      from: 2024-01-01
-      # boltdb-shipper keeps indexes locally and ships metadata.
-      store: boltdb-shipper
-      # Store log chunks on local filesystem.
-      object_store: filesystem
-      # Loki index schema version.
-      schema: v11
+    - from: 2024-01-01
+      store: tsdb                  # TSDB index — fast, efficient, the Loki 3+ default
+      object_store: filesystem     # store log chunks on local disk
+      schema: v13                  # latest schema version (required by tsdb)
       index:
-        # Prefix used when creating index tables/files.
         prefix: index_
-        # Create a new index period every 24h.
-        period: 24h
+        period: 24h                # rotate index files daily
 
-# -- Storage Paths --------------------------------------------------
+# ── Storage Paths ───────────────────────────────────────────
+# Where Loki writes data inside the container.
+# The /loki directory is backed by a Docker volume (loki_data).
 storage_config:
-  boltdb_shipper:
-    # Where active index files are written.
-    active_index_directory: /loki/index
-    # Local cache for BoltDB shipper.
-    cache_location: /loki/boltdb-cache
+  tsdb_shipper:
+    active_index_directory: /loki/tsdb-index
+    cache_location: /loki/tsdb-cache
   filesystem:
-    # Where compressed log chunks are stored.
-    directory: /loki/chunks
+    directory: /loki/chunks        # compressed log data
 
-# -- Compaction -----------------------------------------------------
+# ── Compaction & Retention ──────────────────────────────────
+# The compactor merges small index files and deletes expired data.
+# Without retention, logs would grow on disk forever.
 compactor:
-  # Working directory for compaction process temporary files.
   working_directory: /loki/compactor
+  retention_enabled: true          # automatically delete old logs
+  compaction_interval: 10m         # check for expired data every 10 min
+  delete_request_store: filesystem
 
-# -- Ingestion Limits -----------------------------------------------
+# ── Ingestion Limits ────────────────────────────────────────
 limits_config:
-  # Keep compatibility with legacy v11 boltdb-shipper schema.
-  # Loki 3 enables structured metadata by default, which requires v13 + tsdb.
-  allow_structured_metadata: false
-  # Reject incoming logs that are too old.
-  reject_old_samples: true
-  # Maximum accepted log age (168h = 7 days).
-  reject_old_samples_max_age: 168h
-  # How far back queries are allowed to look.
-  # 0s means no explicit look-back limit.
-  max_query_lookback: 0s
+  allow_structured_metadata: true  # native to v13 + tsdb
+  reject_old_samples: true         # refuse logs older than max age
+  reject_old_samples_max_age: 168h # 7 days — prevents ingesting stale data
+  max_query_lookback: 0s           # no limit on how far back queries can go
+  retention_period: 336h           # 14 days — logs older than this are deleted
 
-# -- Legacy Retention Manager --------------------------------------
-table_manager:
-  # Disabled because retention is not managed by table-manager here.
-  retention_deletes_enabled: false
-  retention_period: 0s
-
-# -- Telemetry ------------------------------------------------------
+# ── Telemetry ───────────────────────────────────────────────
 analytics:
-  # Disable anonymous usage reporting.
-  reporting_enabled: false
+  reporting_enabled: false         # disable anonymous usage reporting

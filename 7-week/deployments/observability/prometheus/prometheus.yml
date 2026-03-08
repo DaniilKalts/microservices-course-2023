@@ -1,71 +1,52 @@
 # ============================================================
-# prometheus.yml — Main Prometheus configuration
+# prometheus.yml — Prometheus server configuration
 #
-# Prometheus is a monitoring tool that:
-#   1. Periodically visits your services and pulls metrics (scraping)
-#   2. Evaluates rules to decide whether to fire alerts
-#   3. Sends fired alerts to Alertmanager, which notifies you
+# How it fits:
+#   app:2112/metrics ──scrape──> [Prometheus] ──alert──> [Alertmanager] ──notify──> Telegram
+#                                     |
+#                                     └──query──> [Grafana dashboards]
+#
+# Prometheus does two things on a loop:
+#   1. Scrapes /metrics from every target (collects numbers)
+#   2. Evaluates alert rules against those numbers
 # ============================================================
 
+# ── Global Defaults ─────────────────────────────────────────
 global:
-  # How often Prometheus visits each service to collect metrics.
-  # Every 15s Prometheus calls GET /metrics on every target.
+  # Pull metrics from every target this often.
   scrape_interval: 15s
-
-  # How long Prometheus waits for a /metrics response before giving up.
-  # Rule: MUST be less than scrape_interval, otherwise a slow response
-  # could overlap with the next scrape cycle.
+  # Give up on a slow /metrics response after this long.
+  # Must be < scrape_interval to avoid overlapping scrapes.
   scrape_timeout: 10s
-
-  # How often Prometheus re-evaluates alert rules to decide
-  # whether to fire or resolve an alert.
-  # Best practice: keep equal to scrape_interval so fresh data
-  # is always available when rules are evaluated.
+  # Re-check alert rules at this cadence.
+  # Matches scrape_interval so each evaluation sees fresh data.
   evaluation_interval: 15s
 
 # ── Alert Rules ─────────────────────────────────────────────
-# Prometheus loads alert rule definitions from these files.
-# Rules define the conditions under which an alert should fire.
-# The actual sending of notifications is NOT done here —
-# that is Alertmanager's job (see "alerting" section below).
+# Files containing "if X then fire alert Y" definitions.
+# Prometheus evaluates them — Alertmanager delivers them.
 rule_files:
   - "alerts.yml"
 
-# ── Alertmanager Integration ─────────────────────────────────
-# When a rule condition is met, Prometheus pushes the alert
-# to Alertmanager. Alertmanager then decides how/when/where
-# to send notifications (Telegram, PagerDuty, email, etc.).
+# ── Where to Send Fired Alerts ─────────────────────────────
+# Points Prometheus at the Alertmanager instance.
+# Docker DNS resolves "alertmanager" to the right container.
 alerting:
   alertmanagers:
     - static_configs:
-        - targets:
-            # Address of the Alertmanager instance.
-            # "alertmanager" is a Docker service name — Docker DNS
-            # resolves it to the correct container automatically.
-            # 9093 is Alertmanager's default HTTP port.
-            - "alertmanager:9093"
+        - targets: ["alertmanager:9093"]
 
-# ── Scrape Targets ───────────────────────────────────────────
-# Defines WHAT Prometheus scrapes (which services and addresses).
-# Each "job" is a logical group of targets — one per service type.
+# ── What to Scrape ──────────────────────────────────────────
+# Each job = one service type. The job name becomes a label
+# on every metric (job="termachat"), useful for filtering.
 scrape_configs:
 
-  # --- Your application ---
+  # Application metrics (gRPC latency, error counts, etc.)
   - job_name: "termachat"
-    # A label job="termachat" is automatically attached to every
-    # metric scraped from these targets. Useful for filtering in queries.
     static_configs:
-      - targets:
-          # Prometheus will call GET http://api:2112/metrics every 15s.
-          # "api" is the Docker service name; 2112 is the metrics port
-          # exposed by the termachat application.
-          - "api:2112"
+      - targets: ["api:2112"]   # docker-compose service "api", metrics port
 
-  # --- Host machine metrics (CPU, RAM, disk, network) ---
-  # node-exporter is a standard Prometheus exporter that runs on
-  # the host and exposes OS-level metrics at /metrics.
+  # Host-level metrics (CPU, RAM, disk, network) via node-exporter
   - job_name: "node"
     static_configs:
-      - targets:
-          # 9100 is the default port for node-exporter.
-          - "node-exporter:9100"
+      - targets: ["node-exporter:9100"]

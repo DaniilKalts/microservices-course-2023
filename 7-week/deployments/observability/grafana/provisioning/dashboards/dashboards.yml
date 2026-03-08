@@ -1,0 +1,24 @@
+# ============================================================
+# dashboards.yml — Grafana dashboard provisioning
+#
+# Tells Grafana to auto-load dashboard JSON files from disk
+# on startup, so you never need to import them manually.
+#
+# The JSON files live in:
+#   deployments/observability/grafana/dashboards/
+# and are mounted into the container at the path below.
+# ============================================================
+
+apiVersion: 1
+
+providers:
+  - name: default
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: true          # can't delete provisioned dashboards from the UI
+    updateIntervalSeconds: 30      # re-scan for updated JSON files every 30s
+    allowUiUpdates: true           # allow tweaks in UI (reverted on restart)
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: false

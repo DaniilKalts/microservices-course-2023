@@ -1,45 +1,47 @@
 # ============================================================
-# promtail.yml - Main Promtail configuration
+# promtail.yml — Promtail log collector configuration
 #
-# Promtail is a log shipping agent that:
-#   1. Discovers log sources (Docker containers here)
-#   2. Parses/enriches log lines with labels
-#   3. Pushes processed logs to Loki
+# How it fits:
+#   [Docker containers] ──stdout/stderr──> [Promtail] ──push──> [Loki]
+#
+# Promtail watches Docker for running containers, tails their
+# log streams, attaches useful labels (service name, stream),
+# and pushes everything to Loki.
 # ============================================================
 
-# -- Promtail HTTP/GRPC Server -------------------------------------
+# ── Server ──────────────────────────────────────────────────
 server:
-  # Local HTTP endpoint for metrics and health checks.
-  http_listen_port: 9080
-  # Disable gRPC server (0 means "off").
-  grpc_listen_port: 0
+  http_listen_port: 9080   # health checks and Promtail's own metrics
+  grpc_listen_port: 0      # disabled — not needed for log collection
 
-# -- Read Offsets (Checkpointing) ----------------------------------
+# ── Checkpointing ──────────────────────────────────────────
+# Tracks the last-read position per log source so Promtail
+# doesn't re-send old logs after a restart.
 positions:
-  # File where Promtail remembers the last read position per log source.
-  # Prevents re-reading full logs after restart.
   filename: /tmp/positions.yaml
 
-# -- Loki Push Targets ----------------------------------------------
+# ── Where to Send Logs ─────────────────────────────────────
 clients:
-  - # Loki ingestion endpoint (Docker service name + default Loki port).
-    url: http://loki:3100/loki/api/v1/push
+  - url: http://loki:3100/loki/api/v1/push   # Loki's ingestion endpoint
 
-# -- Log Discovery + Processing Pipeline ----------------------------
+# ── Log Discovery & Processing ─────────────────────────────
 scrape_configs:
   - job_name: docker
+
+    # Auto-discover containers via Docker socket.
+    # New containers are picked up within refresh_interval.
     docker_sd_configs:
-      - # Read container metadata/log streams from Docker Engine API.
-        host: unix:///var/run/docker.sock
-        # Refresh discovered container targets every 5 seconds.
+      - host: unix:///var/run/docker.sock
         refresh_interval: 5s
+
+    # Processing pipeline — runs on every log line.
     pipeline_stages:
-      - # Decode Docker JSON log envelope and extract the actual message.
-        docker: {}
+      - docker: {}   # unwrap Docker's JSON log envelope → extract raw message
+
+    # Label mapping — turns Docker metadata into Loki labels
+    # so you can query logs like: {job="api", stream="stderr"}
     relabel_configs:
-      - # stdout/stderr stream label
-        source_labels: [__meta_docker_container_log_stream]
-        target_label: stream
-      - # Set Loki's "job" label to the compose service name
-        source_labels: [__meta_docker_container_label_com_docker_compose_service]
-        target_label: job
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: stream    # "stdout" or "stderr"
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: job       # docker-compose service name (e.g. "api", "postgres")

@@ -10,7 +10,6 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/app"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config/env"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/logger"
 )
 
@@ -25,22 +24,17 @@ func main() {
 
 	ctx := context.Background()
 
-	if err := config.Load(configPath); err != nil {
+	cfg, err := config.Load(configPath)
+	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	cfg, err := env.NewConfig()
-	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to parse config: %v\n", err)
-		os.Exit(1)
-	}
-
 	appLogger, err := logger.New(logger.Config{
-		Level:            cfg.Zap().Level(),
-		Encoding:         cfg.Zap().Encoding(),
-		OutputPaths:      cfg.Zap().OutputPaths(),
-		ErrorOutputPaths: cfg.Zap().ErrorOutputPaths(),
+		Level:            cfg.Zap.Level,
+		Encoding:         cfg.Zap.Encoding,
+		OutputPaths:      cfg.Zap.OutputPaths,
+		ErrorOutputPaths: cfg.Zap.ErrorOutputPaths,
 	})
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "failed to initialize logger: %v\n", err)

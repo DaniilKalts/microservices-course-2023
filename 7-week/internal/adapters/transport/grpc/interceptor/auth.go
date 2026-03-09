@@ -1,10 +1,11 @@
-package middleware
+package interceptor
 
 import (
 	"context"
 	"errors"
 	"strings"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -22,8 +23,9 @@ var (
 	ErrMethodNotRegistered       = errors.New("method not registered in access policy")
 )
 
-func AuthInterceptor(jwtManager jwt.Manager, policy AccessPolicy) grpc.UnaryServerInterceptor {
+func AuthInterceptor(jwtManager jwt.Manager, policy AccessPolicy, logger *zap.Logger) grpc.UnaryServerInterceptor {
 	if policy.IsEmpty() {
+		logger.Error("auth access policy is not configured")
 		return func(
 			_ context.Context,
 			_ any,
@@ -42,6 +44,7 @@ func AuthInterceptor(jwtManager jwt.Manager, policy AccessPolicy) grpc.UnaryServ
 	) (any, error) {
 		requiredGroup, ok := policy.GroupForMethod(info.FullMethod)
 		if !ok {
+			logger.Warn("method not registered in access policy", zap.String("method", info.FullMethod))
 			return nil, status.Error(codes.PermissionDenied, ErrMethodNotRegistered.Error())
 		}
 
@@ -51,11 +54,16 @@ func AuthInterceptor(jwtManager jwt.Manager, policy AccessPolicy) grpc.UnaryServ
 
 		token, err := accessTokenFromContext(ctx)
 		if err != nil {
+			logger.Warn("missing authorization token", zap.String("method", info.FullMethod))
 			return nil, err
 		}
 
 		claims, err := authorize(token, jwtManager, requiredGroup)
 		if err != nil {
+			logger.Warn("authorization failed",
+				zap.String("method", info.FullMethod),
+				zap.Error(err),
+			)
 			return nil, err
 		}
 

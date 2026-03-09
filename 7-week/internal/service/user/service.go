@@ -82,8 +82,6 @@ func (s *service) List(ctx context.Context) ([]domainUser.User, error) {
 		return nil, err
 	}
 
-	s.logger.Info("users listed", zap.Int("count", len(users)))
-
 	return users, nil
 }
 
@@ -96,8 +94,6 @@ func (s *service) Get(ctx context.Context, id string) (*domainUser.User, error) 
 		return nil, err
 	}
 
-	s.logger.Info("user fetched", zap.String("user_id", id))
-
 	return user, nil
 }
 
@@ -109,8 +105,6 @@ func (s *service) GetCredentialsByEmail(ctx context.Context, email string) (*dom
 	if err != nil {
 		return nil, err
 	}
-
-	s.logger.Info("credentials fetched", zap.String("email", email))
 
 	return creds, nil
 }

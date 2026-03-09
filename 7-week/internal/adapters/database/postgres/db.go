@@ -16,6 +16,7 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database/prettier"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
 type db struct {
@@ -149,8 +150,7 @@ func (p *db) Ping(ctx context.Context) error {
 
 	err := p.pool.Ping(ctx)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogKV("event", "error", "message", err.Error())
+		tracing.LogError(p.logger, span, "failed to ping database", err)
 	}
 
 	return err
@@ -165,11 +165,13 @@ func (p *db) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, erro
 
 	tx, err := p.pool.BeginTx(ctx, txOptions)
 	if err != nil {
-		ext.Error.Set(span, true)
-		span.LogKV("event", "error", "message", err.Error())
+		tracing.LogError(p.logger, span, "failed to begin transaction", err, zap.String("isolation_level", string(txOptions.IsoLevel)))
+		return tx, err
 	}
 
-	return tx, err
+	p.logger.Debug("transaction started", zap.String("isolation_level", string(txOptions.IsoLevel)))
+
+	return tx, nil
 }
 
 func (p *db) Close() {

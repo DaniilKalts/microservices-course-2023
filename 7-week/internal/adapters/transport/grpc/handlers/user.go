@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -18,16 +19,17 @@ import (
 type UserHandler struct {
 	userv1.UnimplementedUserV1Server
 	userService userService.Service
+	logger      *zap.Logger
 }
 
-func NewUserHandler(userService userService.Service) *UserHandler {
-	return &UserHandler{userService: userService}
+func NewUserHandler(userService userService.Service, logger *zap.Logger) *UserHandler {
+	return &UserHandler{userService: userService, logger: logger}
 }
 
 func (h *UserHandler) Create(ctx context.Context, req *userv1.CreateRequest) (*userv1.CreateResponse, error) {
 	userID, err := h.userService.Create(ctx, toCreateUserInput(req))
 	if err != nil {
-		return nil, mapDomainUserError(err)
+		return nil, h.mapUserError(err)
 	}
 
 	return &userv1.CreateResponse{Id: userID}, nil
@@ -36,7 +38,7 @@ func (h *UserHandler) Create(ctx context.Context, req *userv1.CreateRequest) (*u
 func (h *UserHandler) Get(ctx context.Context, req *userv1.GetRequest) (*userv1.GetResponse, error) {
 	user, err := h.userService.Get(ctx, req.GetId())
 	if err != nil {
-		return nil, mapDomainUserError(err)
+		return nil, h.mapUserError(err)
 	}
 
 	return &userv1.GetResponse{User: toProtoUser(user)}, nil
@@ -45,7 +47,7 @@ func (h *UserHandler) Get(ctx context.Context, req *userv1.GetRequest) (*userv1.
 func (h *UserHandler) List(ctx context.Context, _ *emptypb.Empty) (*userv1.ListResponse, error) {
 	users, err := h.userService.List(ctx)
 	if err != nil {
-		return nil, mapDomainUserError(err)
+		return nil, h.mapUserError(err)
 	}
 
 	return &userv1.ListResponse{Users: toProtoUsers(users)}, nil
@@ -53,7 +55,7 @@ func (h *UserHandler) List(ctx context.Context, _ *emptypb.Empty) (*userv1.ListR
 
 func (h *UserHandler) Update(ctx context.Context, req *userv1.UpdateRequest) (*emptypb.Empty, error) {
 	if err := h.userService.Update(ctx, toUpdateUserInput(req)); err != nil {
-		return nil, mapDomainUserError(err)
+		return nil, h.mapUserError(err)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -61,13 +63,13 @@ func (h *UserHandler) Update(ctx context.Context, req *userv1.UpdateRequest) (*e
 
 func (h *UserHandler) Delete(ctx context.Context, req *userv1.DeleteRequest) (*emptypb.Empty, error) {
 	if err := h.userService.Delete(ctx, req.GetId()); err != nil {
-		return nil, mapDomainUserError(err)
+		return nil, h.mapUserError(err)
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
-func mapDomainUserError(err error) error {
+func (h *UserHandler) mapUserError(err error) error {
 	switch {
 	case errors.Is(err, domainUser.ErrNotFound):
 		return status.Error(codes.NotFound, domainUser.ErrNotFound.Error())
@@ -76,6 +78,7 @@ func mapDomainUserError(err error) error {
 	case errors.Is(err, domainUser.ErrNoFieldsToUpdate):
 		return status.Error(codes.InvalidArgument, domainUser.ErrNoFieldsToUpdate.Error())
 	default:
+		h.logger.Error("unhandled user error", zap.Error(err))
 		return status.Error(codes.Internal, "internal error")
 	}
 }

@@ -166,6 +166,7 @@ func (a *App) initJWTManager() error {
 	}
 
 	a.jwtManager = jwtManager
+	a.logger.Info("jwt manager initialized")
 
 	return nil
 }
@@ -189,6 +190,7 @@ func (a *App) initGRPC(services service.Services) error {
 	}
 
 	a.grpc = grpcServer
+	a.logger.Info("grpc server initialized")
 
 	return nil
 }
@@ -208,6 +210,7 @@ func (a *App) initGateway(ctx context.Context) error {
 		Handler:           proxy,
 		ReadHeaderTimeout: gatewayReadHeaderTimeout,
 	}
+	a.logger.Info("gateway initialized")
 
 	return nil
 }
@@ -216,6 +219,7 @@ func (a *App) initPrometheus() {
 	a.prometheus = httpMetrics.NewServer(httpMetrics.Config{
 		Address: a.cfg.Prometheus.Address(),
 	})
+	a.logger.Info("prometheus initialized")
 }
 
 func (a *App) Close() error {

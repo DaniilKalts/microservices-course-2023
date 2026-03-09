@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -16,16 +17,17 @@ import (
 type AuthHandler struct {
 	authv1.UnimplementedAuthV1Server
 	authService authService.Service
+	logger      *zap.Logger
 }
 
-func NewAuthHandler(authService authService.Service) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authService authService.Service, logger *zap.Logger) *AuthHandler {
+	return &AuthHandler{authService: authService, logger: logger}
 }
 
 func (h *AuthHandler) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
 	user, tokens, err := h.authService.Register(ctx, toRegisterInput(req))
 	if err != nil {
-		return nil, mapAuthError(err)
+		return nil, h.mapAuthError(err)
 	}
 
 	return &authv1.RegisterResponse{User: toProtoRegisterUser(user), Tokens: toProtoTokenPair(tokens)}, nil
@@ -34,7 +36,7 @@ func (h *AuthHandler) Register(ctx context.Context, req *authv1.RegisterRequest)
 func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
 	tokens, err := h.authService.Login(ctx, toLoginInput(req))
 	if err != nil {
-		return nil, mapAuthError(err)
+		return nil, h.mapAuthError(err)
 	}
 
 	return &authv1.LoginResponse{Tokens: toProtoTokenPair(tokens)}, nil
@@ -42,7 +44,7 @@ func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*aut
 
 func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*emptypb.Empty, error) {
 	if err := h.authService.Logout(ctx, toLogoutInput(req)); err != nil {
-		return nil, mapAuthError(err)
+		return nil, h.mapAuthError(err)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -51,13 +53,13 @@ func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*e
 func (h *AuthHandler) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error) {
 	tokens, err := h.authService.Refresh(ctx, toRefreshInput(req))
 	if err != nil {
-		return nil, mapAuthError(err)
+		return nil, h.mapAuthError(err)
 	}
 
 	return &authv1.RefreshResponse{Tokens: toProtoTokenPair(tokens)}, nil
 }
 
-func mapAuthError(err error) error {
+func (h *AuthHandler) mapAuthError(err error) error {
 	switch {
 	case errors.Is(err, authService.ErrInvalidCredentials):
 		return status.Error(codes.Unauthenticated, authService.ErrInvalidCredentials.Error())
@@ -72,6 +74,7 @@ func mapAuthError(err error) error {
 	case errors.Is(err, domainUser.ErrEmailAlreadyExists):
 		return status.Error(codes.AlreadyExists, domainUser.ErrEmailAlreadyExists.Error())
 	default:
+		h.logger.Error("unhandled auth error", zap.Error(err))
 		return status.Error(codes.Internal, "internal error")
 	}
 }

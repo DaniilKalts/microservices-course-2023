@@ -5,17 +5,20 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 )
 
 type manager struct {
-	db database.Transactor
+	db     database.Transactor
+	logger *zap.Logger
 }
 
-func NewTransactionManager(db database.Transactor) database.TxManager {
+func NewTransactionManager(db database.Transactor, logger *zap.Logger) database.TxManager {
 	return &manager{
-		db: db,
+		db:     db,
+		logger: logger,
 	}
 }
 
@@ -34,23 +37,26 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn databa
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.Errorf("panic recovered: %v", r)
+			m.logger.Error("panic recovered in transaction", zap.Any("panic", r))
 		}
 		if err != nil {
 			if errRollback := tx.Rollback(ctx); errRollback != nil {
+				m.logger.Error("failed to rollback transaction", zap.Error(errRollback), zap.NamedError("original_error", err))
 				err = errors.Wrap(err, errRollback.Error())
 			}
 			return
 		}
 		if err = tx.Commit(ctx); err != nil {
+			m.logger.Error("failed to commit transaction", zap.Error(err))
 			err = errors.Wrap(err, "failed to commit transaction")
 		}
 	}()
 
 	if err = fn(ctx); err != nil {
-		err = errors.New("failed to execute transaction")
+		err = errors.Wrap(err, "failed to execute transaction")
 	}
 
-	return nil
+	return err
 }
 
 func (m *manager) ReadCommitted(ctx context.Context, f database.TxFunc) error {

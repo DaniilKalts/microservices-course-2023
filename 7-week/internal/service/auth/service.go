@@ -136,12 +136,13 @@ func (s *service) Logout(ctx context.Context, input LogoutInput) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "service.auth.Logout")
 	defer span.Finish()
 
-	if _, err := s.jwtManager.VerifyRefreshToken(input.RefreshToken); err != nil {
+	claims, err := s.jwtManager.VerifyRefreshToken(input.RefreshToken)
+	if err != nil {
 		tracing.LogWarn(s.logger, span, "invalid refresh token on logout", err)
 		return fmt.Errorf("%w: %v", ErrInvalidRefreshToken, err)
 	}
 
-	s.logger.Info("user logged out")
+	s.logger.Info("user logged out", zap.String("user_id", claims.UserID))
 
 	return nil
 }

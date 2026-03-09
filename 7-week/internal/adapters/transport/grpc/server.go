@@ -15,7 +15,7 @@ import (
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/handlers"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/middleware"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/interceptor"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
 )
@@ -27,12 +27,12 @@ type ServerConfig struct {
 }
 
 type Deps struct {
-	Config ServerConfig
+	Config     ServerConfig
 	Logger     *zap.Logger
 	JWTManager jwt.Manager
 
 	Services   service.Services
-	AuthPolicy middleware.AccessPolicy
+	AuthPolicy interceptor.AccessPolicy
 
 	Tracer          opentracing.Tracer
 	ResponseCounter *prometheus.CounterVec
@@ -56,11 +56,11 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
-			middleware.MetricsInterceptor(deps.ResponseCounter, deps.RequestDuration),
-			middleware.TracingInterceptor(deps.Tracer),
-			middleware.LoggingInterceptor(logger.Named("interceptor.logging")),
-			middleware.AuthInterceptor(deps.JWTManager, authPolicy),
-			middleware.ValidationInterceptor(),
+			interceptor.MetricsInterceptor(deps.ResponseCounter, deps.RequestDuration),
+			interceptor.TracingInterceptor(deps.Tracer),
+			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),
+			interceptor.AuthInterceptor(deps.JWTManager, authPolicy, logger.Named("interceptor.auth")),
+			interceptor.ValidationInterceptor(),
 		),
 	}
 
@@ -73,7 +73,7 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 
 		creds, err := credentials.NewServerTLSFromFile(cfg.CertFile, cfg.KeyFile)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("load grpc tls credentials: %w", err)
 		}
 
 		grpcOpts = append(grpcOpts, grpc.Creds(creds))
@@ -81,22 +81,23 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 
 	server := grpc.NewServer(grpcOpts...)
 
-	userv1.RegisterUserV1Server(server, handlers.NewUserHandler(deps.Services.User))
-	userv1.RegisterProfileV1Server(server, handlers.NewProfileHandler(deps.Services.User))
-	authv1.RegisterAuthV1Server(server, handlers.NewAuthHandler(deps.Services.Auth))
+	handlerLogger := logger.Named("handler")
+	userv1.RegisterUserV1Server(server, handlers.NewUserHandler(deps.Services.User, handlerLogger.Named("user")))
+	userv1.RegisterProfileV1Server(server, handlers.NewProfileHandler(deps.Services.User, handlerLogger.Named("profile")))
+	authv1.RegisterAuthV1Server(server, handlers.NewAuthHandler(deps.Services.Auth, handlerLogger.Named("auth")))
 
 	reflection.Register(server)
 
 	return server, nil
 }
 
-func defaultAccessPolicy() (middleware.AccessPolicy, error) {
-	public := middleware.PublicGroup()
-	authenticated := middleware.RoleGroup("authenticated", int32(domainUser.RoleUser), int32(domainUser.RoleAdmin))
-	admin := middleware.RoleGroup("admin", int32(domainUser.RoleAdmin))
+func defaultAccessPolicy() (interceptor.AccessPolicy, error) {
+	public := interceptor.PublicGroup()
+	authenticated := interceptor.RoleGroup("authenticated", int32(domainUser.RoleUser), int32(domainUser.RoleAdmin))
+	admin := interceptor.RoleGroup("admin", int32(domainUser.RoleAdmin))
 
-	return middleware.NewAccessPolicy(
-		middleware.MethodGroup{
+	return interceptor.NewAccessPolicy(
+		interceptor.MethodGroup{
 			Group: public,
 			Methods: []string{
 				authv1.AuthV1_Register_FullMethodName,
@@ -106,7 +107,7 @@ func defaultAccessPolicy() (middleware.AccessPolicy, error) {
 				userv1.UserV1_Get_FullMethodName,
 			},
 		},
-		middleware.MethodGroup{
+		interceptor.MethodGroup{
 			Group: admin,
 			Methods: []string{
 				userv1.UserV1_Create_FullMethodName,
@@ -114,7 +115,7 @@ func defaultAccessPolicy() (middleware.AccessPolicy, error) {
 				userv1.UserV1_Delete_FullMethodName,
 			},
 		},
-		middleware.MethodGroup{
+		interceptor.MethodGroup{
 			Group: authenticated,
 			Methods: []string{
 				authv1.AuthV1_Logout_FullMethodName,

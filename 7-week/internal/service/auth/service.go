@@ -15,32 +15,6 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
-type TokenPair struct {
-	AccessToken           string
-	RefreshToken          string
-	AccessTokenExpiresIn  int64
-	RefreshTokenExpiresIn int64
-}
-
-type RegisterInput struct {
-	Name     string
-	Email    string
-	Password string
-}
-
-type LoginInput struct {
-	Email    string
-	Password string
-}
-
-type LogoutInput struct {
-	RefreshToken string
-}
-
-type RefreshInput struct {
-	RefreshToken string
-}
-
 type Service interface {
 	Register(ctx context.Context, input RegisterInput) (domainUser.User, TokenPair, error)
 	Login(ctx context.Context, input LoginInput) (TokenPair, error)
@@ -198,4 +172,3 @@ func (s *service) generateTokenPair(userID string, roleID int32) (TokenPair, err
 		RefreshTokenExpiresIn: refreshTokenExpiresIn,
 	}, nil
 }
-

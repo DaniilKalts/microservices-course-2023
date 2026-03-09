@@ -71,11 +71,11 @@ type TLSConfig struct {
 }
 
 type JWTConfig struct {
-	Issuer           string        `env:"ISS,required"`
-	Subject          string        `env:"SUB,required"`
-	Audience         string        `env:"AUD,required"`
-	PrivateKeyFile   string        `env:"PRIVATE_KEY_FILE" envDefault:"build/jwt/rs256_private.pem"`
-	PublicKeyFile    string        `env:"PUBLIC_KEY_FILE"  envDefault:"build/jwt/rs256_public.pem"`
+	Issuer          string        `env:"ISS,required"`
+	Subject         string        `env:"SUB,required"`
+	Audience        string        `env:"AUD,required"`
+	PrivateKeyFile  string        `env:"PRIVATE_KEY_FILE" envDefault:"build/jwt/rs256_private.pem"`
+	PublicKeyFile   string        `env:"PUBLIC_KEY_FILE"  envDefault:"build/jwt/rs256_public.pem"`
 	AccessTokenTTL  time.Duration `env:"ACCESS_EXP,required"`
 	RefreshTokenTTL time.Duration `env:"REFRESH_EXP,required"`
 	NotBeforeOffset time.Duration `env:"NBF,required"`

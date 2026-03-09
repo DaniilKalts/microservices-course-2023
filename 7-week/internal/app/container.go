@@ -13,10 +13,10 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
+	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/database/postgres"
 	grpcTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/http/gateway"
 	httpMetrics "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/http/metrics"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/database/postgres"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"

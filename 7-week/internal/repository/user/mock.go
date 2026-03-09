@@ -10,8 +10,9 @@ import (
 	mm_atomic "sync/atomic"
 	mm_time "time"
 
-	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/gojuno/minimock/v3"
+
+	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 )
 
 // UserRepositoryMock implements Repository

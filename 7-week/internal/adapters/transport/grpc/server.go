@@ -13,9 +13,9 @@ import (
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/auth/v1"
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
-	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/handlers"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/interceptor"
+	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
 )

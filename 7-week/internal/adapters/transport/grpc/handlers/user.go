@@ -12,8 +12,8 @@ import (
 
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/protoutil"
 	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/protoutil"
 )
 
 type UserHandler struct {

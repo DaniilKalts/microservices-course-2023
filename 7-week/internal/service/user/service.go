@@ -13,18 +13,6 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
-type CreateInput struct {
-	User     *domainUser.User
-	Password string
-}
-
-type UpdateInput struct {
-	ID       string
-	Name     *string
-	Email    *string
-	Password *string
-}
-
 type Service interface {
 	Create(ctx context.Context, input CreateInput) (string, error)
 	List(ctx context.Context) ([]domainUser.User, error)

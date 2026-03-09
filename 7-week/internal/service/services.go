@@ -1,12 +1,12 @@
 package service
 
 import (
-	authService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/auth"
-	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
+	"go.uber.org/zap"
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
+	authService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/auth"
+	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
-	"go.uber.org/zap"
 )
 
 type Services struct {

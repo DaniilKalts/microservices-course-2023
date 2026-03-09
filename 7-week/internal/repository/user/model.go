@@ -13,3 +13,9 @@ type dbUser struct {
 	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
+
+type dbCredentials struct {
+	ID           string `db:"id"`
+	PasswordHash string `db:"password_hash"`
+	Role         int32  `db:"role"`
+}

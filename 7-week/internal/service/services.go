@@ -21,7 +21,7 @@ type Deps struct {
 }
 
 func NewServices(deps Deps) Services {
-	userSvc := userService.NewService(deps.Repositories.User)
+	userSvc := userService.NewService(deps.Repositories.User, deps.Logger.Named("user"))
 	authSvc := authService.NewService(
 		userSvc,
 		deps.JWTManager,

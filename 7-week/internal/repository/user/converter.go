@@ -33,10 +33,10 @@ func toDomainUsers(users []dbUser) []domainUser.User {
 	return result
 }
 
-func toCredentials(u *dbUser) *domainUser.Credentials {
+func toCredentials(creds *dbCredentials) *domainUser.Credentials {
 	return &domainUser.Credentials{
-		ID:           u.ID,
-		PasswordHash: u.PasswordHash,
-		Role:         domainUser.Role(u.Role),
+		ID:           creds.ID,
+		PasswordHash: creds.PasswordHash,
+		Role:         domainUser.Role(creds.Role),
 	}
 }

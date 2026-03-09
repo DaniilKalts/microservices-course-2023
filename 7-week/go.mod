@@ -23,6 +23,12 @@ require (
 )
 
 require (
+	github.com/hexdigest/gowrap v1.4.3 // indirect
+	golang.org/x/mod v0.32.0 // indirect
+	golang.org/x/tools v0.41.0 // indirect
+)
+
+require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/caarlos0/env/v11 v11.4.0
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

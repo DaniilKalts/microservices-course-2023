@@ -76,7 +76,7 @@ func (a *App) init(ctx context.Context) error {
 		return err
 	}
 
-	repos := repository.NewRepositories(a.db)
+	repos := repository.NewRepositories(a.db, a.logger.Named("repository"))
 	services := service.NewServices(service.Deps{
 		Repositories: repos,
 		JWTManager:   a.jwtManager,

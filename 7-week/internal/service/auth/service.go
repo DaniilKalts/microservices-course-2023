@@ -12,7 +12,15 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
+
+type TokenPair struct {
+	AccessToken           string
+	RefreshToken          string
+	AccessTokenExpiresIn  int64
+	RefreshTokenExpiresIn int64
+}
 
 type RegisterInput struct {
 	Name     string
@@ -70,8 +78,7 @@ func (s *service) Register(ctx context.Context, input RegisterInput) (domainUser
 			Email: input.Email,
 			Role:  domainUser.RoleUser,
 		},
-		Password:        input.Password,
-		PasswordConfirm: input.Password,
+		Password: input.Password,
 	})
 	if err != nil {
 		return domainUser.User{}, TokenPair{}, err
@@ -79,8 +86,11 @@ func (s *service) Register(ctx context.Context, input RegisterInput) (domainUser
 
 	tokenPair, err := s.generateTokenPair(userID, int32(domainUser.RoleUser))
 	if err != nil {
+		tracing.LogError(s.logger, span, "failed to issue tokens after registration", err, zap.String("user_id", userID))
 		return domainUser.User{}, TokenPair{}, fmt.Errorf("%w: %v", ErrIssueTokens, err)
 	}
+
+	s.logger.Info("user registered", zap.String("user_id", userID), zap.String("email", input.Email))
 
 	return domainUser.User{ID: userID, Name: input.Name, Email: input.Email}, tokenPair, nil
 }
@@ -92,7 +102,8 @@ func (s *service) Login(ctx context.Context, input LoginInput) (TokenPair, error
 	credentials, err := s.userService.GetCredentialsByEmail(ctx, input.Email)
 	if err != nil {
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyPasswordHash), []byte(input.Password))
-		if errors.Is(err, userService.ErrNotFound) {
+		if errors.Is(err, domainUser.ErrNotFound) {
+			tracing.LogWarn(s.logger, span, "login attempt for non-existent email", ErrInvalidCredentials, zap.String("email", input.Email))
 			return TokenPair{}, ErrInvalidCredentials
 		}
 
@@ -102,16 +113,21 @@ func (s *service) Login(ctx context.Context, input LoginInput) (TokenPair, error
 	err = bcrypt.CompareHashAndPassword([]byte(credentials.PasswordHash), []byte(input.Password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			tracing.LogWarn(s.logger, span, "invalid password attempt", ErrInvalidCredentials, zap.String("email", input.Email))
 			return TokenPair{}, ErrInvalidCredentials
 		}
 
+		tracing.LogError(s.logger, span, "failed to compare password hash", err, zap.String("email", input.Email))
 		return TokenPair{}, fmt.Errorf("%w: %v", ErrAuthentication, err)
 	}
 
 	tokenPair, err := s.generateTokenPair(credentials.ID, int32(credentials.Role))
 	if err != nil {
+		tracing.LogError(s.logger, span, "failed to issue tokens during login", err, zap.String("user_id", credentials.ID))
 		return TokenPair{}, fmt.Errorf("%w: %v", ErrIssueTokens, err)
 	}
+
+	s.logger.Info("user logged in", zap.String("user_id", credentials.ID), zap.String("email", input.Email))
 
 	return tokenPair, nil
 }
@@ -121,8 +137,11 @@ func (s *service) Logout(ctx context.Context, input LogoutInput) error {
 	defer span.Finish()
 
 	if _, err := s.jwtManager.VerifyRefreshToken(input.RefreshToken); err != nil {
+		tracing.LogWarn(s.logger, span, "invalid refresh token on logout", err)
 		return fmt.Errorf("%w: %v", ErrInvalidRefreshToken, err)
 	}
+
+	s.logger.Info("user logged out")
 
 	return nil
 }
@@ -133,13 +152,17 @@ func (s *service) Refresh(ctx context.Context, input RefreshInput) (TokenPair, e
 
 	claims, err := s.jwtManager.VerifyRefreshToken(input.RefreshToken)
 	if err != nil {
+		tracing.LogWarn(s.logger, span, "invalid refresh token on refresh", err)
 		return TokenPair{}, fmt.Errorf("%w: %v", ErrInvalidRefreshToken, err)
 	}
 
 	tokenPair, err := s.generateTokenPair(claims.UserID, claims.RoleID)
 	if err != nil {
+		tracing.LogError(s.logger, span, "failed to issue tokens during refresh", err, zap.String("user_id", claims.UserID))
 		return TokenPair{}, fmt.Errorf("%w: %v", ErrIssueTokens, err)
 	}
+
+	s.logger.Info("tokens refreshed", zap.String("user_id", claims.UserID))
 
 	return tokenPair, nil
 }
@@ -174,3 +197,4 @@ func (s *service) generateTokenPair(userID string, roleID int32) (TokenPair, err
 		RefreshTokenExpiresIn: refreshTokenExpiresIn,
 	}, nil
 }
+

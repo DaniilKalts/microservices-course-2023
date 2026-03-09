@@ -7,9 +7,11 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/opentracing/opentracing-go"
+	"go.uber.org/zap"
 
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
@@ -31,11 +33,15 @@ type Repository interface {
 }
 
 type repository struct {
-	dbc database.Client
+	dbc    database.Client
+	logger *zap.Logger
 }
 
-func NewRepository(dbc database.Client) Repository {
-	return &repository{dbc: dbc}
+func NewRepository(dbc database.Client, logger *zap.Logger) Repository {
+	return &repository{
+		dbc:    dbc,
+		logger: logger,
+	}
 }
 
 func (repo *repository) Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error) {
@@ -50,14 +56,17 @@ func (repo *repository) Create(ctx context.Context, user *domainUser.User, passw
 		Suffix("RETURNING id").
 		ToSql()
 	if err != nil {
+		tracing.LogError(repo.logger, span, "failed to build query", err)
 		return "", err
 	}
 
 	var userID string
 	if err = repo.dbc.DB().ScanOneContext(ctx, &userID, database.Query{Name: "user.Create", QueryRaw: query}, args...); err != nil {
 		if errors.Is(err, database.ErrUniqueViolation) {
-			return "", ErrEmailAlreadyExists
+			tracing.LogWarn(repo.logger, span, "email already exists", err, zap.String("email", user.Email))
+			return "", domainUser.ErrEmailAlreadyExists
 		}
+		tracing.LogError(repo.logger, span, "failed to create user", err)
 		return "", err
 	}
 
@@ -73,11 +82,13 @@ func (repo *repository) List(ctx context.Context) ([]domainUser.User, error) {
 		OrderBy("created_at DESC").
 		ToSql()
 	if err != nil {
+		tracing.LogError(repo.logger, span, "failed to build query", err)
 		return nil, err
 	}
 
 	var users []dbUser
 	if err = repo.dbc.DB().ScanAllContext(ctx, &users, database.Query{Name: "user.List", QueryRaw: query}, args...); err != nil {
+		tracing.LogError(repo.logger, span, "failed to list users", err)
 		return nil, err
 	}
 
@@ -94,14 +105,17 @@ func (repo *repository) GetByID(ctx context.Context, id string) (*domainUser.Use
 		Limit(1).
 		ToSql()
 	if err != nil {
+		tracing.LogError(repo.logger, span, "failed to build query", err)
 		return nil, err
 	}
 
 	var user dbUser
 	if err = repo.dbc.DB().ScanOneContext(ctx, &user, database.Query{Name: "user.GetByID", QueryRaw: query}, args...); err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return nil, ErrNotFound
+			tracing.LogWarn(repo.logger, span, "user not found", err, zap.String("user_id", id))
+			return nil, domainUser.ErrNotFound
 		}
+		tracing.LogError(repo.logger, span, "failed to get user", err, zap.String("user_id", id))
 		return nil, err
 	}
 
@@ -118,18 +132,21 @@ func (repo *repository) GetCredentialsByEmail(ctx context.Context, email string)
 		Limit(1).
 		ToSql()
 	if err != nil {
+		tracing.LogError(repo.logger, span, "failed to build query", err)
 		return nil, err
 	}
 
-	var user dbUser
-	if err = repo.dbc.DB().ScanOneContext(ctx, &user, database.Query{Name: "user.GetCredentialsByEmail", QueryRaw: query}, args...); err != nil {
+	var creds dbCredentials
+	if err = repo.dbc.DB().ScanOneContext(ctx, &creds, database.Query{Name: "user.GetCredentialsByEmail", QueryRaw: query}, args...); err != nil {
 		if errors.Is(err, database.ErrNotFound) {
-			return nil, ErrNotFound
+			tracing.LogWarn(repo.logger, span, "credentials not found", err, zap.String("email", email))
+			return nil, domainUser.ErrNotFound
 		}
+		tracing.LogError(repo.logger, span, "failed to get credentials", err, zap.String("email", email))
 		return nil, err
 	}
 
-	return toCredentials(&user), nil
+	return toCredentials(&creds), nil
 }
 
 func (repo *repository) Update(ctx context.Context, input UpdateInput) error {
@@ -155,26 +172,31 @@ func (repo *repository) Update(ctx context.Context, input UpdateInput) error {
 	}
 
 	if !hasFields {
-		return ErrNoFieldsToUpdate
+		tracing.LogWarn(repo.logger, span, "no fields to update", domainUser.ErrNoFieldsToUpdate, zap.String("user_id", input.ID))
+		return domainUser.ErrNoFieldsToUpdate
 	}
 
 	builderUpdate = builderUpdate.Set("updated_at", time.Now())
 
 	query, args, err := builderUpdate.ToSql()
 	if err != nil {
+		tracing.LogError(repo.logger, span, "failed to build query", err, zap.String("user_id", input.ID))
 		return err
 	}
 
 	result, err := repo.dbc.DB().ExecContext(ctx, database.Query{Name: "user.Update", QueryRaw: query}, args...)
 	if err != nil {
 		if errors.Is(err, database.ErrUniqueViolation) {
-			return ErrEmailAlreadyExists
+			tracing.LogWarn(repo.logger, span, "email already exists", err, zap.String("user_id", input.ID))
+			return domainUser.ErrEmailAlreadyExists
 		}
+		tracing.LogError(repo.logger, span, "failed to update user", err, zap.String("user_id", input.ID))
 		return err
 	}
 
 	if result.RowsAffected() == 0 {
-		return ErrNotFound
+		tracing.LogWarn(repo.logger, span, "user not found", domainUser.ErrNotFound, zap.String("user_id", input.ID))
+		return domainUser.ErrNotFound
 	}
 
 	return nil
@@ -188,16 +210,19 @@ func (repo *repository) Delete(ctx context.Context, id string) error {
 		Where(sq.Eq{"id": id}).
 		ToSql()
 	if err != nil {
+		tracing.LogError(repo.logger, span, "failed to build query", err, zap.String("user_id", id))
 		return err
 	}
 
 	result, err := repo.dbc.DB().ExecContext(ctx, database.Query{Name: "user.Delete", QueryRaw: query}, args...)
 	if err != nil {
+		tracing.LogError(repo.logger, span, "failed to delete user", err, zap.String("user_id", id))
 		return err
 	}
 
 	if result.RowsAffected() == 0 {
-		return ErrNotFound
+		tracing.LogWarn(repo.logger, span, "user not found", domainUser.ErrNotFound, zap.String("user_id", id))
+		return domainUser.ErrNotFound
 	}
 
 	return nil

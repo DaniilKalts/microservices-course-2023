@@ -2,29 +2,20 @@ package user
 
 import (
 	"context"
-	"errors"
-
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/opentracing/opentracing-go"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	userRepository "github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository/user"
-)
-
-var (
-	ErrPasswordMismatch   = errors.New("passwords don't match")
-	ErrNotFound           = errors.New("user not found")
-	ErrEmailAlreadyExists = errors.New("email already exists")
-	ErrNoFieldsToUpdate   = errors.New("no fields to update")
+	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
 type CreateInput struct {
-	User            *domainUser.User
-	Password        string
-	PasswordConfirm string
+	User     *domainUser.User
+	Password string
 }
 
 type UpdateInput struct {
@@ -44,12 +35,14 @@ type Service interface {
 }
 
 type service struct {
-	repo userRepository.Repository
+	repo   userRepository.Repository
+	logger *zap.Logger
 }
 
-func NewService(repo userRepository.Repository) Service {
+func NewService(repo userRepository.Repository, logger *zap.Logger) Service {
 	return &service{
-		repo: repo,
+		repo:   repo,
+		logger: logger,
 	}
 }
 
@@ -57,25 +50,25 @@ func (s *service) Create(ctx context.Context, input CreateInput) (string, error)
 	span, ctx := opentracing.StartSpanFromContext(ctx, "service.user.Create")
 	defer span.Finish()
 
-	if input.Password != input.PasswordConfirm {
-		return "", ErrPasswordMismatch
-	}
-
 	id, err := uuid.NewV7()
 	if err != nil {
+		tracing.LogError(s.logger, span, "failed to generate uuid", err)
 		return "", err
 	}
 	input.User.ID = id.String()
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
+		tracing.LogError(s.logger, span, "failed to hash password", err)
 		return "", err
 	}
 
 	userID, err := s.repo.Create(ctx, input.User, string(hashedPassword))
 	if err != nil {
-		return "", mapRepoError(err)
+		return "", err
 	}
+
+	s.logger.Info("user created", zap.String("user_id", userID))
 
 	return userID, nil
 }
@@ -86,8 +79,10 @@ func (s *service) List(ctx context.Context) ([]domainUser.User, error) {
 
 	users, err := s.repo.List(ctx)
 	if err != nil {
-		return nil, mapRepoError(err)
+		return nil, err
 	}
+
+	s.logger.Info("users listed", zap.Int("count", len(users)))
 
 	return users, nil
 }
@@ -98,8 +93,10 @@ func (s *service) Get(ctx context.Context, id string) (*domainUser.User, error) 
 
 	user, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, mapRepoError(err)
+		return nil, err
 	}
+
+	s.logger.Info("user fetched", zap.String("user_id", id))
 
 	return user, nil
 }
@@ -110,8 +107,10 @@ func (s *service) GetCredentialsByEmail(ctx context.Context, email string) (*dom
 
 	creds, err := s.repo.GetCredentialsByEmail(ctx, email)
 	if err != nil {
-		return nil, mapRepoError(err)
+		return nil, err
 	}
+
+	s.logger.Info("credentials fetched", zap.String("email", email))
 
 	return creds, nil
 }
@@ -129,6 +128,7 @@ func (s *service) Update(ctx context.Context, input UpdateInput) error {
 	if input.Password != nil {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
 		if err != nil {
+			tracing.LogError(s.logger, span, "failed to hash password", err, zap.String("user_id", input.ID))
 			return err
 		}
 
@@ -137,8 +137,10 @@ func (s *service) Update(ctx context.Context, input UpdateInput) error {
 	}
 
 	if err := s.repo.Update(ctx, repoInput); err != nil {
-		return mapRepoError(err)
+		return err
 	}
+
+	s.logger.Info("user updated", zap.String("user_id", input.ID))
 
 	return nil
 }
@@ -148,21 +150,10 @@ func (s *service) Delete(ctx context.Context, id string) error {
 	defer span.Finish()
 
 	if err := s.repo.Delete(ctx, id); err != nil {
-		return mapRepoError(err)
-	}
-
-	return nil
-}
-
-func mapRepoError(err error) error {
-	switch {
-	case errors.Is(err, userRepository.ErrNotFound):
-		return fmt.Errorf("%w: %v", ErrNotFound, err)
-	case errors.Is(err, userRepository.ErrEmailAlreadyExists):
-		return fmt.Errorf("%w: %v", ErrEmailAlreadyExists, err)
-	case errors.Is(err, userRepository.ErrNoFieldsToUpdate):
-		return fmt.Errorf("%w: %v", ErrNoFieldsToUpdate, err)
-	default:
 		return err
 	}
+
+	s.logger.Info("user deleted", zap.String("user_id", id))
+
+	return nil
 }

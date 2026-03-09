@@ -1,4 +1,4 @@
-package handlers
+package profile
 
 import (
 	"context"
@@ -10,23 +10,24 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
+	userHandler "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/handlers/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/interceptor"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	userService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/protoutil"
 )
 
-type ProfileHandler struct {
+type Handler struct {
 	userv1.UnimplementedProfileV1Server
 	userService userService.Service
 	logger      *zap.Logger
 }
 
-func NewProfileHandler(userService userService.Service, logger *zap.Logger) *ProfileHandler {
-	return &ProfileHandler{userService: userService, logger: logger}
+func NewHandler(userService userService.Service, logger *zap.Logger) *Handler {
+	return &Handler{userService: userService, logger: logger}
 }
 
-func (h *ProfileHandler) GetProfile(ctx context.Context, _ *emptypb.Empty) (*userv1.GetProfileResponse, error) {
+func (h *Handler) GetProfile(ctx context.Context, _ *emptypb.Empty) (*userv1.GetProfileResponse, error) {
 	userID, err := currentUserID(ctx)
 	if err != nil {
 		return nil, err
@@ -34,33 +35,33 @@ func (h *ProfileHandler) GetProfile(ctx context.Context, _ *emptypb.Empty) (*use
 
 	user, err := h.userService.Get(ctx, userID)
 	if err != nil {
-		return nil, h.mapProfileError(err)
+		return nil, h.mapError(err)
 	}
 
-	return &userv1.GetProfileResponse{User: toProtoUser(user)}, nil
+	return &userv1.GetProfileResponse{User: userHandler.ToProtoUser(user)}, nil
 }
 
-func (h *ProfileHandler) UpdateProfile(ctx context.Context, req *userv1.UpdateProfileRequest) (*emptypb.Empty, error) {
+func (h *Handler) UpdateProfile(ctx context.Context, req *userv1.UpdateProfileRequest) (*emptypb.Empty, error) {
 	userID, err := currentUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if err = h.userService.Update(ctx, toUpdateProfileInput(userID, req)); err != nil {
-		return nil, h.mapProfileError(err)
+		return nil, h.mapError(err)
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
-func (h *ProfileHandler) DeleteProfile(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
+func (h *Handler) DeleteProfile(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
 	userID, err := currentUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if err = h.userService.Delete(ctx, userID); err != nil {
-		return nil, h.mapProfileError(err)
+		return nil, h.mapError(err)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -75,7 +76,7 @@ func currentUserID(ctx context.Context) (string, error) {
 	return claims.UserID, nil
 }
 
-func (h *ProfileHandler) mapProfileError(err error) error {
+func (h *Handler) mapError(err error) error {
 	switch {
 	case errors.Is(err, domainUser.ErrNotFound):
 		return status.Error(codes.NotFound, domainUser.ErrNotFound.Error())

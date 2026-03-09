@@ -1,4 +1,4 @@
-package handlers
+package auth
 
 import (
 	"context"
@@ -14,52 +14,52 @@ import (
 	authService "github.com/DaniilKalts/microservices-course-2023/7-week/internal/service/auth"
 )
 
-type AuthHandler struct {
+type Handler struct {
 	authv1.UnimplementedAuthV1Server
 	authService authService.Service
 	logger      *zap.Logger
 }
 
-func NewAuthHandler(authService authService.Service, logger *zap.Logger) *AuthHandler {
-	return &AuthHandler{authService: authService, logger: logger}
+func NewHandler(authService authService.Service, logger *zap.Logger) *Handler {
+	return &Handler{authService: authService, logger: logger}
 }
 
-func (h *AuthHandler) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
+func (h *Handler) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
 	user, tokens, err := h.authService.Register(ctx, toRegisterInput(req))
 	if err != nil {
-		return nil, h.mapAuthError(err)
+		return nil, h.mapError(err)
 	}
 
 	return &authv1.RegisterResponse{User: toProtoRegisterUser(user), Tokens: toProtoTokenPair(tokens)}, nil
 }
 
-func (h *AuthHandler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
+func (h *Handler) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
 	tokens, err := h.authService.Login(ctx, toLoginInput(req))
 	if err != nil {
-		return nil, h.mapAuthError(err)
+		return nil, h.mapError(err)
 	}
 
 	return &authv1.LoginResponse{Tokens: toProtoTokenPair(tokens)}, nil
 }
 
-func (h *AuthHandler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*emptypb.Empty, error) {
+func (h *Handler) Logout(ctx context.Context, req *authv1.LogoutRequest) (*emptypb.Empty, error) {
 	if err := h.authService.Logout(ctx, toLogoutInput(req)); err != nil {
-		return nil, h.mapAuthError(err)
+		return nil, h.mapError(err)
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
-func (h *AuthHandler) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error) {
+func (h *Handler) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error) {
 	tokens, err := h.authService.Refresh(ctx, toRefreshInput(req))
 	if err != nil {
-		return nil, h.mapAuthError(err)
+		return nil, h.mapError(err)
 	}
 
 	return &authv1.RefreshResponse{Tokens: toProtoTokenPair(tokens)}, nil
 }
 
-func (h *AuthHandler) mapAuthError(err error) error {
+func (h *Handler) mapError(err error) error {
 	switch {
 	case errors.Is(err, authService.ErrInvalidCredentials):
 		return status.Error(codes.Unauthenticated, authService.ErrInvalidCredentials.Error())
@@ -76,45 +76,5 @@ func (h *AuthHandler) mapAuthError(err error) error {
 	default:
 		h.logger.Error("unhandled auth error", zap.Error(err))
 		return status.Error(codes.Internal, "internal error")
-	}
-}
-
-func toRegisterInput(req *authv1.RegisterRequest) authService.RegisterInput {
-	return authService.RegisterInput{
-		Name:     req.GetName(),
-		Email:    req.GetEmail(),
-		Password: req.GetPassword(),
-	}
-}
-
-func toLoginInput(req *authv1.LoginRequest) authService.LoginInput {
-	return authService.LoginInput{
-		Email:    req.GetEmail(),
-		Password: req.GetPassword(),
-	}
-}
-
-func toLogoutInput(req *authv1.LogoutRequest) authService.LogoutInput {
-	return authService.LogoutInput{RefreshToken: req.GetRefreshToken()}
-}
-
-func toRefreshInput(req *authv1.RefreshRequest) authService.RefreshInput {
-	return authService.RefreshInput{RefreshToken: req.GetRefreshToken()}
-}
-
-func toProtoTokenPair(tokens authService.TokenPair) *authv1.TokenPair {
-	return &authv1.TokenPair{
-		AccessToken:           tokens.AccessToken,
-		RefreshToken:          tokens.RefreshToken,
-		AccessTokenExpiresIn:  tokens.AccessTokenExpiresIn,
-		RefreshTokenExpiresIn: tokens.RefreshTokenExpiresIn,
-	}
-}
-
-func toProtoRegisterUser(user domainUser.User) *authv1.RegisterResponse_User {
-	return &authv1.RegisterResponse_User{
-		Id:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
 	}
 }

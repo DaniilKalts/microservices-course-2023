@@ -13,7 +13,9 @@ import (
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/auth/v1"
 	userv1 "github.com/DaniilKalts/microservices-course-2023/7-week/gen/grpc/user/v1"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/handlers"
+	authHandler "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/handlers/auth"
+	profileHandler "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/handlers/profile"
+	userHandler "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/handlers/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc/interceptor"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
@@ -82,9 +84,9 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 	server := grpc.NewServer(grpcOpts...)
 
 	handlerLogger := logger.Named("handler")
-	userv1.RegisterUserV1Server(server, handlers.NewUserHandler(deps.Services.User, handlerLogger.Named("user")))
-	userv1.RegisterProfileV1Server(server, handlers.NewProfileHandler(deps.Services.User, handlerLogger.Named("profile")))
-	authv1.RegisterAuthV1Server(server, handlers.NewAuthHandler(deps.Services.Auth, handlerLogger.Named("auth")))
+	userv1.RegisterUserV1Server(server, userHandler.NewHandler(deps.Services.User, handlerLogger.Named("user")))
+	userv1.RegisterProfileV1Server(server, profileHandler.NewHandler(deps.Services.User, handlerLogger.Named("profile")))
+	authv1.RegisterAuthV1Server(server, authHandler.NewHandler(deps.Services.Auth, handlerLogger.Named("auth")))
 
 	reflection.Register(server)
 

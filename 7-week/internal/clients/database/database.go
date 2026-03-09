@@ -24,23 +24,23 @@ type Client interface {
 }
 
 type DB interface {
-	SQLExecer
+	SQLExecutor
 	Pinger
 	Transactor
 	Close()
 }
 
-type SQLExecer interface {
-	NamedExecer
-	QueryExecer
+type SQLExecutor interface {
+	NamedExecutor
+	QueryExecutor
 }
 
-type NamedExecer interface {
+type NamedExecutor interface {
 	ScanOneContext(ctx context.Context, dest interface{}, q Query, args ...interface{}) error
 	ScanAllContext(ctx context.Context, dest interface{}, q Query, args ...interface{}) error
 }
 
-type QueryExecer interface {
+type QueryExecutor interface {
 	ExecContext(ctx context.Context, q Query, args ...interface{}) (pgconn.CommandTag, error)
 	QueryContext(ctx context.Context, q Query, args ...interface{}) (pgx.Rows, error)
 	QueryRowContext(ctx context.Context, q Query, args ...interface{}) pgx.Row
@@ -55,10 +55,10 @@ type Transactor interface {
 }
 
 type TxManager interface {
-	ReadCommitted(ctx context.Context, f Handler) error
+	ReadCommitted(ctx context.Context, f TxFunc) error
 }
 
-type Handler func(ctx context.Context) error
+type TxFunc func(ctx context.Context) error
 
 type key string
 

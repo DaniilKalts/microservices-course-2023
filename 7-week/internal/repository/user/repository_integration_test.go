@@ -39,9 +39,9 @@ func newTestRepo(t *testing.T) (Repository, context.Context) {
 	require.NoError(t, err)
 
 	// Connect database client
-	dbc, err := pgClient.New(ctx, dsn, zap.NewNop())
+	client, err := pgClient.New(ctx, dsn, zap.NewNop())
 	require.NoError(t, err)
-	t.Cleanup(func() { dbc.Close() })
+	t.Cleanup(func() { client.Close() })
 
 	// Run migrations
 	_, here, _, _ := runtime.Caller(0)
@@ -53,7 +53,7 @@ func newTestRepo(t *testing.T) (Repository, context.Context) {
 
 	require.NoError(t, goose.Up(db, migrationsDir))
 
-	return NewRepository(dbc, zap.NewNop()), ctx
+	return NewRepository(client, zap.NewNop()), ctx
 }
 
 func randomUser() *domainUser.User {

@@ -18,7 +18,7 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database/prettier"
 )
 
-type pg struct {
+type db struct {
 	pool   *pgxpool.Pool
 	logger *zap.Logger
 }
@@ -31,13 +31,13 @@ func NewDB(pool *pgxpool.Pool, logger *zap.Logger) (database.DB, error) {
 		return nil, errors.New("postgres logger is nil")
 	}
 
-	return &pg{
+	return &db{
 		pool:   pool,
 		logger: logger,
 	}, nil
 }
 
-func (p *pg) ScanOneContext(ctx context.Context, dest any, q database.Query, args ...any) error {
+func (p *db) ScanOneContext(ctx context.Context, dest any, q database.Query, args ...any) error {
 	row, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (p *pg) ScanOneContext(ctx context.Context, dest any, q database.Query, arg
 	return nil
 }
 
-func (p *pg) ScanAllContext(ctx context.Context, dest any, q database.Query, args ...any) error {
+func (p *db) ScanAllContext(ctx context.Context, dest any, q database.Query, args ...any) error {
 	rows, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func (p *pg) ScanAllContext(ctx context.Context, dest any, q database.Query, arg
 	return pgxscan.ScanAll(dest, rows)
 }
 
-func (p *pg) ExecContext(ctx context.Context, q database.Query, args ...any) (pgconn.CommandTag, error) {
+func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (pgconn.CommandTag, error) {
 	span, ctx := p.startDBSpan(ctx, "db.exec", q)
 	defer span.Finish()
 
@@ -90,7 +90,7 @@ func (p *pg) ExecContext(ctx context.Context, q database.Query, args ...any) (pg
 	return tag, nil
 }
 
-func (p *pg) QueryContext(ctx context.Context, q database.Query, args ...any) (pgx.Rows, error) {
+func (p *db) QueryContext(ctx context.Context, q database.Query, args ...any) (pgx.Rows, error) {
 	span, ctx := p.startDBSpan(ctx, "db.query", q)
 	defer span.Finish()
 
@@ -118,7 +118,7 @@ func (p *pg) QueryContext(ctx context.Context, q database.Query, args ...any) (p
 	return rows, nil
 }
 
-func (p *pg) QueryRowContext(ctx context.Context, q database.Query, args ...any) pgx.Row {
+func (p *db) QueryRowContext(ctx context.Context, q database.Query, args ...any) pgx.Row {
 	span, ctx := p.startDBSpan(ctx, "db.query_row", q)
 	defer span.Finish()
 
@@ -140,7 +140,7 @@ func (p *pg) QueryRowContext(ctx context.Context, q database.Query, args ...any)
 	return row
 }
 
-func (p *pg) Ping(ctx context.Context) error {
+func (p *db) Ping(ctx context.Context) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "db.ping")
 	defer span.Finish()
 
@@ -156,7 +156,7 @@ func (p *pg) Ping(ctx context.Context) error {
 	return err
 }
 
-func (p *pg) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error) {
+func (p *db) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "db.begin_tx")
 	defer span.Finish()
 
@@ -172,11 +172,11 @@ func (p *pg) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, erro
 	return tx, err
 }
 
-func (p *pg) Close() {
+func (p *db) Close() {
 	p.pool.Close()
 }
 
-func (p *pg) logQuery(operation string, q database.Query, args []any, duration time.Duration, err error) {
+func (p *db) logQuery(operation string, q database.Query, args []any, duration time.Duration, err error) {
 	fields := []zap.Field{
 		zap.String("operation", operation),
 		zap.String("query_name", q.Name),
@@ -197,7 +197,7 @@ func (p *pg) logQuery(operation string, q database.Query, args []any, duration t
 	p.logger.Debug("database operation completed", fields...)
 }
 
-func (p *pg) startDBSpan(ctx context.Context, operationName string, q database.Query) (opentracing.Span, context.Context) {
+func (p *db) startDBSpan(ctx context.Context, operationName string, q database.Query) (opentracing.Span, context.Context) {
 	span, spanCtx := opentracing.StartSpanFromContext(ctx, operationName)
 	span.SetTag("component", "database")
 	span.SetTag("db.system", "postgresql")

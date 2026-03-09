@@ -31,7 +31,7 @@ type PostgresConfig struct {
 	Port     string `env:"PORT,required"`
 	User     string `env:"USER,required"`
 	Password string `env:"PASSWORD,required"`
-	DB       string `env:"DB,required"`
+	Name     string `env:"DB,required"`
 	SSLMode  string `env:"SSLMODE,required"`
 }
 
@@ -41,7 +41,7 @@ func (cfg *PostgresConfig) DSN() string {
 		cfg.Password,
 		cfg.Host,
 		cfg.Port,
-		cfg.DB,
+		cfg.Name,
 		cfg.SSLMode,
 	)
 }
@@ -76,10 +76,10 @@ type JWTConfig struct {
 	Audience         string        `env:"AUD,required"`
 	PrivateKeyFile   string        `env:"PRIVATE_KEY_FILE" envDefault:"build/jwt/rs256_private.pem"`
 	PublicKeyFile    string        `env:"PUBLIC_KEY_FILE"  envDefault:"build/jwt/rs256_public.pem"`
-	AccessExpiresAt  time.Duration `env:"ACCESS_EXP,required"`
-	RefreshExpiresAt time.Duration `env:"REFRESH_EXP,required"`
-	NotBefore        time.Duration `env:"NBF,required"`
-	IssuedAt         time.Duration `env:"IAT,required"`
+	AccessTokenTTL  time.Duration `env:"ACCESS_EXP,required"`
+	RefreshTokenTTL time.Duration `env:"REFRESH_EXP,required"`
+	NotBeforeOffset time.Duration `env:"NBF,required"`
+	IssuedAtOffset  time.Duration `env:"IAT,required"`
 }
 
 type ZapConfig struct {

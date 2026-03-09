@@ -14,7 +14,7 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
-var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+var sb = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 type UpdateInput struct {
 	ID           string
@@ -33,13 +33,13 @@ type Repository interface {
 }
 
 type repository struct {
-	dbc    database.Client
+	client database.Client
 	logger *zap.Logger
 }
 
-func NewRepository(dbc database.Client, logger *zap.Logger) Repository {
+func NewRepository(client database.Client, logger *zap.Logger) Repository {
 	return &repository{
-		dbc:    dbc,
+		client: client,
 		logger: logger,
 	}
 }
@@ -50,7 +50,7 @@ func (repo *repository) Create(ctx context.Context, user *domainUser.User, passw
 
 	u := toDBUser(user, passwordHash)
 
-	query, args, err := psql.Insert("users").
+	query, args, err := sb.Insert("users").
 		Columns("id", "name", "email", "password_hash", "role").
 		Values(u.ID, u.Name, u.Email, u.PasswordHash, u.Role).
 		Suffix("RETURNING id").
@@ -61,7 +61,7 @@ func (repo *repository) Create(ctx context.Context, user *domainUser.User, passw
 	}
 
 	var userID string
-	if err = repo.dbc.DB().ScanOneContext(ctx, &userID, database.Query{Name: "user.Create", QueryRaw: query}, args...); err != nil {
+	if err = repo.client.DB().ScanOneContext(ctx, &userID, database.Query{Name: "user.Create", QueryRaw: query}, args...); err != nil {
 		if errors.Is(err, database.ErrUniqueViolation) {
 			tracing.LogWarn(repo.logger, span, "email already exists", err, zap.String("email", user.Email))
 			return "", domainUser.ErrEmailAlreadyExists
@@ -77,7 +77,7 @@ func (repo *repository) List(ctx context.Context) ([]domainUser.User, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.List")
 	defer span.Finish()
 
-	query, args, err := psql.Select(userColumns...).
+	query, args, err := sb.Select(userColumns...).
 		From("users").
 		OrderBy("created_at DESC").
 		ToSql()
@@ -87,7 +87,7 @@ func (repo *repository) List(ctx context.Context) ([]domainUser.User, error) {
 	}
 
 	var users []dbUser
-	if err = repo.dbc.DB().ScanAllContext(ctx, &users, database.Query{Name: "user.List", QueryRaw: query}, args...); err != nil {
+	if err = repo.client.DB().ScanAllContext(ctx, &users, database.Query{Name: "user.List", QueryRaw: query}, args...); err != nil {
 		tracing.LogError(repo.logger, span, "failed to list users", err)
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (repo *repository) GetByID(ctx context.Context, id string) (*domainUser.Use
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.GetByID")
 	defer span.Finish()
 
-	query, args, err := psql.Select(userColumns...).
+	query, args, err := sb.Select(userColumns...).
 		From("users").
 		Where(sq.Eq{"id": id}).
 		Limit(1).
@@ -110,7 +110,7 @@ func (repo *repository) GetByID(ctx context.Context, id string) (*domainUser.Use
 	}
 
 	var user dbUser
-	if err = repo.dbc.DB().ScanOneContext(ctx, &user, database.Query{Name: "user.GetByID", QueryRaw: query}, args...); err != nil {
+	if err = repo.client.DB().ScanOneContext(ctx, &user, database.Query{Name: "user.GetByID", QueryRaw: query}, args...); err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			tracing.LogWarn(repo.logger, span, "user not found", err, zap.String("user_id", id))
 			return nil, domainUser.ErrNotFound
@@ -126,7 +126,7 @@ func (repo *repository) GetCredentialsByEmail(ctx context.Context, email string)
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.GetCredentialsByEmail")
 	defer span.Finish()
 
-	query, args, err := psql.Select("id", "password_hash", "role").
+	query, args, err := sb.Select("id", "password_hash", "role").
 		From("users").
 		Where(sq.Eq{"email": email}).
 		Limit(1).
@@ -137,7 +137,7 @@ func (repo *repository) GetCredentialsByEmail(ctx context.Context, email string)
 	}
 
 	var creds dbCredentials
-	if err = repo.dbc.DB().ScanOneContext(ctx, &creds, database.Query{Name: "user.GetCredentialsByEmail", QueryRaw: query}, args...); err != nil {
+	if err = repo.client.DB().ScanOneContext(ctx, &creds, database.Query{Name: "user.GetCredentialsByEmail", QueryRaw: query}, args...); err != nil {
 		if errors.Is(err, database.ErrNotFound) {
 			tracing.LogWarn(repo.logger, span, "credentials not found", err, zap.String("email", email))
 			return nil, domainUser.ErrNotFound
@@ -153,21 +153,21 @@ func (repo *repository) Update(ctx context.Context, input UpdateInput) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.Update")
 	defer span.Finish()
 
-	builderUpdate := psql.Update("users").
+	builder := sb.Update("users").
 		Where(sq.Eq{"id": input.ID})
 
 	hasFields := false
 
 	if input.Name != nil {
-		builderUpdate = builderUpdate.Set("name", *input.Name)
+		builder = builder.Set("name", *input.Name)
 		hasFields = true
 	}
 	if input.Email != nil {
-		builderUpdate = builderUpdate.Set("email", *input.Email)
+		builder = builder.Set("email", *input.Email)
 		hasFields = true
 	}
 	if input.PasswordHash != nil {
-		builderUpdate = builderUpdate.Set("password_hash", *input.PasswordHash)
+		builder = builder.Set("password_hash", *input.PasswordHash)
 		hasFields = true
 	}
 
@@ -176,15 +176,15 @@ func (repo *repository) Update(ctx context.Context, input UpdateInput) error {
 		return domainUser.ErrNoFieldsToUpdate
 	}
 
-	builderUpdate = builderUpdate.Set("updated_at", time.Now())
+	builder = builder.Set("updated_at", time.Now())
 
-	query, args, err := builderUpdate.ToSql()
+	query, args, err := builder.ToSql()
 	if err != nil {
 		tracing.LogError(repo.logger, span, "failed to build query", err, zap.String("user_id", input.ID))
 		return err
 	}
 
-	result, err := repo.dbc.DB().ExecContext(ctx, database.Query{Name: "user.Update", QueryRaw: query}, args...)
+	result, err := repo.client.DB().ExecContext(ctx, database.Query{Name: "user.Update", QueryRaw: query}, args...)
 	if err != nil {
 		if errors.Is(err, database.ErrUniqueViolation) {
 			tracing.LogWarn(repo.logger, span, "email already exists", err, zap.String("user_id", input.ID))
@@ -206,7 +206,7 @@ func (repo *repository) Delete(ctx context.Context, id string) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "repository.user.Delete")
 	defer span.Finish()
 
-	query, args, err := psql.Delete("users").
+	query, args, err := sb.Delete("users").
 		Where(sq.Eq{"id": id}).
 		ToSql()
 	if err != nil {
@@ -214,7 +214,7 @@ func (repo *repository) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	result, err := repo.dbc.DB().ExecContext(ctx, database.Query{Name: "user.Delete", QueryRaw: query}, args...)
+	result, err := repo.client.DB().ExecContext(ctx, database.Query{Name: "user.Delete", QueryRaw: query}, args...)
 	if err != nil {
 		tracing.LogError(repo.logger, span, "failed to delete user", err, zap.String("user_id", id))
 		return err

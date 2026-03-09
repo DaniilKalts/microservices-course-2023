@@ -19,7 +19,7 @@ func NewTransactionManager(db database.Transactor) database.TxManager {
 	}
 }
 
-func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn database.Handler) (err error) {
+func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn database.TxFunc) (err error) {
 	if _, ok := ctx.Value(database.TxKey).(pgx.Tx); ok {
 		return fn(ctx)
 	}
@@ -53,7 +53,7 @@ func (m *manager) transaction(ctx context.Context, opts pgx.TxOptions, fn databa
 	return nil
 }
 
-func (m *manager) ReadCommitted(ctx context.Context, f database.Handler) error {
+func (m *manager) ReadCommitted(ctx context.Context, f database.TxFunc) error {
 	txOpts := pgx.TxOptions{IsoLevel: pgx.ReadCommitted}
 	return m.transaction(ctx, txOpts, f)
 }

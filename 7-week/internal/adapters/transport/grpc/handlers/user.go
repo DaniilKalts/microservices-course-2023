@@ -34,12 +34,12 @@ func (h *UserHandler) Create(ctx context.Context, req *userv1.CreateRequest) (*u
 }
 
 func (h *UserHandler) Get(ctx context.Context, req *userv1.GetRequest) (*userv1.GetResponse, error) {
-	entity, err := h.userService.Get(ctx, req.GetId())
+	user, err := h.userService.Get(ctx, req.GetId())
 	if err != nil {
 		return nil, mapDomainUserError(err)
 	}
 
-	return &userv1.GetResponse{User: toProtoUser(entity)}, nil
+	return &userv1.GetResponse{User: toProtoUser(user)}, nil
 }
 
 func (h *UserHandler) List(ctx context.Context, _ *emptypb.Empty) (*userv1.ListResponse, error) {

@@ -113,6 +113,7 @@ func (a *App) initTracer() error {
 	}
 
 	opentracing.SetGlobalTracer(tracer)
+
 	a.tracer = tracer
 	a.tracerStop = closer
 
@@ -155,10 +156,10 @@ func (a *App) initJWTManager() error {
 		Issuer:          a.cfg.JWT.Issuer,
 		Subject:         a.cfg.JWT.Subject,
 		Audience:        a.cfg.JWT.Audience,
-		AccessTokenTTL:  a.cfg.JWT.AccessExpiresAt,
-		RefreshTokenTTL: a.cfg.JWT.RefreshExpiresAt,
-		NotBeforeOffset: a.cfg.JWT.NotBefore,
-		IssuedAtOffset:  a.cfg.JWT.IssuedAt,
+		AccessTokenTTL:  a.cfg.JWT.AccessTokenTTL,
+		RefreshTokenTTL: a.cfg.JWT.RefreshTokenTTL,
+		NotBeforeOffset: a.cfg.JWT.NotBeforeOffset,
+		IssuedAtOffset:  a.cfg.JWT.IssuedAtOffset,
 	})
 	if err != nil {
 		return fmt.Errorf("init jwt manager: %w", err)

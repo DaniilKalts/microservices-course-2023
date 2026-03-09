@@ -13,7 +13,7 @@ tasks:
     generates:
       - gen/grpc/**/*.go
       - gen/openapi/**/*.swagger.json
-      - internal/adapters/in/transport/http/swagger/statik.go
+      - internal/adapters/transport/http/gateway/statik.go
     silent: true
     cmds:
       - echo "🔨 Generating Go code from protos..."

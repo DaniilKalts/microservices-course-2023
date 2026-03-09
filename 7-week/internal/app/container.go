@@ -13,10 +13,10 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	grpcTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/grpc"
-	gatewayTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/gateway"
-	prometheusTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/in/transport/http/prometheus"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/database/postgres"
+	grpcTransport "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/grpc"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/http/gateway"
+	httpMetrics "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/transport/http/metrics"
+	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/database/postgres"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/config"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
@@ -42,7 +42,7 @@ type App struct {
 	tracerStop io.Closer
 
 	grpc          *grpc.Server
-	gateway       *gatewayTransport.Proxy
+	gateway       *gateway.Proxy
 	gatewayServer *http.Server
 	prometheus    *http.Server
 }
@@ -193,7 +193,7 @@ func (a *App) initGRPC(services service.Services) error {
 }
 
 func (a *App) initGateway(ctx context.Context) error {
-	proxy, err := gatewayTransport.NewProxy(ctx, gatewayTransport.Config{
+	proxy, err := gateway.NewProxy(ctx, gateway.Config{
 		GRPCAddress: a.cfg.GRPC.Address(),
 		TLS:         a.cfg.TLS,
 	})
@@ -212,7 +212,7 @@ func (a *App) initGateway(ctx context.Context) error {
 }
 
 func (a *App) initPrometheus() {
-	a.prometheus = prometheusTransport.NewServer(prometheusTransport.Config{
+	a.prometheus = httpMetrics.NewServer(httpMetrics.Config{
 		Address: a.cfg.Prometheus.Address(),
 	})
 }

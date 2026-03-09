@@ -15,7 +15,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"go.uber.org/zap"
 
-	pgClient "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/out/database/postgres"
+	pgClient "github.com/DaniilKalts/microservices-course-2023/7-week/internal/adapters/database/postgres"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/7-week/internal/domain/user"
 )
 

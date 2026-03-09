@@ -11,8 +11,8 @@ vars:
   GEN_GRPC_DIR: gen/grpc
   GEN_OPENAPI_DIR: gen/openapi
   SWAGGER_UI_DIR: third_party/swagger-ui
-  GEN_SWAGGER_UI_STATIK_DIR: internal/adapters/in/transport/http
-  GEN_SWAGGER_UI_STATIK_PACKAGE: swagger
+  GEN_SWAGGER_UI_STATIK_DIR: internal/adapters/transport/http
+  GEN_SWAGGER_UI_STATIK_PACKAGE: gateway
   GRPC_GATEWAY_VERSION: v2.27.7
 
   # - - -

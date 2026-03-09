@@ -22,7 +22,6 @@ import (
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/repository"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/jwt"
-	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/metrics"
 	"github.com/DaniilKalts/microservices-course-2023/7-week/pkg/tracing"
 )
 
@@ -181,9 +180,7 @@ func (a *App) initGRPC(services service.Services) error {
 		JWTManager:      a.jwtManager,
 		Logger:          a.logger.Named("transport.grpc"),
 		Services:        services,
-		Tracer:          a.tracer,
-		ResponseCounter: metrics.ResponseCounter,
-		RequestDuration: metrics.RequestDuration,
+		Tracer: a.tracer,
 	})
 	if err != nil {
 		return fmt.Errorf("init grpc server: %w", err)

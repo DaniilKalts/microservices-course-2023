@@ -10,12 +10,43 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// --- Prometheus collectors ---
+
+var responseCounter = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Namespace: "termachat",
+		Subsystem: "grpc",
+		Name:      "responses_total",
+		Help:      "Number of gRPC responses by method and status",
+	},
+	[]string{"method", "status"},
+)
+
+var requestDuration = prometheus.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Namespace: "termachat",
+		Subsystem: "grpc",
+		Name:      "duration_seconds",
+		Help:      "gRPC request duration in seconds",
+		Buckets: []float64{
+			0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5,
+		},
+	},
+	[]string{"method", "status"},
+)
+
+func init() {
+	prometheus.MustRegister(responseCounter, requestDuration)
+}
+
+// --- Interceptor ---
+
 const (
 	requestStatusSuccess = "success"
 	requestStatusError   = "error"
 )
 
-func MetricsInterceptor(responseCounter *prometheus.CounterVec, requestDuration *prometheus.HistogramVec) grpc.UnaryServerInterceptor {
+func MetricsInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -26,11 +57,11 @@ func MetricsInterceptor(responseCounter *prometheus.CounterVec, requestDuration 
 
 		resp, err := handler(ctx, req)
 
-		requestStatus := responseStatus(err)
+		reqStatus := responseStatus(err)
 		method := info.FullMethod
 
-		responseCounter.WithLabelValues(method, requestStatus).Inc()
-		requestDuration.WithLabelValues(method, requestStatus).Observe(time.Since(startedAt).Seconds())
+		responseCounter.WithLabelValues(method, reqStatus).Inc()
+		requestDuration.WithLabelValues(method, reqStatus).Observe(time.Since(startedAt).Seconds())
 
 		return resp, err
 	}

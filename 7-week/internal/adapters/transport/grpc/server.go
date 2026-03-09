@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/opentracing/opentracing-go"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -36,9 +35,7 @@ type Deps struct {
 	Services   service.Services
 	AuthPolicy interceptor.AccessPolicy
 
-	Tracer          opentracing.Tracer
-	ResponseCounter *prometheus.CounterVec
-	RequestDuration *prometheus.HistogramVec
+	Tracer opentracing.Tracer
 }
 
 func NewServer(deps Deps) (*grpc.Server, error) {
@@ -58,7 +55,7 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
-			interceptor.MetricsInterceptor(deps.ResponseCounter, deps.RequestDuration),
+			interceptor.MetricsInterceptor(),
 			interceptor.TracingInterceptor(deps.Tracer),
 			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),
 			interceptor.AuthInterceptor(deps.JWTManager, authPolicy, logger.Named("interceptor.auth")),

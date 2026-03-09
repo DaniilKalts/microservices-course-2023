@@ -1,52 +1,32 @@
-# ============================================================
-# prometheus.yml — Prometheus server configuration
-#
-# How it fits:
-#   app:2112/metrics ──scrape──> [Prometheus] ──alert──> [Alertmanager] ──notify──> Telegram
-#                                     |
-#                                     └──query──> [Grafana dashboards]
-#
-# Prometheus does two things on a loop:
-#   1. Scrapes /metrics from every target (collects numbers)
-#   2. Evaluates alert rules against those numbers
-# ============================================================
+# Prometheus scrapes metrics from services and evaluates
+# alert rules. Fired alerts go to Alertmanager.
 
-# ── Global Defaults ─────────────────────────────────────────
 global:
-  # Pull metrics from every target this often.
-  scrape_interval: 15s
-  # Give up on a slow /metrics response after this long.
-  # Must be < scrape_interval to avoid overlapping scrapes.
-  scrape_timeout: 10s
-  # Re-check alert rules at this cadence.
-  # Matches scrape_interval so each evaluation sees fresh data.
-  evaluation_interval: 15s
+  # how often to pull metrics from targets
+  scrape_interval: 5s
+  # give up if a target doesn't respond in time
+  scrape_timeout: 5s
+  # how often to check alert rules
+  evaluation_interval: 5s
 
-# ── Alert Rules ─────────────────────────────────────────────
-# Files containing "if X then fire alert Y" definitions.
-# Prometheus evaluates them — Alertmanager delivers them.
+# files with alert rules
 rule_files:
   - "alerts.yml"
 
-# ── Where to Send Fired Alerts ─────────────────────────────
-# Points Prometheus at the Alertmanager instance.
-# Docker DNS resolves "alertmanager" to the right container.
+# where to send fired alerts
 alerting:
   alertmanagers:
     - static_configs:
         - targets: ["alertmanager:9093"]
 
-# ── What to Scrape ──────────────────────────────────────────
-# Each job = one service type. The job name becomes a label
-# on every metric (job="termachat"), useful for filtering.
+# targets to scrape metrics from
 scrape_configs:
-
-  # Application metrics (gRPC latency, error counts, etc.)
+  # app metrics (gRPC latency, error counts, etc.)
   - job_name: "termachat"
     static_configs:
-      - targets: ["api:2112"]   # docker-compose service "api", metrics port
+      - targets: ["api:2112"]
 
-  # Host-level metrics (CPU, RAM, disk, network) via node-exporter
+  # host metrics (CPU, RAM, disk) via node-exporter
   - job_name: "node"
     static_configs:
       - targets: ["node-exporter:9100"]

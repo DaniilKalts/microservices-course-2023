@@ -1,62 +1,38 @@
-# ============================================================
-# alertmanager.yml — Alertmanager configuration
+# Alertmanager receives alerts from Prometheus and sends
+# notifications to Telegram.
 #
-# How it fits:
-#   [Prometheus] ──fires alert──> [Alertmanager] ──groups & throttles──> Telegram
-#
-# Alertmanager handles the "people" side:
-#   - Groups related alerts into one message (no spam)
-#   - Throttles repeats so you're not pinged every 15 seconds
-#   - Sends "resolved" when the problem goes away
-#
-# NOTE: __TELEGRAM_BOT_TOKEN__ and __TELEGRAM_CHAT_ID__ are
-# placeholders replaced at startup by entrypoint.sh using
-# environment variables from .env.
-# ============================================================
+# __TELEGRAM_BOT_TOKEN__ and __TELEGRAM_CHAT_ID__ are
+# placeholders replaced by entrypoint.sh on startup.
 
 global:
-  # After an alert stops firing, wait this long before sending
-  # the "resolved" notification — in case it flickers back.
+  # wait before sending "resolved" (avoids flicker)
   resolve_timeout: 5m
 
-# ── Routing ─────────────────────────────────────────────────
-# Decides which receiver handles each alert.
-# This is the root (catch-all) route; child routes can be
-# nested under a "routes:" key for more specific matching.
 route:
+  # send all alerts to this receiver
   receiver: telegram
 
-  # Bundle alerts with the same name + service into one message.
-  # 10 things break → 1 message listing all 10 (not 10 messages).
+  # group alerts by name + service into one message
   group_by: [alertname, service]
 
-  # Wait 30s for related alerts to arrive before sending the
-  # first notification (batches them into one message).
+  # wait 30s to collect related alerts before sending
   group_wait: 30s
 
-  # A new alert joins an existing group — wait 5 min before
-  # sending an updated notification.
+  # wait 5m before sending updates to an existing group
   group_interval: 5m
 
-  # Problem still happening? Remind you every 2 hours.
+  # re-send a still-firing alert every 2h
   repeat_interval: 2h
 
-# ── Receivers ───────────────────────────────────────────────
-# Where notifications actually go. Name must match the route above.
 receivers:
   - name: telegram
     telegram_configs:
       - bot_token: __TELEGRAM_BOT_TOKEN__    # injected by entrypoint.sh
         chat_id: __TELEGRAM_CHAT_ID__        # injected by entrypoint.sh
         parse_mode: HTML
-        send_resolved: true                  # also notify when the problem is gone
+        send_resolved: true                  # notify when the problem is gone
 
-        # Go template for the Telegram message.
-        # Available context:
-        #   .Status              → "firing" or "resolved"
-        #   .CommonLabels.*      → labels shared by all alerts in the group
-        #   .CommonAnnotations.* → annotations shared by all alerts
-        #   .Alerts              → list of individual alerts
+        # Telegram message template (Go template syntax)
         message: |
           {{ if eq .Status "firing" }}🔴 <b>FIRING</b>{{ else }}✅ <b>RESOLVED</b>{{ end }} — <b>{{ .CommonLabels.alertname }}</b>
           {{- if .CommonAnnotations.summary }}

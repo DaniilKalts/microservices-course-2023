@@ -1,13 +1,5 @@
-# ============================================================
-# alerts.yml — Prometheus alert rules
-#
-# How alerts work:
-#   expression true ──> PENDING ──(wait "for" duration)──> FIRING ──> Alertmanager
-#   expression false ──> Alertmanager waits resolve_timeout ──> RESOLVED
-#
-# Prometheus evaluates these every evaluation_interval (15s).
-# Only FIRING alerts are sent to Alertmanager.
-# ============================================================
+# Alert rules evaluated by Prometheus every 15s.
+# Fired alerts are sent to Alertmanager.
 
 groups:
   - name: termachat-grpc-alerts
@@ -15,13 +7,9 @@ groups:
 
       - alert: HighGrpcErrorRate
 
-        # What this checks (two conditions, both must be true):
-        #
-        #   1. Error rate > 1%
-        #      errors-in-5min / total-responses-in-5min > 0.01
-        #
-        #   2. Minimum traffic: at least 10 requests in 5 min
-        #      Without this guard, 1 error out of 2 requests = 50% — false alarm.
+        # fires when:
+        #   1. error rate > 1% over last 5 min
+        #   2. at least 10 requests in that window (avoids false alarms)
         expr: |
           (
             sum(increase(termachat_grpc_responses_total{status="error"}[5m]))
@@ -31,16 +19,15 @@ groups:
           and
           sum(increase(termachat_grpc_responses_total[5m])) > 10
 
-        # Stay in PENDING for 2 min before firing.
-        # Ignores brief self-healing spikes.
+        # wait 2m before firing (ignores short spikes)
         for: 2m
 
-        # Metadata for routing and grouping in Alertmanager.
+        # metadata for Alertmanager routing
         labels:
           severity: warning
           service: termachat-api
 
-        # Human-readable text shown in the notification.
+        # shown in the notification
         annotations:
           summary: gRPC error rate is above 1%
           description: gRPC error responses are above 1% over the last 5 minutes.

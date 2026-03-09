@@ -1,31 +1,34 @@
-# ============================================================
-# datasources.yml — Grafana data source provisioning
-#
-# Auto-registers Prometheus and Loki as data sources on
-# Grafana startup. No manual setup needed in the UI.
-# ============================================================
+# Auto-registers data sources on Grafana startup.
 
 apiVersion: 1
 
-# Remove any data source from Grafana that isn't listed here.
-# Keeps the UI in sync with this file.
+# remove data sources not listed here
 prune: true
 
 datasources:
-  # Metrics — powers all dashboard panels except logs
+  # metrics (dashboards, alerts)
   - name: Prometheus
-    uid: prometheus                    # stable ID referenced by dashboard JSON
+    uid: prometheus                    # referenced by dashboard JSON
     type: prometheus
-    access: proxy                      # Grafana queries Prometheus server-side
-    url: http://prometheus:9090        # docker-compose service name + default port
-    isDefault: true                    # pre-selected when creating new panels
-    editable: false                    # prevent UI edits — config lives in Git
+    access: proxy                      # Grafana queries server-side
+    url: http://prometheus:9090
+    isDefault: true                    # default for new panels
+    editable: false                    # read-only (config lives in Git)
 
-  # Logs — powers the log panel in the dashboard
+  # logs
   - name: Loki
     uid: loki
     type: loki
     access: proxy
     url: http://loki:3100
+    isDefault: false
+    editable: false
+
+  # traces (Tempo stores traces forwarded from Jaeger)
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
     isDefault: false
     editable: false

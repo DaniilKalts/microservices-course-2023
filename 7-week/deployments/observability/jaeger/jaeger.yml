@@ -1,0 +1,53 @@
+# Jaeger v2 trace collector config.
+# Accepts traces via OTLP and legacy Jaeger Thrift (UDP 6831).
+
+# how traces are received
+receivers:
+  # modern OTLP protocol
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # legacy Jaeger protocol (used by jaeger-client-go)
+  jaeger:
+    protocols:
+      thrift_compact:
+        endpoint: 0.0.0.0:6831
+
+# batch traces before storing
+processors:
+  batch:
+
+# where traces are saved
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: memstore
+  # forward traces to Tempo for persistent storage
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+extensions:
+  # in-memory storage (up to 100k traces)
+  jaeger_storage:
+    backends:
+      memstore:
+        memory:
+          max_traces: 100000
+  # query API for Grafana and Jaeger UI
+  jaeger_query:
+    storage:
+      traces: memstore
+
+# wire everything together
+service:
+  extensions: [jaeger_storage, jaeger_query]
+  pipelines:
+    traces:
+      receivers: [otlp, jaeger]
+      processors: [batch]
+      exporters: [jaeger_storage_exporter, otlp/tempo]

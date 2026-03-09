@@ -1,47 +1,37 @@
-# ============================================================
-# promtail.yml — Promtail log collector configuration
-#
-# How it fits:
-#   [Docker containers] ──stdout/stderr──> [Promtail] ──push──> [Loki]
-#
-# Promtail watches Docker for running containers, tails their
-# log streams, attaches useful labels (service name, stream),
-# and pushes everything to Loki.
-# ============================================================
+# Promtail collects logs from Docker containers and pushes
+# them to Loki.
 
-# ── Server ──────────────────────────────────────────────────
 server:
-  http_listen_port: 9080   # health checks and Promtail's own metrics
-  grpc_listen_port: 0      # disabled — not needed for log collection
+  # health check and metrics port
+  http_listen_port: 9080
+  # gRPC disabled (not needed)
+  grpc_listen_port: 0
 
-# ── Checkpointing ──────────────────────────────────────────
-# Tracks the last-read position per log source so Promtail
-# doesn't re-send old logs after a restart.
+# tracks last-read position so logs aren't re-sent after restart
 positions:
   filename: /tmp/positions.yaml
 
-# ── Where to Send Logs ─────────────────────────────────────
+# where to send collected logs
 clients:
-  - url: http://loki:3100/loki/api/v1/push   # Loki's ingestion endpoint
+  - url: http://loki:3100/loki/api/v1/push
 
-# ── Log Discovery & Processing ─────────────────────────────
 scrape_configs:
   - job_name: docker
 
-    # Auto-discover containers via Docker socket.
-    # New containers are picked up within refresh_interval.
+    # auto-discover containers via Docker socket
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
 
-    # Processing pipeline — runs on every log line.
+    # extract raw message from Docker's JSON log format
     pipeline_stages:
-      - docker: {}   # unwrap Docker's JSON log envelope → extract raw message
+      - docker: {}
 
-    # Label mapping — turns Docker metadata into Loki labels
-    # so you can query logs like: {job="api", stream="stderr"}
+    # map Docker metadata to Loki labels
     relabel_configs:
+      # "stdout" or "stderr"
       - source_labels: [__meta_docker_container_log_stream]
-        target_label: stream    # "stdout" or "stderr"
+        target_label: stream
+      # docker-compose service name (e.g. "api", "postgres")
       - source_labels: [__meta_docker_container_label_com_docker_compose_service]
-        target_label: job       # docker-compose service name (e.g. "api", "postgres")
+        target_label: job

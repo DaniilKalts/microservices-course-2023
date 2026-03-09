@@ -1,74 +1,60 @@
-# ============================================================
-# loki.yml — Loki log storage configuration
-#
-# How it fits:
-#   [Containers] ──logs──> [Promtail] ──push──> [Loki] <──query── [Grafana]
-#
-# Loki stores logs efficiently by only indexing labels (like
-# job="api"), not the full log text. Think of it as "grep for
-# your infrastructure" — you filter by labels first, then
-# search within the matching log streams.
-# ============================================================
+# Loki stores and indexes logs. Promtail pushes logs here,
+# Grafana queries them.
 
-# No authentication — safe for local Docker networks.
+# no authentication (local Docker network)
 auth_enabled: false
 
-# ── Server Ports ────────────────────────────────────────────
 server:
-  http_listen_port: 3100   # API: receives logs from Promtail, serves queries to Grafana
-  grpc_listen_port: 9096   # internal component communication
+  # API port (receives logs, serves queries)
+  http_listen_port: 3100
+  # internal communication port
+  grpc_listen_port: 9096
 
-# ── Single-Node Settings ───────────────────────────────────
-# Loki can run as a distributed cluster, but here we run
-# everything in one process (single-binary mode).
+# single-node setup (all components in one process)
 common:
   instance_addr: 127.0.0.1
   path_prefix: /loki
-  replication_factor: 1            # no replicas — single node
+  # no replicas, just one node
+  replication_factor: 1
   ring:
     kvstore:
-      store: inmemory              # in-memory ring — no external KV store needed
+      # in-memory ring (no external store needed)
+      store: inmemory
 
-# ── Index Schema ────────────────────────────────────────────
-# Defines how Loki indexes and stores log data.
-# TSDB + v13 is the recommended combo for Loki 3+.
+# how logs are indexed and stored
 schema_config:
   configs:
     - from: 2024-01-01
-      store: tsdb                  # TSDB index — fast, efficient, the Loki 3+ default
+      store: tsdb                  # recommended index type for Loki 3+
       object_store: filesystem     # store log chunks on local disk
-      schema: v13                  # latest schema version (required by tsdb)
+      schema: v13                  # latest schema version
       index:
         prefix: index_
-        period: 24h                # rotate index files daily
+        period: 24h                # create a new index file every day
 
-# ── Storage Paths ───────────────────────────────────────────
-# Where Loki writes data inside the container.
-# The /loki directory is backed by a Docker volume (loki_data).
+# where data is written inside the container
 storage_config:
   tsdb_shipper:
     active_index_directory: /loki/tsdb-index
     cache_location: /loki/tsdb-cache
   filesystem:
-    directory: /loki/chunks        # compressed log data
+    directory: /loki/chunks
 
-# ── Compaction & Retention ──────────────────────────────────
-# The compactor merges small index files and deletes expired data.
-# Without retention, logs would grow on disk forever.
+# merges index files and deletes expired logs
 compactor:
   working_directory: /loki/compactor
-  retention_enabled: true          # automatically delete old logs
-  compaction_interval: 10m         # check for expired data every 10 min
+  retention_enabled: true          # delete old logs automatically
+  compaction_interval: 10m         # run compaction every 10 min
   delete_request_store: filesystem
 
-# ── Ingestion Limits ────────────────────────────────────────
+# ingestion and retention limits
 limits_config:
-  allow_structured_metadata: true  # native to v13 + tsdb
+  allow_structured_metadata: true
   reject_old_samples: true         # refuse logs older than max age
-  reject_old_samples_max_age: 168h # 7 days — prevents ingesting stale data
-  max_query_lookback: 0s           # no limit on how far back queries can go
-  retention_period: 336h           # 14 days — logs older than this are deleted
+  reject_old_samples_max_age: 168h # 7 days
+  max_query_lookback: 0s           # no limit on query time range
+  retention_period: 336h           # delete logs older than 14 days
 
-# ── Telemetry ───────────────────────────────────────────────
 analytics:
-  reporting_enabled: false         # disable anonymous usage reporting
+  # disable anonymous usage reporting
+  reporting_enabled: false

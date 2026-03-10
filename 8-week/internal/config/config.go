@@ -20,6 +20,8 @@ type Config struct {
 type GRPCConfig struct {
 	Host string `env:"HOST,required"`
 	Port string `env:"PORT,required"`
+
+	Timeout time.Duration `env:"TIMEOUT,required"`
 }
 
 func (cfg *GRPCConfig) Address() string {
@@ -33,6 +35,8 @@ type PostgresConfig struct {
 	Password string `env:"PASSWORD,required"`
 	Name     string `env:"DB,required"`
 	SSLMode  string `env:"SSLMODE,required"`
+
+	QueryTimeout time.Duration `env:"QUERY_TIMEOUT,required"`
 }
 
 func (cfg *PostgresConfig) DSN() string {

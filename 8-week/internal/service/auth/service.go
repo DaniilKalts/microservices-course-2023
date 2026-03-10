@@ -9,10 +9,11 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/opentracing/opentracing-go/ext"
+
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 	userService "github.com/DaniilKalts/microservices-course-2023/8-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/pkg/jwt"
-	"github.com/DaniilKalts/microservices-course-2023/8-week/pkg/tracing"
 )
 
 type Service interface {
@@ -60,7 +61,9 @@ func (s *service) Register(ctx context.Context, input RegisterInput) (domainUser
 
 	tokenPair, err := s.generateTokenPair(userID, int32(domainUser.RoleUser))
 	if err != nil {
-		tracing.LogError(s.logger, span, "failed to issue tokens after registration", err, zap.String("user_id", userID))
+		s.logger.Error("failed to issue tokens after registration", zap.String("user_id", userID), zap.Error(err))
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
 		return domainUser.User{}, TokenPair{}, fmt.Errorf("%w: %v", ErrIssueTokens, err)
 	}
 
@@ -77,7 +80,8 @@ func (s *service) Login(ctx context.Context, input LoginInput) (TokenPair, error
 	if err != nil {
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyPasswordHash), []byte(input.Password))
 		if errors.Is(err, domainUser.ErrNotFound) {
-			tracing.LogWarn(s.logger, span, "login attempt for non-existent email", ErrInvalidCredentials, zap.String("email", input.Email))
+			s.logger.Warn("login attempt for non-existent email", zap.String("email", input.Email), zap.Error(ErrInvalidCredentials))
+			span.LogKV("event", "warning", "message", ErrInvalidCredentials.Error())
 			return TokenPair{}, ErrInvalidCredentials
 		}
 
@@ -87,17 +91,22 @@ func (s *service) Login(ctx context.Context, input LoginInput) (TokenPair, error
 	err = bcrypt.CompareHashAndPassword([]byte(credentials.PasswordHash), []byte(input.Password))
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			tracing.LogWarn(s.logger, span, "invalid password attempt", ErrInvalidCredentials, zap.String("email", input.Email))
+			s.logger.Warn("invalid password attempt", zap.String("email", input.Email), zap.Error(ErrInvalidCredentials))
+			span.LogKV("event", "warning", "message", ErrInvalidCredentials.Error())
 			return TokenPair{}, ErrInvalidCredentials
 		}
 
-		tracing.LogError(s.logger, span, "failed to compare password hash", err, zap.String("email", input.Email))
+		s.logger.Error("failed to compare password hash", zap.String("email", input.Email), zap.Error(err))
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
 		return TokenPair{}, fmt.Errorf("%w: %v", ErrAuthentication, err)
 	}
 
 	tokenPair, err := s.generateTokenPair(credentials.ID, int32(credentials.Role))
 	if err != nil {
-		tracing.LogError(s.logger, span, "failed to issue tokens during login", err, zap.String("user_id", credentials.ID))
+		s.logger.Error("failed to issue tokens during login", zap.String("user_id", credentials.ID), zap.Error(err))
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
 		return TokenPair{}, fmt.Errorf("%w: %v", ErrIssueTokens, err)
 	}
 
@@ -112,7 +121,8 @@ func (s *service) Logout(ctx context.Context, input LogoutInput) error {
 
 	claims, err := s.jwtManager.VerifyRefreshToken(input.RefreshToken)
 	if err != nil {
-		tracing.LogWarn(s.logger, span, "invalid refresh token on logout", err)
+		s.logger.Warn("invalid refresh token on logout", zap.Error(err))
+		span.LogKV("event", "warning", "message", err.Error())
 		return fmt.Errorf("%w: %v", ErrInvalidRefreshToken, err)
 	}
 
@@ -127,13 +137,16 @@ func (s *service) Refresh(ctx context.Context, input RefreshInput) (TokenPair, e
 
 	claims, err := s.jwtManager.VerifyRefreshToken(input.RefreshToken)
 	if err != nil {
-		tracing.LogWarn(s.logger, span, "invalid refresh token on refresh", err)
+		s.logger.Warn("invalid refresh token on refresh", zap.Error(err))
+		span.LogKV("event", "warning", "message", err.Error())
 		return TokenPair{}, fmt.Errorf("%w: %v", ErrInvalidRefreshToken, err)
 	}
 
 	tokenPair, err := s.generateTokenPair(claims.UserID, claims.RoleID)
 	if err != nil {
-		tracing.LogError(s.logger, span, "failed to issue tokens during refresh", err, zap.String("user_id", claims.UserID))
+		s.logger.Error("failed to issue tokens during refresh", zap.String("user_id", claims.UserID), zap.Error(err))
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
 		return TokenPair{}, fmt.Errorf("%w: %v", ErrIssueTokens, err)
 	}
 

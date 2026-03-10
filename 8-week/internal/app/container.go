@@ -125,7 +125,7 @@ func (a *App) initTracer() error {
 }
 
 func (a *App) initDatabase(ctx context.Context) error {
-	db, err := postgres.New(ctx, a.cfg.Postgres.DSN(), a.logger.Named("storage.postgres"))
+	db, err := postgres.New(ctx, a.cfg.Postgres, a.logger.Named("storage.postgres"))
 	if err != nil {
 		return fmt.Errorf("connect postgres: %w", err)
 	}
@@ -176,6 +176,7 @@ func (a *App) initGRPC(services service.Services) error {
 			EnableTLS: a.cfg.TLS.Enabled,
 			CertFile:  a.cfg.TLS.CertFile,
 			KeyFile:   a.cfg.TLS.KeyFile,
+			RequestTimeout: a.cfg.GRPC.Timeout,
 		},
 		JWTManager:      a.jwtManager,
 		Logger:          a.logger.Named("transport.grpc"),

@@ -16,12 +16,14 @@ import (
 	"go.uber.org/zap"
 
 	pgClient "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/database/postgres"
+	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/clients/database"
+	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/config"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 )
 
 // --- Helpers ---
 
-func newTestRepo(t *testing.T) (Repository, context.Context) {
+func newTestRepoWithTimeout(t *testing.T, queryTimeout time.Duration) (Repository, context.Context) {
 	t.Helper()
 	ctx := context.Background()
 
@@ -38,8 +40,22 @@ func newTestRepo(t *testing.T) (Repository, context.Context) {
 	dsn, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
 	require.NoError(t, err)
 
+	host, err := pgContainer.Host(ctx)
+	require.NoError(t, err)
+
+	port, err := pgContainer.MappedPort(ctx, "5432")
+	require.NoError(t, err)
+
 	// Connect database client
-	client, err := pgClient.New(ctx, dsn, zap.NewNop())
+	client, err := pgClient.New(ctx, config.PostgresConfig{
+		Host:         host,
+		Port:         port.Port(),
+		User:         "testuser",
+		Password:     "testpass",
+		Name:         "testdb",
+		SSLMode:      "disable",
+		QueryTimeout: queryTimeout,
+	}, zap.NewNop())
 	require.NoError(t, err)
 	t.Cleanup(func() { client.Close() })
 
@@ -54,6 +70,10 @@ func newTestRepo(t *testing.T) (Repository, context.Context) {
 	require.NoError(t, goose.Up(db, migrationsDir))
 
 	return NewRepository(client, zap.NewNop()), ctx
+}
+
+func newTestRepo(t *testing.T) (Repository, context.Context) {
+	return newTestRepoWithTimeout(t, 5*time.Second)
 }
 
 func randomUser() *domainUser.User {
@@ -216,5 +236,45 @@ func TestDelete(t *testing.T) {
 		err := repo.Delete(ctx, uuid.New().String())
 
 		assert.ErrorIs(t, err, domainUser.ErrNotFound)
+	})
+}
+
+func TestQueryTimeout(t *testing.T) {
+	repo, ctx := newTestRepoWithTimeout(t, time.Nanosecond)
+
+	t.Run("create", func(t *testing.T) {
+		_, err := repo.Create(ctx, randomUser(), "hashedpass")
+
+		assert.ErrorIs(t, err, database.ErrTimeout)
+	})
+
+	t.Run("list", func(t *testing.T) {
+		_, err := repo.List(ctx)
+
+		assert.ErrorIs(t, err, database.ErrTimeout)
+	})
+
+	t.Run("get by id", func(t *testing.T) {
+		_, err := repo.GetByID(ctx, uuid.New().String())
+
+		assert.ErrorIs(t, err, database.ErrTimeout)
+	})
+
+	t.Run("get credentials by email", func(t *testing.T) {
+		_, err := repo.GetCredentialsByEmail(ctx, "test@test.com")
+
+		assert.ErrorIs(t, err, database.ErrTimeout)
+	})
+
+	t.Run("update", func(t *testing.T) {
+		err := repo.Update(ctx, UpdateInput{ID: uuid.New().String(), Name: ptr("Jane")})
+
+		assert.ErrorIs(t, err, database.ErrTimeout)
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		err := repo.Delete(ctx, uuid.New().String())
+
+		assert.ErrorIs(t, err, database.ErrTimeout)
 	})
 }

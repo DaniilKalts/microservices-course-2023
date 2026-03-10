@@ -6,7 +6,9 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 type metadataTextMapCarrier metadata.MD
@@ -60,10 +62,31 @@ func TracingInterceptor(tracer opentracing.Tracer) grpc.UnaryServerInterceptor {
 
 		resp, err := handler(ctx, req)
 		if err != nil {
-			ext.Error.Set(span, true)
-			span.LogKV("event", "error", "message", err.Error())
+			code := status.Code(err)
+			span.SetTag("grpc.status_code", int(code))
+
+			if isServerError(code) {
+				ext.Error.Set(span, true)
+				span.LogKV("event", "error", "message", err.Error())
+			}
 		}
 
 		return resp, err
+	}
+}
+
+func isServerError(code codes.Code) bool {
+	switch code {
+	case codes.Internal,
+		codes.Unknown,
+		codes.DataLoss,
+		codes.Unavailable,
+		codes.Unimplemented,
+		codes.DeadlineExceeded,
+		codes.ResourceExhausted,
+		codes.Aborted:
+		return true
+	default:
+		return false
 	}
 }

@@ -3,6 +3,7 @@ package grpc
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
@@ -25,6 +26,8 @@ type ServerConfig struct {
 	EnableTLS bool
 	CertFile  string
 	KeyFile   string
+
+	RequestTimeout    time.Duration
 }
 
 type Deps struct {
@@ -55,6 +58,7 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
+			interceptor.TimeoutInterceptor(deps.Config.RequestTimeout),
 			interceptor.MetricsInterceptor(),
 			interceptor.TracingInterceptor(deps.Tracer),
 			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),

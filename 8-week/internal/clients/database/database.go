@@ -11,6 +11,7 @@ import (
 var (
 	ErrNotFound        = errors.New("no rows found")
 	ErrUniqueViolation = errors.New("unique constraint violation")
+	ErrTimeout         = errors.New("query timeout exceeded")
 )
 
 type Query struct {

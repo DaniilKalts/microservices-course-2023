@@ -6,7 +6,7 @@
 
 ## What's Next
 
-- [ ] Add request timeout management.
+- [x] Add request timeout management.
 - [ ] Implement rate limiter to prevent abuse.
 - [ ] Add circuit breakers for external calls.
 - [ ] Implement healthcheck patterns for service readiness and liveness.

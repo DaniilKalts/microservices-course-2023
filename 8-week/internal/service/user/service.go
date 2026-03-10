@@ -8,9 +8,10 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/opentracing/opentracing-go/ext"
+
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 	userRepository "github.com/DaniilKalts/microservices-course-2023/8-week/internal/repository/user"
-	"github.com/DaniilKalts/microservices-course-2023/8-week/pkg/tracing"
 )
 
 type Service interface {
@@ -40,14 +41,18 @@ func (s *service) Create(ctx context.Context, input CreateInput) (string, error)
 
 	id, err := uuid.NewV7()
 	if err != nil {
-		tracing.LogError(s.logger, span, "failed to generate uuid", err)
+		s.logger.Error("failed to generate uuid", zap.Error(err))
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
 		return "", err
 	}
 	input.User.ID = id.String()
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
-		tracing.LogError(s.logger, span, "failed to hash password", err)
+		s.logger.Error("failed to hash password", zap.Error(err))
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
 		return "", err
 	}
 
@@ -110,7 +115,9 @@ func (s *service) Update(ctx context.Context, input UpdateInput) error {
 	if input.Password != nil {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
 		if err != nil {
-			tracing.LogError(s.logger, span, "failed to hash password", err, zap.String("user_id", input.ID))
+			s.logger.Error("failed to hash password", zap.String("user_id", input.ID), zap.Error(err))
+			ext.Error.Set(span, true)
+			span.LogKV("event", "error", "message", err.Error())
 			return err
 		}
 

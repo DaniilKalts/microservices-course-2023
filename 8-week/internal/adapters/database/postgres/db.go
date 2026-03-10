@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
@@ -16,15 +15,15 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/clients/database/prettier"
-	"github.com/DaniilKalts/microservices-course-2023/8-week/pkg/tracing"
 )
 
 type db struct {
-	pool   *pgxpool.Pool
-	logger *zap.Logger
+	pool         *pgxpool.Pool
+	queryTimeout time.Duration
+	logger       *zap.Logger
 }
 
-func NewDB(pool *pgxpool.Pool, logger *zap.Logger) (database.DB, error) {
+func NewDB(pool *pgxpool.Pool, queryTimeout time.Duration, logger *zap.Logger) (database.DB, error) {
 	if pool == nil {
 		return nil, errors.New("postgres pool is nil")
 	}
@@ -33,12 +32,16 @@ func NewDB(pool *pgxpool.Pool, logger *zap.Logger) (database.DB, error) {
 	}
 
 	return &db{
-		pool:   pool,
-		logger: logger,
+		pool:         pool,
+		queryTimeout: queryTimeout,
+		logger:       logger,
 	}, nil
 }
 
 func (p *db) ScanOneContext(ctx context.Context, dest any, q database.Query, args ...any) error {
+	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+	defer cancel()
+
 	row, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
 		return err
@@ -55,6 +58,9 @@ func (p *db) ScanOneContext(ctx context.Context, dest any, q database.Query, arg
 }
 
 func (p *db) ScanAllContext(ctx context.Context, dest any, q database.Query, args ...any) error {
+	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+	defer cancel()
+
 	rows, err := p.QueryContext(ctx, q, args...)
 	if err != nil {
 		return err
@@ -64,6 +70,9 @@ func (p *db) ScanAllContext(ctx context.Context, dest any, q database.Query, arg
 }
 
 func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (pgconn.CommandTag, error) {
+	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+	defer cancel()
+
 	span, ctx := p.startDBSpan(ctx, "db.exec", q)
 	defer span.Finish()
 
@@ -120,6 +129,9 @@ func (p *db) QueryContext(ctx context.Context, q database.Query, args ...any) (p
 }
 
 func (p *db) QueryRowContext(ctx context.Context, q database.Query, args ...any) pgx.Row {
+	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+	defer cancel()
+
 	span, ctx := p.startDBSpan(ctx, "db.query_row", q)
 	defer span.Finish()
 
@@ -150,13 +162,18 @@ func (p *db) Ping(ctx context.Context) error {
 
 	err := p.pool.Ping(ctx)
 	if err != nil {
-		tracing.LogError(p.logger, span, "failed to ping database", err)
+		p.logger.Error("failed to ping database", zap.Error(err))
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
 	}
 
 	return err
 }
 
 func (p *db) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error) {
+	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+	defer cancel()
+
 	span, ctx := opentracing.StartSpanFromContext(ctx, "db.begin_tx")
 	defer span.Finish()
 
@@ -165,7 +182,9 @@ func (p *db) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, erro
 
 	tx, err := p.pool.BeginTx(ctx, txOptions)
 	if err != nil {
-		tracing.LogError(p.logger, span, "failed to begin transaction", err, zap.String("isolation_level", string(txOptions.IsoLevel)))
+		p.logger.Error("failed to begin transaction", zap.String("isolation_level", string(txOptions.IsoLevel)), zap.Error(err))
+		ext.Error.Set(span, true)
+		span.LogKV("event", "error", "message", err.Error())
 		return tx, err
 	}
 
@@ -206,14 +225,4 @@ func (p *db) startDBSpan(ctx context.Context, operationName string, q database.Q
 	span.SetTag("db.query_name", q.Name)
 
 	return span, spanCtx
-}
-
-const pgUniqueViolationCode = "23505"
-
-func translateErr(err error) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolationCode {
-		return fmt.Errorf("%w: %s", database.ErrUniqueViolation, pgErr.Message)
-	}
-	return err
 }

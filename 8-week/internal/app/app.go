@@ -30,14 +30,14 @@ func (a *App) Run(ctx context.Context) error {
 	logger.Info("starting servers",
 		zap.String("grpc", grpcAddr),
 		zap.String("gateway", a.gatewayServer.Addr),
-		zap.String("prometheus", a.prometheus.Addr),
+		zap.String("diagnostic", a.diagnostic.Addr),
 	)
 
 	serveErr := make(chan error, 3)
 
 	go func() { serveErr <- serveGRPC(a.grpc, grpcListener) }()
 	go func() { serveErr <- serveGateway(a.gatewayServer, a.cfg.TLS) }()
-	go func() { serveErr <- serveHTTP(a.prometheus) }()
+	go func() { serveErr <- serveHTTP(a.diagnostic) }()
 
 	select {
 	case err = <-serveErr:

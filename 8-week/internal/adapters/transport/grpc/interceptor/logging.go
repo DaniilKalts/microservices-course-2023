@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-client-go"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -37,6 +39,12 @@ func LoggingInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 			zap.String("remote_addr", remoteAddr),
 			zap.NamedError("error", err),
 			zap.Float64("duration_ms", float64(duration)/float64(time.Millisecond)),
+		}
+
+		if span := opentracing.SpanFromContext(ctx); span != nil {
+			if sc, ok := span.Context().(jaeger.SpanContext); ok {
+				fields = append(fields, zap.String("trace_id", sc.TraceID().String()))
+			}
 		}
 
 		switch code {

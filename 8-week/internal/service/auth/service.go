@@ -6,10 +6,9 @@ import (
 	"fmt"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/opentracing/opentracing-go/ext"
 
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 	userService "github.com/DaniilKalts/microservices-course-2023/8-week/internal/service/user"

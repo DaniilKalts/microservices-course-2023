@@ -15,8 +15,8 @@ import (
 
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/database/postgres"
 	grpcTransport "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc"
+	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/diagnostic"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/gateway"
-	httpMetrics "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/metrics"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/clients/database"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/config"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/repository"
@@ -43,7 +43,7 @@ type App struct {
 	grpc          *grpc.Server
 	gateway       *gateway.Proxy
 	gatewayServer *http.Server
-	prometheus    *http.Server
+	diagnostic    *http.Server
 }
 
 func New(ctx context.Context, cfg *config.Config, logger *zap.Logger) (*App, error) {
@@ -88,7 +88,7 @@ func (a *App) init(ctx context.Context) error {
 	if err := a.initGateway(ctx); err != nil {
 		return err
 	}
-	a.initPrometheus()
+	a.initDiagnostic()
 
 	return nil
 }
@@ -173,15 +173,15 @@ func (a *App) initJWTManager() error {
 func (a *App) initGRPC(services service.Services) error {
 	grpcServer, err := grpcTransport.NewServer(grpcTransport.Deps{
 		Config: grpcTransport.ServerConfig{
-			EnableTLS: a.cfg.TLS.Enabled,
-			CertFile:  a.cfg.TLS.CertFile,
-			KeyFile:   a.cfg.TLS.KeyFile,
+			EnableTLS:      a.cfg.TLS.Enabled,
+			CertFile:       a.cfg.TLS.CertFile,
+			KeyFile:        a.cfg.TLS.KeyFile,
 			RequestTimeout: a.cfg.GRPC.Timeout,
 		},
-		JWTManager:      a.jwtManager,
-		Logger:          a.logger.Named("transport.grpc"),
-		Services:        services,
-		Tracer: a.tracer,
+		JWTManager: a.jwtManager,
+		Logger:     a.logger.Named("transport.grpc"),
+		Services:   services,
+		Tracer:     a.tracer,
 	})
 	if err != nil {
 		return fmt.Errorf("init grpc server: %w", err)
@@ -213,11 +213,12 @@ func (a *App) initGateway(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) initPrometheus() {
-	a.prometheus = httpMetrics.NewServer(httpMetrics.Config{
+func (a *App) initDiagnostic() {
+	a.diagnostic = diagnostic.NewServer(diagnostic.Deps{
 		Address: a.cfg.Prometheus.Address(),
+		DB:      a.db,
 	})
-	a.logger.Info("prometheus initialized")
+	a.logger.Info("diagnostic server initialized")
 }
 
 func (a *App) Close() error {
@@ -273,12 +274,12 @@ func (a *App) stopServers() {
 		}()
 	}
 
-	if a.prometheus != nil {
+	if a.diagnostic != nil {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := a.prometheus.Shutdown(ctx); err != nil && !errors.Is(err, context.Canceled) {
-				a.logger.Error("failed to shutdown prometheus", zap.Error(err))
+			if err := a.diagnostic.Shutdown(ctx); err != nil && !errors.Is(err, context.Canceled) {
+				a.logger.Error("failed to shutdown diagnostic server", zap.Error(err))
 			}
 		}()
 	}

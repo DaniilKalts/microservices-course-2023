@@ -9,7 +9,7 @@
 - [x] Add request timeout management.
 - [ ] Implement rate limiter to prevent abuse.
 - [ ] Add circuit breakers for external calls.
-- [ ] Implement healthcheck patterns for service readiness and liveness.
+- [x] Implement healthcheck patterns for service readiness and liveness.
 - [ ] Create a custom error handler to provide user-friendly error messages.
 
 ---

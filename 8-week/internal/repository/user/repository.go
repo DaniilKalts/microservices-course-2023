@@ -7,9 +7,8 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/opentracing/opentracing-go"
-	"go.uber.org/zap"
-
 	"github.com/opentracing/opentracing-go/ext"
+	"go.uber.org/zap"
 
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/clients/database"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"

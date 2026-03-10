@@ -1,4 +1,4 @@
-package interceptor
+package auth
 
 import (
 	"fmt"

@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/auth/v1"
@@ -17,7 +19,7 @@ import (
 	profileHandler "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/handlers/profile"
 	userHandler "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/handlers/user"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/interceptor"
-	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
+	authInterceptor "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/interceptor/auth"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/service"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/pkg/jwt"
 )
@@ -27,7 +29,7 @@ type ServerConfig struct {
 	CertFile  string
 	KeyFile   string
 
-	RequestTimeout    time.Duration
+	RequestTimeout time.Duration
 }
 
 type Deps struct {
@@ -36,7 +38,7 @@ type Deps struct {
 	JWTManager jwt.Manager
 
 	Services   service.Services
-	AuthPolicy interceptor.AccessPolicy
+	AuthPolicy authInterceptor.AccessPolicy
 
 	Tracer opentracing.Tracer
 }
@@ -50,7 +52,7 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 	authPolicy := deps.AuthPolicy
 	if authPolicy.IsEmpty() {
 		var err error
-		authPolicy, err = defaultAccessPolicy()
+		authPolicy, err = authInterceptor.DefaultAccessPolicy()
 		if err != nil {
 			return nil, fmt.Errorf("build auth access policy: %w", err)
 		}
@@ -62,7 +64,7 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 			interceptor.MetricsInterceptor(),
 			interceptor.TracingInterceptor(deps.Tracer),
 			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),
-			interceptor.AuthInterceptor(deps.JWTManager, authPolicy, logger.Named("interceptor.auth")),
+			authInterceptor.Interceptor(deps.JWTManager, authPolicy, logger.Named("interceptor.auth")),
 			interceptor.ValidationInterceptor(),
 		),
 	}
@@ -89,43 +91,11 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 	userv1.RegisterProfileV1Server(server, profileHandler.NewHandler(deps.Services.User, handlerLogger.Named("profile")))
 	authv1.RegisterAuthV1Server(server, authHandler.NewHandler(deps.Services.Auth, handlerLogger.Named("auth")))
 
+	healthServer := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(server, healthServer)
+	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+
 	reflection.Register(server)
 
 	return server, nil
-}
-
-func defaultAccessPolicy() (interceptor.AccessPolicy, error) {
-	public := interceptor.PublicGroup()
-	authenticated := interceptor.RoleGroup("authenticated", int32(domainUser.RoleUser), int32(domainUser.RoleAdmin))
-	admin := interceptor.RoleGroup("admin", int32(domainUser.RoleAdmin))
-
-	return interceptor.NewAccessPolicy(
-		interceptor.MethodGroup{
-			Group: public,
-			Methods: []string{
-				authv1.AuthV1_Register_FullMethodName,
-				authv1.AuthV1_Login_FullMethodName,
-				authv1.AuthV1_Refresh_FullMethodName,
-				userv1.UserV1_List_FullMethodName,
-				userv1.UserV1_Get_FullMethodName,
-			},
-		},
-		interceptor.MethodGroup{
-			Group: admin,
-			Methods: []string{
-				userv1.UserV1_Create_FullMethodName,
-				userv1.UserV1_Update_FullMethodName,
-				userv1.UserV1_Delete_FullMethodName,
-			},
-		},
-		interceptor.MethodGroup{
-			Group: authenticated,
-			Methods: []string{
-				authv1.AuthV1_Logout_FullMethodName,
-				userv1.ProfileV1_GetProfile_FullMethodName,
-				userv1.ProfileV1_UpdateProfile_FullMethodName,
-				userv1.ProfileV1_DeleteProfile_FullMethodName,
-			},
-		},
-	)
 }

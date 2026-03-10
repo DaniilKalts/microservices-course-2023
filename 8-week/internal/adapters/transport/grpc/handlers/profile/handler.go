@@ -11,7 +11,7 @@ import (
 
 	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1"
 	userHandler "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/handlers/user"
-	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/interceptor"
+	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/interceptor/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 	userService "github.com/DaniilKalts/microservices-course-2023/8-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/pkg/protoutil"
@@ -28,7 +28,7 @@ func NewHandler(userService userService.Service, logger *zap.Logger) *Handler {
 }
 
 func (h *Handler) GetProfile(ctx context.Context, _ *emptypb.Empty) (*userv1.GetProfileResponse, error) {
-	userID, err := currentUserID(ctx)
+	userID, err := h.getIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (h *Handler) GetProfile(ctx context.Context, _ *emptypb.Empty) (*userv1.Get
 }
 
 func (h *Handler) UpdateProfile(ctx context.Context, req *userv1.UpdateProfileRequest) (*emptypb.Empty, error) {
-	userID, err := currentUserID(ctx)
+	userID, err := h.getIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (h *Handler) UpdateProfile(ctx context.Context, req *userv1.UpdateProfileRe
 }
 
 func (h *Handler) DeleteProfile(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
-	userID, err := currentUserID(ctx)
+	userID, err := h.getIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -67,10 +67,10 @@ func (h *Handler) DeleteProfile(ctx context.Context, _ *emptypb.Empty) (*emptypb
 	return &emptypb.Empty{}, nil
 }
 
-func currentUserID(ctx context.Context) (string, error) {
-	claims, ok := interceptor.ClaimsFromContext(ctx)
+func (h *Handler) getIDFromContext(ctx context.Context) (string, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
 	if !ok || claims == nil || claims.UserID == "" {
-		return "", status.Error(codes.Unauthenticated, interceptor.ErrInvalidAccessToken.Error())
+		return "", status.Error(codes.Unauthenticated, auth.ErrInvalidAccessToken.Error())
 	}
 
 	return claims.UserID, nil

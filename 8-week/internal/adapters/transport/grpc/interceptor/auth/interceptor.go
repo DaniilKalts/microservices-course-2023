@@ -1,4 +1,4 @@
-package interceptor
+package auth
 
 import (
 	"context"
@@ -23,7 +23,7 @@ var (
 	ErrMethodNotRegistered       = errors.New("method not registered in access policy")
 )
 
-func AuthInterceptor(jwtManager jwt.Manager, policy AccessPolicy, logger *zap.Logger) grpc.UnaryServerInterceptor {
+func Interceptor(jwtManager jwt.Manager, policy AccessPolicy, logger *zap.Logger) grpc.UnaryServerInterceptor {
 	if policy.IsEmpty() {
 		logger.Error("auth access policy is not configured")
 		return func(

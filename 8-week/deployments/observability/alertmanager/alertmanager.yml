@@ -1,0 +1,54 @@
+# Alertmanager receives alerts from Prometheus and sends
+# notifications to Telegram.
+#
+# __TELEGRAM_BOT_TOKEN__ and __TELEGRAM_CHAT_ID__ are
+# placeholders replaced by entrypoint.sh on startup.
+
+global:
+  # wait before sending "resolved" (avoids flicker)
+  resolve_timeout: 5m
+
+route:
+  # send all alerts to this receiver
+  receiver: telegram
+
+  # group alerts by name + service into one message
+  group_by: [alertname, service]
+
+  # wait 30s to collect related alerts before sending
+  group_wait: 30s
+
+  # wait 5m before sending updates to an existing group
+  group_interval: 5m
+
+  # re-send a still-firing alert every 2h
+  repeat_interval: 2h
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      - bot_token: __TELEGRAM_BOT_TOKEN__    # injected by entrypoint.sh
+        chat_id: __TELEGRAM_CHAT_ID__        # injected by entrypoint.sh
+        parse_mode: HTML
+        send_resolved: true                  # notify when the problem is gone
+
+        # Telegram message template (Go template syntax)
+        message: |
+          {{ if eq .Status "firing" }}🔴 <b>FIRING</b>{{ else }}✅ <b>RESOLVED</b>{{ end }} — <b>{{ .CommonLabels.alertname }}</b>
+          {{- if .CommonAnnotations.summary }}
+          <i>{{ .CommonAnnotations.summary }}</i>
+          {{- end }}
+
+          {{- if .CommonLabels.service }}
+          <b>Service:</b> <code>{{ .CommonLabels.service }}</code>
+          {{- end }}
+          {{- if .CommonLabels.severity }}
+          <b>Severity:</b> <code>{{ .CommonLabels.severity }}</code>
+          {{- end }}
+          <b>Alerts:</b> <code>{{ len .Alerts }}</code>
+
+          {{- if .CommonAnnotations.description }}
+          <b>Details:</b> {{ .CommonAnnotations.description }}
+          {{- end }}
+
+          <a href="{{ (index .Alerts 0).GeneratorURL }}">Open in Prometheus →</a>

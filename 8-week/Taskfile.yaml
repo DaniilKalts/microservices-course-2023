@@ -1,0 +1,191 @@
+version: "3"
+method: none
+
+vars:
+  ENV_FILE: '{{default ".env" .ENV_FILE}}'
+
+  # - - -
+  # Protobuf and generation
+  # - - -
+  PROTO_DIR: proto
+  GEN_GRPC_DIR: gen/grpc
+  GEN_OPENAPI_DIR: gen/openapi
+  SWAGGER_UI_DIR: third_party/swagger-ui
+  GEN_SWAGGER_UI_STATIK_DIR: internal/adapters/transport/http
+  GEN_SWAGGER_UI_STATIK_PACKAGE: gateway
+  GRPC_GATEWAY_VERSION: v2.27.7
+
+  # - - -
+  # Database
+  # - - -
+  MIGRATION_DIR: deployments/migrations
+  MIGRATION_DSN:
+    sh: |
+      if [ -f "{{.ENV_FILE}}" ]; then
+        set -a; . "{{.ENV_FILE}}"; set +a
+      fi
+      USER="${POSTGRES_USER:-postgres}"
+      PASS="${POSTGRES_PASSWORD:-postgres}"
+      HOST="${POSTGRES_HOST:-localhost}"
+      PORT="${POSTGRES_PORT:-5432}"
+      DB="${POSTGRES_DB:-postgres}"
+      SSL="${POSTGRES_SSLMODE:-disable}"
+      echo "postgres://${USER}:${PASS}@${HOST}:${PORT}/${DB}?sslmode=${SSL}"
+
+  # - - -
+  # Build artifacts
+  # - - -
+  BUILD_DIR: build
+  BUILD_TESTS_DIR: "{{.BUILD_DIR}}/tests"
+
+  # - - -
+  # gRPC load testing (ghz)
+  # - - -
+  GHZ_TARGET: '{{default "localhost:50051" .GHZ_TARGET}}'
+  GHZ_TOTAL: '{{default "1000" .GHZ_TOTAL}}'
+  GHZ_RPS: '{{default "50" .GHZ_RPS}}'
+
+  # - - -
+  # TLS (development)
+  # - - -
+  TLS_DIR: "{{.BUILD_DIR}}/tls"
+  TLS_CERT_FILE: "{{.TLS_DIR}}/server.crt"
+  TLS_KEY_FILE: "{{.TLS_DIR}}/server.key"
+
+  # - - -
+  # JWT (development)
+  # - - -
+  JWT_DIR: "{{.BUILD_DIR}}/jwt"
+  JWT_PRIVATE_KEY_FILE: "{{.JWT_DIR}}/rs256_private.pem"
+  JWT_PUBLIC_KEY_FILE: "{{.JWT_DIR}}/rs256_public.pem"
+
+includes:
+  generate:
+    taskfile: ./tasks/generate.yaml
+    dir: .
+  tls:
+    taskfile: ./tasks/tls.yaml
+    dir: .
+  jwt:
+    taskfile: ./tasks/jwt.yaml
+    dir: .
+  db:
+    taskfile: ./tasks/migration.yaml
+    dir: .
+  test:
+    taskfile: ./tasks/test.yaml
+    dir: .
+  clean:
+    taskfile: ./tasks/clean.yaml
+    dir: .
+
+tasks:
+  # - - -
+  # Environment checks
+  # - - -
+  check-os:
+    silent: true
+    cmds:
+      - |
+        {{if eq OS "windows"}}
+          echo "🪟 Windows detected? 🐧 sudo switch-to-linux --now!"
+        {{end}}
+
+  # - - -
+  # Tooling and code generation
+  # - - -
+  install-deps:
+    desc: 🛠️ Install protobuf toolchain, certbot, statik, minimock, gotestsum, goose, and ghz
+    deps: [check-os]
+    status:
+      - command -v protoc >/dev/null 2>&1
+      - test -x "$(go env GOPATH)/bin/protoc-gen-go"
+      - test -x "$(go env GOPATH)/bin/protoc-gen-go-grpc"
+      - test -x "$(go env GOPATH)/bin/protoc-gen-grpc-gateway"
+      - test -x "$(go env GOPATH)/bin/protoc-gen-openapiv2"
+      - test -x "$(go env GOPATH)/bin/protoc-gen-validate"
+      - test -x "$(go env GOPATH)/bin/statik"
+      - test -x "$(go env GOPATH)/bin/minimock"
+      - test -x "$(go env GOPATH)/bin/gotestsum"
+      - test -x "$(go env GOPATH)/bin/goose"
+      - test -x "$(go env GOPATH)/bin/ghz"
+      - command -v certbot >/dev/null 2>&1
+    silent: true
+    cmds:
+      - echo "📦 Checking dependencies..."
+      - |
+        if ! command -v protoc >/dev/null 2>&1;
+        then
+          echo "❌ Error: protoc not found."
+          echo "👉 Install it with one of:"
+          echo "   Arch:          sudo pacman -S protobuf"
+          echo "   Ubuntu/Debian: sudo apt-get update && sudo apt-get install -y protobuf-compiler"
+          echo "   macOS (brew):  brew install protobuf"
+          exit 1
+        fi
+      - echo "✅ protoc found"
+      - echo "🔐 Checking certbot..."
+      - |
+        if command -v certbot >/dev/null 2>&1; then
+          echo "✅ certbot found"
+          exit 0
+        fi
+
+        SUDO=""
+        if [ "$(id -u)" -ne 0 ]; then
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO="sudo"
+          else
+            echo "❌ Error: certbot not found and sudo is unavailable"
+            echo "👉 Install certbot manually as root, then rerun: task install-deps"
+            exit 1
+          fi
+        fi
+
+        install_with_pm() {
+          PM="$1"
+          shift
+          echo "⬇️  Installing certbot with ${PM}..."
+          $SUDO "$@"
+        }
+
+        if command -v pacman >/dev/null 2>&1; then
+          install_with_pm pacman pacman -Sy --noconfirm certbot
+        elif command -v apt-get >/dev/null 2>&1; then
+          install_with_pm apt-get apt-get update
+          install_with_pm apt-get apt-get install -y certbot
+        elif command -v dnf >/dev/null 2>&1; then
+          install_with_pm dnf dnf install -y certbot
+        elif command -v yum >/dev/null 2>&1; then
+          install_with_pm yum yum install -y certbot
+        elif command -v apk >/dev/null 2>&1; then
+          install_with_pm apk apk add --no-cache certbot
+        else
+          echo "❌ Error: could not detect a supported package manager"
+          echo "👉 Supported managers: pacman, apt-get, dnf, yum, apk"
+          exit 1
+        fi
+
+        if ! command -v certbot >/dev/null 2>&1; then
+          echo "❌ Error: certbot installation finished but binary is still unavailable"
+          echo "👉 Ensure certbot is on PATH, then rerun: task install-deps"
+          exit 1
+        fi
+
+        echo "✅ certbot installed"
+      - echo "⬇️  Installing Go plugins and testing tools..."
+      - |
+        go install \
+            github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@{{.GRPC_GATEWAY_VERSION}} \
+            github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@{{.GRPC_GATEWAY_VERSION}}
+      - |
+        go install \
+            google.golang.org/protobuf/cmd/protoc-gen-go \
+            google.golang.org/grpc/cmd/protoc-gen-go-grpc
+      - go install github.com/envoyproxy/protoc-gen-validate@latest
+      - go install github.com/rakyll/statik@latest
+      - go install github.com/gojuno/minimock/v3/cmd/minimock@latest
+      - go install gotest.tools/gotestsum@latest
+      - go install github.com/pressly/goose/v3/cmd/goose@latest
+      - go install github.com/bojand/ghz/cmd/ghz@latest
+      - echo "🎉 All dependencies installed!"

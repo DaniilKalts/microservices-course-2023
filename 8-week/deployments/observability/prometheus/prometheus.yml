@@ -1,0 +1,32 @@
+# Prometheus scrapes metrics from services and evaluates
+# alert rules. Fired alerts go to Alertmanager.
+
+global:
+  # how often to pull metrics from targets
+  scrape_interval: 5s
+  # give up if a target doesn't respond in time
+  scrape_timeout: 5s
+  # how often to check alert rules
+  evaluation_interval: 5s
+
+# files with alert rules
+rule_files:
+  - "alerts.yml"
+
+# where to send fired alerts
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+# targets to scrape metrics from
+scrape_configs:
+  # app metrics (gRPC latency, error counts, etc.)
+  - job_name: "termachat"
+    static_configs:
+      - targets: ["api:2112"]
+
+  # host metrics (CPU, RAM, disk) via node-exporter
+  - job_name: "node"
+    static_configs:
+      - targets: ["node-exporter:9100"]

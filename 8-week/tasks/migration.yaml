@@ -1,0 +1,29 @@
+version: "3"
+method: none
+
+tasks:
+  status:
+    desc: 📊 Check migration status
+    silent: true
+    cmds:
+      - goose -dir "{{.MIGRATION_DIR}}" postgres "{{.MIGRATION_DSN}}" status -v
+
+  new:
+    desc: 🆕 Create new SQL migration (sequential)
+    silent: true
+    requires:
+      vars: [NAME]
+    cmds:
+      - goose -dir "{{.MIGRATION_DIR}}" -s create "{{.NAME}}" sql
+
+  up:
+    desc: 🆙 Apply migrations
+    silent: true
+    cmds:
+      - goose -dir "{{.MIGRATION_DIR}}" postgres "{{.MIGRATION_DSN}}" up -v
+
+  down:
+    desc: ⬇️ Rollback migrations
+    silent: true
+    cmds:
+      - goose -dir "{{.MIGRATION_DIR}}" postgres "{{.MIGRATION_DSN}}" down -v

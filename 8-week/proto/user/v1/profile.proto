@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+package user.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "user/v1/user.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1;userv1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+    info: {
+        title: "Profile API"
+        version: "1.0.0"
+        description: "RESTful gateway API for self-service user profile operations."
+        contact: {
+            name: "Daniil Kalts"
+            email: "gopher@gmail.com"
+        }
+    }
+    consumes: "application/json"
+    produces: "application/json"
+    security_definitions: {
+        security: {
+            key: "BearerAuth"
+            value: {
+                type: TYPE_API_KEY
+                in: IN_HEADER
+                name: "Authorization"
+                description: "JWT access token. Example: Bearer <token>"
+            }
+        }
+    }
+};
+
+service ProfileV1 {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+        name: "🙋 Profile"
+        description: "Self-service endpoints for the authenticated user's profile."
+    };
+
+    rpc GetProfile(google.protobuf.Empty) returns (GetProfileResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users/me"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Get current profile"
+            description: "Retrieves profile details for the authenticated user."
+            tags: "🙋 Profile"
+            operation_id: "getMyProfile"
+            security: {
+                security_requirement: {
+                    key: "BearerAuth"
+                    value: {}
+                }
+            }
+        };
+    };
+
+    rpc UpdateProfile(UpdateProfileRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            patch: "/api/v1/users/me"
+            body: "*"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Update current profile"
+            description: "Partially updates name, email, or password for the authenticated user profile."
+            tags: "🙋 Profile"
+            operation_id: "updateMyProfile"
+            security: {
+                security_requirement: {
+                    key: "BearerAuth"
+                    value: {}
+                }
+            }
+        };
+    };
+
+    rpc DeleteProfile(google.protobuf.Empty) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/api/v1/users/me"
+        };
+        option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+            summary: "Delete current profile"
+            description: "Deletes the authenticated user's account profile."
+            tags: "🙋 Profile"
+            operation_id: "deleteMyProfile"
+            security: {
+                security_requirement: {
+                    key: "BearerAuth"
+                    value: {}
+                }
+            }
+        };
+    };
+}
+
+message GetProfileResponse {
+    User user = 1 [(validate.rules).message.required = true];
+}
+
+message UpdateProfileRequest {
+    google.protobuf.StringValue name = 1 [(validate.rules).string = {
+        min_len: 2,
+        max_len: 50,
+        pattern: "^[^\\x00-\\x1F\\x7F]+$",
+        ignore_empty: true
+    }];
+    google.protobuf.StringValue email = 2 [(validate.rules).string = {
+        email: true,
+        max_len: 254,
+        ignore_empty: true
+    }];
+    google.protobuf.StringValue password = 3 [(validate.rules).string = {
+        min_len: 8,
+        max_len: 64,
+        pattern: "^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$",
+        ignore_empty: true
+    }];
+}

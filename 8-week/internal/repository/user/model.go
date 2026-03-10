@@ -1,0 +1,21 @@
+package user
+
+import "time"
+
+var userColumns = []string{"id", "name", "email", "role", "created_at", "updated_at"}
+
+type dbUser struct {
+	ID           string    `db:"id"`
+	Name         string    `db:"name"`
+	Email        string    `db:"email"`
+	PasswordHash string    `db:"password_hash"`
+	Role         int32     `db:"role"`
+	CreatedAt    time.Time `db:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at"`
+}
+
+type dbCredentials struct {
+	ID           string `db:"id"`
+	PasswordHash string `db:"password_hash"`
+	Role         int32  `db:"role"`
+}

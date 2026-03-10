@@ -1,0 +1,22 @@
+version: "3"
+method: none
+
+tasks:
+  # - - -
+  # Cleanup
+  # - - -
+  gen:
+    desc: 🧹 Remove generated source code artifacts
+    silent: true
+    cmds:
+      - rm -rf "{{.GEN_GRPC_DIR}}" "{{.GEN_OPENAPI_DIR}}" "{{.GEN_SWAGGER_UI_STATIK_DIR}}/{{.GEN_SWAGGER_UI_STATIK_PACKAGE}}/statik.go"
+
+  build:
+    desc: 🧽 Remove build/runtime artifacts
+    silent: true
+    cmds:
+      - rm -rf "{{.BUILD_DIR}}"
+
+  all:
+    desc: ♻️ Remove generated and build artifacts
+    deps: [gen, build]

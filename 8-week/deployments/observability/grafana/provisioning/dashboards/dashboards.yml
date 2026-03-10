@@ -1,0 +1,15 @@
+# Auto-loads dashboard JSON files from disk on startup.
+
+apiVersion: 1
+
+providers:
+  - name: default
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: true          # can't delete from UI
+    updateIntervalSeconds: 30      # re-scan for changes every 30s
+    allowUiUpdates: true           # allow UI tweaks (reverted on restart)
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: false

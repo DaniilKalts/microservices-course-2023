@@ -1,0 +1,67 @@
+version: "3"
+method: none
+
+tasks:
+  # - - -
+  # Testing
+  # - - -
+  test:
+    desc: 🧪 Run user service tests with gotestsum
+    deps:
+      - {task: ':install-deps'}
+    silent: true
+    cmds:
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        gotestsum -- ./internal/...
+
+  test-coverage-html:
+    desc: 📈 Run user tests with HTML coverage report via gotestsum
+    deps:
+      - {task: ':install-deps'}
+    silent: true
+    cmds:
+      - mkdir -p "{{.BUILD_TESTS_DIR}}"
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        gotestsum -- -coverprofile="{{.BUILD_TESTS_DIR}}/coverage.out" ./internal/...
+      - go tool cover -html="{{.BUILD_TESTS_DIR}}/coverage.out" -o "{{.BUILD_TESTS_DIR}}/coverage.html"
+
+  # - - -
+  # gRPC load tests
+  # - - -
+  list-users:
+    desc: 📶 Send ghz requests to List users (expected success)
+    deps:
+      - {task: ':install-deps'}
+    silent: true
+    cmds:
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        ghz \
+          --insecure \
+          --proto proto/user/v1/user.proto \
+          --import-paths proto,third_party/proto \
+          --call user.v1.UserV1.List \
+          --data '{}' \
+          --total "{{.GHZ_TOTAL}}" \
+          --rps "{{.GHZ_RPS}}" \
+          "{{.GHZ_TARGET}}"
+
+  delete-user-fail:
+    desc: ❌ Send ghz requests to Delete user id=0 (expected fail)
+    deps:
+      - {task: ':install-deps'}
+    silent: true
+    cmds:
+      - |
+        export PATH="$(go env GOPATH)/bin:$PATH"
+        ghz \
+          --insecure \
+          --proto proto/user/v1/user.proto \
+          --import-paths proto,third_party/proto \
+          --call user.v1.UserV1.Delete \
+          --data '{"id":"0"}' \
+          --total "{{.GHZ_TOTAL}}" \
+          --rps "{{.GHZ_RPS}}" \
+          "{{.GHZ_TARGET}}"

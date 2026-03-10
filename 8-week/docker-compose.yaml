@@ -1,0 +1,188 @@
+services:
+  postgres:
+    image: postgres:17.9
+    container_name: microservices-course-2023-postgres
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  dozzle:
+    image: amir20/dozzle:v10.0.6
+    container_name: microservices-course-2023-dozzle
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+  migrator:
+    image: daniilkalts2006/microservices-course-2023-migrator:latest
+    build:
+      context: .
+      dockerfile: deployments/migrations/Dockerfile
+      target: migrator
+    container_name: microservices-course-2023-migrator
+    env_file:
+      - .env
+    volumes:
+      - ./deployments/migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "on-failure:5"
+
+  api:
+    image: daniilkalts2006/microservices-course-2023-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: microservices-course-2023-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+      - "2112:2112"
+      - "50051:50051"
+    volumes:
+      - ./build:/app/build:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+      jaeger:
+        condition: service_started
+    restart: unless-stopped
+    user: "1000:1000"
+
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.15.1
+    container_name: microservices-course-2023-jaeger
+    ports:
+      - "16686:16686"
+      - "6831:6831/udp"
+    volumes:
+      - ./deployments/observability/jaeger/jaeger.yml:/etc/jaeger/config.yml:ro
+    command: ["--config", "/etc/jaeger/config.yml"]
+    depends_on:
+      - tempo
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:2.7.2
+    container_name: microservices-course-2023-tempo
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./deployments/observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.10.2
+    container_name: microservices-course-2023-node-exporter
+    command:
+      - "--path.rootfs=/host"
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.10.0
+    container_name: microservices-course-2023-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployments/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deployments/observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - api
+      - alertmanager
+      - node-exporter
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:v0.31.1
+    container_name: microservices-course-2023-alertmanager
+    entrypoint:
+      - "/bin/sh"
+      - "/etc/alertmanager/entrypoint.sh"
+    env_file:
+      - .env
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./deployments/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./deployments/observability/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+      - alertmanager_data:/alertmanager
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.6.3
+    container_name: microservices-course-2023-loki
+    command: -config.file=/etc/loki/loki.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./deployments/observability/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.6.3
+    container_name: microservices-course-2023-promtail
+    command: -config.file=/etc/promtail/promtail.yml
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./deployments/observability/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_data:/tmp
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.3.1
+    container_name: microservices-course-2023-grafana
+    env_file:
+      - .env
+    environment:
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deployments/observability/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./deployments/observability/grafana/provisioning/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./deployments/observability/grafana/dashboards:/etc/grafana/provisioning/dashboards/json:ro
+    depends_on:
+      - prometheus
+      - loki
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  alertmanager_data:
+  loki_data:
+  promtail_data:
+  tempo_data:
+  grafana_data:

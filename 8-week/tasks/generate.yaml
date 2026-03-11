@@ -9,11 +9,9 @@ tasks:
     sources:
       - proto/**/*.proto
       - third_party/proto/**/*.proto
-      - third_party/swagger-ui/**
     generates:
       - gen/grpc/**/*.go
       - gen/openapi/**/*.swagger.json
-      - internal/adapters/transport/http/gateway/statik.go
     silent: true
     cmds:
       - echo "🔨 Generating Go code from protos..."
@@ -43,12 +41,4 @@ tasks:
           -I "third_party/proto" \
           --openapiv2_out="{{.GEN_OPENAPI_DIR}}" --openapiv2_opt=logtostderr=true,allow_merge=true,merge_file_name=gateway \
           $PROTO_FILES
-      - echo "📦 Packing Swagger UI static files into Go source..."
-      - |
-        export PATH="$(go env GOPATH)/bin:$PATH"
-        statik \
-          -src="{{.SWAGGER_UI_DIR}}" \
-          -dest="{{.GEN_SWAGGER_UI_STATIK_DIR}}" \
-          -p "{{.GEN_SWAGGER_UI_STATIK_PACKAGE}}" \
-          -f
       - echo "✨ Generation complete!"

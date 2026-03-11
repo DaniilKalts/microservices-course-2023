@@ -9,7 +9,7 @@ tasks:
     desc: 🧹 Remove generated source code artifacts
     silent: true
     cmds:
-      - rm -rf "{{.GEN_GRPC_DIR}}" "{{.GEN_OPENAPI_DIR}}" "{{.GEN_SWAGGER_UI_STATIK_DIR}}/{{.GEN_SWAGGER_UI_STATIK_PACKAGE}}/statik.go"
+      - rm -rf "{{.GEN_GRPC_DIR}}" "{{.GEN_OPENAPI_DIR}}"
 
   build:
     desc: 🧽 Remove build/runtime artifacts

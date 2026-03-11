@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/opentracing/opentracing-go"
@@ -14,6 +15,7 @@ import (
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/auth/v1"
 	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1"
+	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/swagger"
 	appconfig "github.com/DaniilKalts/microservices-course-2023/8-week/internal/config"
 )
 
@@ -144,7 +146,12 @@ func registerSwaggerHandlers(mux *http.ServeMux) error {
 }
 
 func registerSwaggerHandler(mux *http.ServeMux, route swaggerRoute) error {
-	handler, err := newSwaggerHandler(route.openAPIURL)
+	openAPISpec, err := os.ReadFile(route.openAPIURL)
+	if err != nil {
+		return fmt.Errorf("read %s openapi spec: %w", route.name, err)
+	}
+
+	handler, err := swagger.NewHandler(openAPISpec)
 	if err != nil {
 		return fmt.Errorf("init %s swagger-ui handler: %w", route.name, err)
 	}

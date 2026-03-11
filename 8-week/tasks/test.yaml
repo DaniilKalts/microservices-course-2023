@@ -40,8 +40,8 @@ tasks:
         export PATH="$(go env GOPATH)/bin:$PATH"
         ghz \
           --insecure \
-          --proto proto/user/v1/user.proto \
-          --import-paths proto,third_party/proto \
+          --proto api/proto/user/v1/user.proto \
+          --import-paths api/proto,api/third_party \
           --call user.v1.UserV1.List \
           --data '{}' \
           --total "{{.GHZ_TOTAL}}" \
@@ -58,8 +58,8 @@ tasks:
         export PATH="$(go env GOPATH)/bin:$PATH"
         ghz \
           --insecure \
-          --proto proto/user/v1/user.proto \
-          --import-paths proto,third_party/proto \
+          --proto api/proto/user/v1/user.proto \
+          --import-paths api/proto,api/third_party \
           --call user.v1.UserV1.Delete \
           --data '{"id":"0"}' \
           --total "{{.GHZ_TOTAL}}" \

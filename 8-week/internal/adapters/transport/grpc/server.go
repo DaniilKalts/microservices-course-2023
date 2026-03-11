@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	authv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/auth/v1"
-	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1"
+	authv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/auth/v1"
+	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1"
 	authHandler "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/handlers/auth"
 	profileHandler "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/handlers/profile"
 	userHandler "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/handlers/user"

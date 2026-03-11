@@ -7,11 +7,11 @@ tasks:
     deps:
       - {task: ':install-deps'}
     sources:
-      - proto/**/*.proto
-      - third_party/proto/**/*.proto
+      - api/proto/**/*.proto
+      - api/third_party/**/*.proto
     generates:
-      - gen/grpc/**/*.go
-      - gen/openapi/**/*.swagger.json
+      - api/gen/go/**/*.go
+      - api/gen/openapi/**/*.swagger.json
     silent: true
     cmds:
       - echo "🔨 Generating Go code from protos..."
@@ -28,7 +28,7 @@ tasks:
 
         protoc \
           -I "{{.PROTO_DIR}}" \
-          -I "third_party/proto" \
+          -I "api/third_party" \
           --go_out="{{.GEN_GRPC_DIR}}" --go_opt=paths=source_relative \
           --go-grpc_out="{{.GEN_GRPC_DIR}}" --go-grpc_opt=paths=source_relative \
           --grpc-gateway_out="{{.GEN_GRPC_DIR}}" --grpc-gateway_opt=paths=source_relative \
@@ -38,7 +38,7 @@ tasks:
 
         protoc \
           -I "{{.PROTO_DIR}}" \
-          -I "third_party/proto" \
+          -I "api/third_party" \
           --openapiv2_out="{{.GEN_OPENAPI_DIR}}" --openapiv2_opt=logtostderr=true,allow_merge=true,merge_file_name=gateway \
           $PROTO_FILES
       - echo "✨ Generation complete!"

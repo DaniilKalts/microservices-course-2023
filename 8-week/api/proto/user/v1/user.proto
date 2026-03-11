@@ -9,7 +9,7 @@ import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "validate/validate.proto";
 
-option go_package = "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1;userv1";
+option go_package = "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1;userv1";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
     info: {

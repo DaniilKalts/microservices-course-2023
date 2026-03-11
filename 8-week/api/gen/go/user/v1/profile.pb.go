@@ -160,12 +160,12 @@ const file_user_v1_profile_proto_rawDesc = "" +
 	"\x0e\n" +
 	"\n" +
 	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x12*\x10/api/v1/users/me\x1aO\x92AL\n" +
-	"\f🙋 Profile\x12<Self-service endpoints for the authenticated user's profile.B\xc0\x02\x92A\xeb\x01\x12u\n" +
+	"\f🙋 Profile\x12<Self-service endpoints for the authenticated user's profile.B\xc2\x02\x92A\xeb\x01\x12u\n" +
 	"\vProfile API\x12=RESTful gateway API for self-service user profile operations.\" \n" +
 	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.02\x10application/json:\x10application/jsonZN\n" +
 	"L\n" +
 	"\n" +
-	"BearerAuth\x12>\b\x02\x12)JWT access token. Example: Bearer <token>\x1a\rAuthorization \x02ZOgithub.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1;userv1b\x06proto3"
+	"BearerAuth\x12>\b\x02\x12)JWT access token. Example: Bearer <token>\x1a\rAuthorization \x02ZQgithub.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1;userv1b\x06proto3"
 
 var (
 	file_user_v1_profile_proto_rawDescOnce sync.Once

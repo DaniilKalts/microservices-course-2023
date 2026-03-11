@@ -28,13 +28,13 @@ services:
     image: daniilkalts2006/microservices-course-2023-migrator:latest
     build:
       context: .
-      dockerfile: deployments/migrations/Dockerfile
+      dockerfile: deploy/migrations/Dockerfile
       target: migrator
     container_name: microservices-course-2023-migrator
     env_file:
       - .env
     volumes:
-      - ./deployments/migrations:/migrations
+      - ./deploy/migrations:/migrations
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,7 +71,7 @@ services:
       - "16686:16686"
       - "6831:6831/udp"
     volumes:
-      - ./deployments/observability/jaeger/jaeger.yml:/etc/jaeger/config.yml:ro
+      - ./deploy/observability/jaeger/jaeger.yml:/etc/jaeger/config.yml:ro
     command: ["--config", "/etc/jaeger/config.yml"]
     depends_on:
       - tempo
@@ -84,7 +84,7 @@ services:
     ports:
       - "3200:3200"
     volumes:
-      - ./deployments/observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - ./deploy/observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
       - tempo_data:/var/tempo
     restart: unless-stopped
 
@@ -109,8 +109,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./deployments/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./deployments/observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./deploy/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     depends_on:
       - api
@@ -129,8 +129,8 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./deployments/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
-      - ./deployments/observability/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+      - ./deploy/observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./deploy/observability/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
       - alertmanager_data:/alertmanager
     restart: unless-stopped
 
@@ -141,7 +141,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./deployments/observability/loki/loki.yml:/etc/loki/loki.yml:ro
+      - ./deploy/observability/loki/loki.yml:/etc/loki/loki.yml:ro
       - loki_data:/loki
     restart: unless-stopped
 
@@ -152,7 +152,7 @@ services:
     ports:
       - "9080:9080"
     volumes:
-      - ./deployments/observability/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - ./deploy/observability/promtail/promtail.yml:/etc/promtail/promtail.yml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - promtail_data:/tmp
     depends_on:
@@ -170,9 +170,9 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./deployments/observability/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - ./deployments/observability/grafana/provisioning/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
-      - ./deployments/observability/grafana/dashboards:/etc/grafana/provisioning/dashboards/json:ro
+      - ./deploy/observability/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./deploy/observability/grafana/provisioning/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./deploy/observability/grafana/dashboards:/etc/grafana/provisioning/dashboards/json:ro
     depends_on:
       - prometheus
       - loki

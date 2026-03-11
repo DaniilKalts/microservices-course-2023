@@ -7,15 +7,15 @@ vars:
   # - - -
   # Protobuf and generation
   # - - -
-  PROTO_DIR: proto
-  GEN_GRPC_DIR: gen/grpc
-  GEN_OPENAPI_DIR: gen/openapi
+  PROTO_DIR: api/proto
+  GEN_GRPC_DIR: api/gen/go
+  GEN_OPENAPI_DIR: api/gen/openapi
   GRPC_GATEWAY_VERSION: v2.27.7
 
   # - - -
   # Database
   # - - -
-  MIGRATION_DIR: deployments/migrations
+  MIGRATION_DIR: deploy/migrations
   MIGRATION_DSN:
     sh: |
       if [ -f "{{.ENV_FILE}}" ]; then

@@ -551,12 +551,12 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"logoutUser\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/api/v1/auth/logout\x12\xae\x02\n" +
 	"\aRefresh\x12\x17.auth.v1.RefreshRequest\x1a\x18.auth.v1.RefreshResponse\"\xef\x01\x92A\xcc\x01\n" +
 	"\t🔐 Auth\x12 Rotate access and refresh tokens\x1a\x8d\x01Issues a new access/refresh token pair by rotating the provided refresh token. Requires a valid refresh_token and returns replacement tokens.*\rrefreshTokens\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/api/v1/auth/refresh\x1a]\x92AZ\n" +
-	"\t🔐 Auth\x12MHandles account registration, authentication, and token lifecycle operations.B\xb2\x02\x92A\xdd\x01\x12g\n" +
+	"\t🔐 Auth\x12MHandles account registration, authentication, and token lifecycle operations.B\xb4\x02\x92A\xdd\x01\x12g\n" +
 	"\bAuth API\x122RESTful gateway API for authentication and tokens.\" \n" +
 	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.02\x10application/json:\x10application/jsonZN\n" +
 	"L\n" +
 	"\n" +
-	"BearerAuth\x12>\b\x02\x12)JWT access token. Example: Bearer <token>\x1a\rAuthorization \x02ZOgithub.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/auth/v1;authv1b\x06proto3"
+	"BearerAuth\x12>\b\x02\x12)JWT access token. Example: Bearer <token>\x1a\rAuthorization \x02ZQgithub.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/auth/v1;authv1b\x06proto3"
 
 var (
 	file_auth_v1_auth_proto_rawDescOnce sync.Once

@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 
-	authv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/auth/v1"
-	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1"
+	authv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/auth/v1"
+	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/swagger"
 	appconfig "github.com/DaniilKalts/microservices-course-2023/8-week/internal/config"
 )
@@ -50,10 +50,10 @@ type swaggerRoute struct {
 }
 
 var swaggerRoutes = []swaggerRoute{
-	{name: "merged", basePath: swaggerBasePath, openAPIURL: "gen/openapi/gateway.swagger.json"},
-	{name: "user", basePath: swaggerBasePath + "/user", openAPIURL: "gen/openapi/user/v1/user.swagger.json"},
-	{name: "profile", basePath: swaggerBasePath + "/profile", openAPIURL: "gen/openapi/user/v1/profile.swagger.json"},
-	{name: "auth", basePath: swaggerBasePath + "/auth", openAPIURL: "gen/openapi/auth/v1/auth.swagger.json"},
+	{name: "merged", basePath: swaggerBasePath, openAPIURL: "api/gen/openapi/gateway.swagger.json"},
+	{name: "user", basePath: swaggerBasePath + "/user", openAPIURL: "api/gen/openapi/user/v1/user.swagger.json"},
+	{name: "profile", basePath: swaggerBasePath + "/profile", openAPIURL: "api/gen/openapi/user/v1/profile.swagger.json"},
+	{name: "auth", basePath: swaggerBasePath + "/auth", openAPIURL: "api/gen/openapi/auth/v1/auth.swagger.json"},
 }
 
 func NewProxy(ctx context.Context, cfg Config) (*Proxy, error) {

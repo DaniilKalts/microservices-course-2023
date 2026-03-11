@@ -1,30 +1,20 @@
-# ==========================================
-# STAGE 1: Build
-# ==========================================
+# === Build ===
 FROM golang:1.25.7-alpine AS builder
 WORKDIR /app
 
-# Cache dependencies separately for faster builds
 COPY go.mod go.sum ./
 RUN go mod download
 
-# # Copy the entire project source
 COPY . .
-
-# FROM base AS build-chat
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w" -o api ./cmd/main.go
+    go build -o api-server ./cmd/main.go
 
-
-# ==========================================
-# STAGE 2: Run
-# ==========================================
-FROM alpine:3.20 AS chat
+# === Run ===
+FROM alpine:3.20
 WORKDIR /app
 
-COPY --from=builder --chown=1000:1000 /app/api ./api
-COPY --from=builder --chown=1000:1000 /app/gen/openapi ./gen/openapi
+COPY --from=builder --chown=1000:1000 /app/api-server ./api-server
+COPY --from=builder --chown=1000:1000 /app/api/gen/openapi ./api/gen/openapi
 
-# Run as non-root for security
 USER 1000:1000
-ENTRYPOINT ["./api"]
+ENTRYPOINT ["./api-server"]

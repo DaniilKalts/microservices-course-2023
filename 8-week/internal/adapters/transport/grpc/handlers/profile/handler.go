@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1"
+	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1"
 	userHandler "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/handlers/user"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/interceptor/auth"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"

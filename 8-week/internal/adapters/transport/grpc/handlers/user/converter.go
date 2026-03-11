@@ -3,7 +3,7 @@ package user
 import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1"
+	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1"
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 	userService "github.com/DaniilKalts/microservices-course-2023/8-week/internal/service/user"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/pkg/protoutil"

@@ -582,12 +582,12 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"BearerAuth\x12\x00\x82\xd3\xe4\x93\x02\x14*\x12/api/v1/users/{id}\x1aF\x92AC\n" +
 	"\n" +
-	"👤 Users\x125User lifecycle operations for managed user resources.B\xc6\x02\x92A\xf1\x01\x12{\n" +
+	"👤 Users\x125User lifecycle operations for managed user resources.B\xc8\x02\x92A\xf1\x01\x12{\n" +
 	"\x0eUser Admin API\x12@RESTful gateway API for admin-managed user lifecycle operations.\" \n" +
 	"\fDaniil Kalts\x1a\x10gopher@gmail.com2\x051.0.02\x10application/json:\x10application/jsonZN\n" +
 	"L\n" +
 	"\n" +
-	"BearerAuth\x12>\b\x02\x12)JWT access token. Example: Bearer <token>\x1a\rAuthorization \x02ZOgithub.com/DaniilKalts/microservices-course-2023/8-week/gen/grpc/user/v1;userv1b\x06proto3"
+	"BearerAuth\x12>\b\x02\x12)JWT access token. Example: Bearer <token>\x1a\rAuthorization \x02ZQgithub.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1;userv1b\x06proto3"
 
 var (
 	file_user_v1_user_proto_rawDescOnce sync.Once

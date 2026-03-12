@@ -2,17 +2,26 @@ package diagnostic
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
 
-	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/clients/database"
+type HealthChecker interface {
+	Name() string
+	Check(ctx context.Context) error
+}
+
+const (
+	readTimeout  = 5 * time.Second
+	writeTimeout = 5 * time.Second
 )
 
 type Deps struct {
-	Address string
-	DB      database.Client
+	Address  string
+	Checkers []HealthChecker
 }
 
 func NewServer(deps Deps) *http.Server {
@@ -26,19 +35,15 @@ func NewServer(deps Deps) *http.Server {
 	})
 
 	mux.HandleFunc("/healthz/readiness", func(w http.ResponseWriter, r *http.Request) {
-		if deps.DB == nil {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("OK"))
-			return
-		}
-
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
 
-		if err := deps.DB.DB().Ping(ctx); err != nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte("Service Unavailable"))
-			return
+		for _, c := range deps.Checkers {
+			if err := c.Check(ctx); err != nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte(fmt.Sprintf("%s: %s", c.Name(), err.Error())))
+				return
+			}
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -46,7 +51,9 @@ func NewServer(deps Deps) *http.Server {
 	})
 
 	return &http.Server{
-		Addr:    deps.Address,
-		Handler: mux,
+		Addr:         deps.Address,
+		Handler:      mux,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
 	}
 }

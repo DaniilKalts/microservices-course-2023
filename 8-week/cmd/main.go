@@ -5,6 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"go.uber.org/zap"
 
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/app"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/config"
@@ -39,13 +43,23 @@ func run(configPath string) error {
 	}
 	defer func() { _ = appLogger.Sync() }()
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
 
-	a, err := app.New(ctx, cfg, appLogger)
+	container, err := app.NewContainer(ctx, cfg, appLogger)
+	if err != nil {
+		return fmt.Errorf("initialize container: %w", err)
+	}
+	defer func() {
+		if closeErr := container.Close(); closeErr != nil {
+			appLogger.Error("container close error", zap.Error(closeErr))
+		}
+	}()
+
+	a, err := app.NewApp(ctx, cfg, appLogger, container)
 	if err != nil {
 		return fmt.Errorf("initialize app: %w", err)
 	}
-	defer func() { _ = a.Close() }()
 
 	return a.Run(ctx)
 }

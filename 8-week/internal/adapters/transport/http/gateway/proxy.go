@@ -2,10 +2,12 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/opentracing/opentracing-go"
@@ -19,28 +21,59 @@ import (
 	appconfig "github.com/DaniilKalts/microservices-course-2023/8-week/internal/config"
 )
 
-const swaggerBasePath = "/swagger"
+const (
+	swaggerBasePath   = "/swagger"
+	readHeaderTimeout = 5 * time.Second
+)
 
 type Config struct {
-	GRPCAddress string
-	TLS         appconfig.TLSConfig
+	GRPCAddress    string
+	GatewayAddress string
+	TLS            appconfig.TLSConfig
+	Tracer         opentracing.Tracer
 }
 
 type Proxy struct {
-	handler http.Handler
-	conn    *grpc.ClientConn
+	server *http.Server
+	conn   *grpc.ClientConn
+	tls    appconfig.TLSConfig
 }
 
-func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	p.handler.ServeHTTP(w, r)
+func (p *Proxy) Addr() string {
+	return p.server.Addr
 }
 
-func (p *Proxy) Close() error {
-	if p == nil || p.conn == nil {
-		return nil
+func (p *Proxy) Serve() error {
+	var err error
+	if p.tls.Enabled {
+		err = p.server.ListenAndServeTLS(p.tls.CertFile, p.tls.KeyFile)
+	} else {
+		err = p.server.ListenAndServe()
 	}
 
-	return p.conn.Close()
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("gateway server: %w", err)
+	}
+
+	return nil
+}
+
+func (p *Proxy) Shutdown(ctx context.Context) error {
+	var errs []error
+
+	if p.server != nil {
+		if err := p.server.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("shutdown gateway http server: %w", err))
+		}
+	}
+
+	if p.conn != nil {
+		if err := p.conn.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close gateway grpc conn: %w", err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 type swaggerRoute struct {
@@ -50,13 +83,34 @@ type swaggerRoute struct {
 }
 
 var swaggerRoutes = []swaggerRoute{
-	{name: "merged", basePath: swaggerBasePath, openAPIURL: "api/gen/openapi/gateway.swagger.json"},
-	{name: "user", basePath: swaggerBasePath + "/user", openAPIURL: "api/gen/openapi/user/v1/user.swagger.json"},
-	{name: "profile", basePath: swaggerBasePath + "/profile", openAPIURL: "api/gen/openapi/user/v1/profile.swagger.json"},
-	{name: "auth", basePath: swaggerBasePath + "/auth", openAPIURL: "api/gen/openapi/auth/v1/auth.swagger.json"},
+	{
+		name:       "merged",
+		basePath:   swaggerBasePath,
+		openAPIURL: "api/gen/openapi/gateway.swagger.json",
+	},
+	{
+		name:       "user",
+		basePath:   swaggerBasePath + "/user",
+		openAPIURL: "api/gen/openapi/user/v1/user.swagger.json",
+	},
+	{
+		name:       "profile",
+		basePath:   swaggerBasePath + "/profile",
+		openAPIURL: "api/gen/openapi/user/v1/profile.swagger.json",
+	},
+	{
+		name:       "auth",
+		basePath:   swaggerBasePath + "/auth",
+		openAPIURL: "api/gen/openapi/auth/v1/auth.swagger.json",
+	},
 }
 
 func NewProxy(ctx context.Context, cfg Config) (*Proxy, error) {
+	tracer := cfg.Tracer
+	if tracer == nil {
+		tracer = opentracing.NoopTracer{}
+	}
+
 	gatewayMux := runtime.NewServeMux()
 
 	grpcEndpoint, err := grpcGatewayEndpoint(cfg.GRPCAddress)
@@ -64,7 +118,7 @@ func NewProxy(ctx context.Context, cfg Config) (*Proxy, error) {
 		return nil, fmt.Errorf("prepare grpc endpoint for gateway: %w", err)
 	}
 
-	dialOpts, err := grpcGatewayDialOptions(cfg.TLS)
+	dialOpts, err := grpcGatewayDialOptions(cfg.TLS, tracer)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +150,13 @@ func NewProxy(ctx context.Context, cfg Config) (*Proxy, error) {
 	}
 
 	return &Proxy{
-		handler: WithTracing(mux, opentracing.GlobalTracer()),
-		conn:    conn,
+		server: &http.Server{
+			Addr:              cfg.GatewayAddress,
+			Handler:           WithTracing(mux, tracer),
+			ReadHeaderTimeout: readHeaderTimeout,
+		},
+		conn: conn,
+		tls:  cfg.TLS,
 	}, nil
 }
 
@@ -114,8 +173,8 @@ func grpcGatewayEndpoint(address string) (string, error) {
 	return net.JoinHostPort(host, port), nil
 }
 
-func grpcGatewayDialOptions(tlsCfg appconfig.TLSConfig) ([]grpc.DialOption, error) {
-	traceInterceptor := grpc.WithChainUnaryInterceptor(TracingClientInterceptor(opentracing.GlobalTracer()))
+func grpcGatewayDialOptions(tlsCfg appconfig.TLSConfig, tracer opentracing.Tracer) ([]grpc.DialOption, error) {
+	traceInterceptor := grpc.WithChainUnaryInterceptor(TracingClientInterceptor(tracer))
 
 	if !tlsCfg.Enabled {
 		return []grpc.DialOption{

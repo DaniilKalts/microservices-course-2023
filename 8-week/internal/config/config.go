@@ -7,21 +7,26 @@ import (
 )
 
 type Config struct {
+	App        AppConfig        `envPrefix:"APP_"`
 	GRPC       GRPCConfig       `envPrefix:"GRPC_"`
 	Postgres   PostgresConfig   `envPrefix:"POSTGRES_"`
 	Gateway    GatewayConfig    `envPrefix:"GATEWAY_"`
-	Prometheus PrometheusConfig `envPrefix:"PROMETHEUS_"`
+	Diagnostic DiagnosticConfig `envPrefix:"DIAGNOSTIC_"`
 	TLS        TLSConfig        `envPrefix:"TLS_"`
 	JWT        JWTConfig        `envPrefix:"JWT_"`
 	Zap        ZapConfig        `envPrefix:"ZAP_"`
 	Tracing    TracingConfig    `envPrefix:"TRACING_"`
 }
 
+type AppConfig struct {
+	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" envDefault:"5s"`
+}
+
 type GRPCConfig struct {
 	Host string `env:"HOST,required"`
 	Port string `env:"PORT,required"`
 
-	Timeout time.Duration `env:"TIMEOUT,required"`
+	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT,required"`
 }
 
 func (cfg *GRPCConfig) Address() string {
@@ -59,12 +64,12 @@ func (cfg *GatewayConfig) Address() string {
 	return net.JoinHostPort(cfg.Host, cfg.Port)
 }
 
-type PrometheusConfig struct {
+type DiagnosticConfig struct {
 	Host string `env:"HOST,required"`
 	Port string `env:"PORT,required"`
 }
 
-func (cfg *PrometheusConfig) Address() string {
+func (cfg *DiagnosticConfig) Address() string {
 	return net.JoinHostPort(cfg.Host, cfg.Port)
 }
 

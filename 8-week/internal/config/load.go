@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
@@ -40,6 +41,10 @@ func (cfg *Config) validate() error {
 		if cfg.Tracing.ServiceName == "" {
 			return errors.New("TRACING_SERVICE_NAME is required when tracing is enabled")
 		}
+	}
+
+	if cfg.App.ShutdownTimeout < 3*time.Second {
+		return fmt.Errorf("APP_SHUTDOWN_TIMEOUT must be at least 3s, got %s", cfg.App.ShutdownTimeout)
 	}
 
 	if _, err := os.Stat(cfg.JWT.PrivateKeyFile); err != nil {

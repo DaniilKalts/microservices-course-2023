@@ -75,7 +75,7 @@ func TracingClientInterceptor(tracer opentracing.Tracer) grpc.UnaryClientInterce
 		invoker grpc.UnaryInvoker,
 		opts ...grpc.CallOption,
 	) error {
-		span, ctx := opentracing.StartSpanFromContext(ctx, method, ext.SpanKindRPCClient)
+		span, ctx := opentracing.StartSpanFromContextWithTracer(ctx, tracer, method, ext.SpanKindRPCClient)
 		defer span.Finish()
 
 		span.SetTag("component", "grpc-client")

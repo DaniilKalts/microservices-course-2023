@@ -83,18 +83,18 @@ var defaultErrorRules = []interceptor.ErrorRule{
 		Code:   codes.Unauthenticated,
 	},
 	{
-		Target: authService.ErrAuthentication,
-		Code:   codes.Internal,
+		Target:  authService.ErrAuthentication,
+		Code:    codes.Internal,
 		Message: "authentication failed",
 	},
 	{
-		Target: authService.ErrUserIDEmpty,
-		Code:   codes.Internal,
+		Target:  authService.ErrUserIDEmpty,
+		Code:    codes.Internal,
 		Message: "internal error",
 	},
 	{
-		Target: authService.ErrIssueTokens,
-		Code:   codes.Internal,
+		Target:  authService.ErrIssueTokens,
+		Code:    codes.Internal,
 		Message: "internal error",
 	},
 }

@@ -29,7 +29,7 @@ const uiInitializerScriptTmpl = `window.onload = function() {
 };
 `
 
-func NewHandler(openAPISpec []byte) (http.Handler, error) {
+func NewHandler(openAPISpec []byte) http.Handler {
 	uiInitializerScript := []byte(fmt.Sprintf(uiInitializerScriptTmpl, openAPISpecPath))
 
 	mux := http.NewServeMux()
@@ -43,5 +43,5 @@ func NewHandler(openAPISpec []byte) (http.Handler, error) {
 	})
 	mux.Handle("/", http.FileServer(http.FS(swaggerui.StaticFiles)))
 
-	return mux, nil
+	return mux
 }

@@ -17,12 +17,16 @@ import (
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/auth/v1"
 	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1"
+	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/gateway/interceptor"
+	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/gateway/middleware"
 	appconfig "github.com/DaniilKalts/microservices-course-2023/8-week/internal/config"
 )
 
 const (
 	swaggerBasePath   = "/swagger"
 	readHeaderTimeout = 5 * time.Second
+	readTimeout       = 10 * time.Second
+	writeTimeout      = 10 * time.Second
 )
 
 type Config struct {
@@ -30,6 +34,7 @@ type Config struct {
 	GatewayAddress string
 	TLS            appconfig.TLSConfig
 	Tracer         opentracing.Tracer
+	CircuitBreaker interceptor.CircuitBreakerConfig
 }
 
 type Proxy struct {
@@ -96,7 +101,7 @@ func NewProxy(ctx context.Context, cfg Config) (_ *Proxy, err error) {
 		return nil, fmt.Errorf("prepare grpc endpoint for gateway: %w", err)
 	}
 
-	dialOpts, err := grpcGatewayDialOptions(cfg.TLS, tracer)
+	dialOpts, err := grpcGatewayDialOptions(cfg.TLS, tracer, cfg.CircuitBreaker)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +136,10 @@ func NewProxy(ctx context.Context, cfg Config) (_ *Proxy, err error) {
 	return &Proxy{
 		server: &http.Server{
 			Addr:              cfg.GatewayAddress,
-			Handler:           WithTracing(mux, tracer),
+			Handler:           middleware.WithTracing(mux, tracer),
 			ReadHeaderTimeout: readHeaderTimeout,
+			ReadTimeout:       readTimeout,
+			WriteTimeout:      writeTimeout,
 		},
 		conn: conn,
 		tls:  cfg.TLS,
@@ -156,13 +163,16 @@ func isWildcardHost(host string) bool {
 	return host == "" || host == "0.0.0.0" || host == "::"
 }
 
-func grpcGatewayDialOptions(tlsCfg appconfig.TLSConfig, tracer opentracing.Tracer) ([]grpc.DialOption, error) {
-	traceInterceptor := grpc.WithChainUnaryInterceptor(TracingClientInterceptor(tracer))
+func grpcGatewayDialOptions(tlsCfg appconfig.TLSConfig, tracer opentracing.Tracer, cbCfg interceptor.CircuitBreakerConfig) ([]grpc.DialOption, error) {
+	interceptors := grpc.WithChainUnaryInterceptor(
+		interceptor.CircuitBreakerInterceptor(cbCfg),
+		interceptor.TracingInterceptor(tracer),
+	)
 
 	if !tlsCfg.Enabled {
 		return []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			traceInterceptor,
+			interceptors,
 		}, nil
 	}
 
@@ -173,6 +183,6 @@ func grpcGatewayDialOptions(tlsCfg appconfig.TLSConfig, tracer opentracing.Trace
 
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(clientCreds),
-		traceInterceptor,
+		interceptors,
 	}, nil
 }

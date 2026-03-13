@@ -64,6 +64,10 @@ func (cfg *PostgresConfig) DSN() string {
 type GatewayConfig struct {
 	Host string `env:"HOST,required"`
 	Port string `env:"PORT,required"`
+
+	CBMaxRequests      uint32        `env:"CB_MAX_REQUESTS"      envDefault:"3"`
+	CBOpenTimeout      time.Duration `env:"CB_OPEN_TIMEOUT"      envDefault:"30s"`
+	CBFailureThreshold uint32        `env:"CB_FAILURE_THRESHOLD"  envDefault:"5"`
 }
 
 func (cfg *GatewayConfig) Address() string {

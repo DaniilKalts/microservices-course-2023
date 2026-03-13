@@ -23,15 +23,15 @@ const (
 type Deps struct {
 	Address  string
 	Checkers []HealthChecker
-	Registry *prometheus.Registry
+	Gatherer prometheus.Gatherer
 }
 
 func NewServer(deps Deps) *http.Server {
 	mux := http.NewServeMux()
 
 	metricsHandler := promhttp.Handler()
-	if deps.Registry != nil {
-		metricsHandler = promhttp.HandlerFor(deps.Registry, promhttp.HandlerOpts{})
+	if deps.Gatherer != nil {
+		metricsHandler = promhttp.HandlerFor(deps.Gatherer, promhttp.HandlerOpts{})
 	}
 	mux.Handle("/metrics", metricsHandler)
 

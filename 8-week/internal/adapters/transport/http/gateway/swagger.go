@@ -53,10 +53,7 @@ func registerSwaggerHandler(mux *http.ServeMux, route swaggerRoute) error {
 		return fmt.Errorf("read %s openapi spec: %w", route.name, err)
 	}
 
-	handler, err := swagger.NewHandler(openAPISpec)
-	if err != nil {
-		return fmt.Errorf("init %s swagger-ui handler: %w", route.name, err)
-	}
+	handler := swagger.NewHandler(openAPISpec)
 
 	redirectPath := route.basePath + "/"
 	mux.Handle(redirectPath, http.StripPrefix(route.basePath, handler))

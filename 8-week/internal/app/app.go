@@ -15,6 +15,7 @@ import (
 	grpcTransport "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/diagnostic"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/gateway"
+	gwinterceptor "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/http/gateway/interceptor"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/config"
 )
 
@@ -53,10 +54,10 @@ func NewApp(ctx context.Context, cfg *config.Config, logger *zap.Logger, c *Cont
 func (a *App) initGRPC(c *Container) error {
 	grpcServer, err := grpcTransport.NewServer(grpcTransport.Deps{
 		Config: grpcTransport.ServerConfig{
-			EnableTLS:      a.cfg.TLS.Enabled,
-			CertFile:       a.cfg.TLS.CertFile,
-			KeyFile:        a.cfg.TLS.KeyFile,
-			RequestTimeout: a.cfg.GRPC.RequestTimeout,
+			EnableTLS:          a.cfg.TLS.Enabled,
+			CertFile:           a.cfg.TLS.CertFile,
+			KeyFile:            a.cfg.TLS.KeyFile,
+			RequestTimeout:     a.cfg.GRPC.RequestTimeout,
 			RateLimitRPS:       a.cfg.GRPC.RateLimitRPS,
 			RateLimitBurst:     a.cfg.GRPC.RateLimitBurst,
 			RateLimitAuthRPS:   a.cfg.GRPC.RateLimitAuthRPS,
@@ -82,6 +83,11 @@ func (a *App) initGateway(ctx context.Context, c *Container) error {
 		GatewayAddress: a.cfg.Gateway.Address(),
 		TLS:            a.cfg.TLS,
 		Tracer:         c.Tracer,
+		CircuitBreaker: gwinterceptor.CircuitBreakerConfig{
+			MaxRequests:      a.cfg.Gateway.CBMaxRequests,
+			OpenTimeout:      a.cfg.Gateway.CBOpenTimeout,
+			FailureThreshold: a.cfg.Gateway.CBFailureThreshold,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("init gateway: %w", err)
@@ -100,7 +106,7 @@ func (a *App) initDiagnostic(c *Container) {
 	a.diagnostic = diagnostic.NewServer(diagnostic.Deps{
 		Address:  a.cfg.Diagnostic.Address(),
 		Checkers: checkers,
-		Registry: c.Registry,
+		Gatherer: c.Registry,
 	})
 }
 

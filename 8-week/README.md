@@ -7,10 +7,10 @@
 ## What's Next
 
 - [x] Add request timeout management.
-- [ ] Implement rate limiter to prevent abuse.
-- [ ] Add circuit breakers for external calls.
+- [x] Implement rate limiter to prevent abuse.
+- [x] Add circuit breakers for external calls.
 - [x] Implement healthcheck patterns for service readiness and liveness.
-- [ ] Create a custom error handler to provide user-friendly error messages.
+- [x] Create a custom error handler to provide user-friendly error messages.
 
 ---
 
@@ -94,9 +94,17 @@ These endpoints are mostly used internally by the application components and obs
 ## Project Structure
 
 ```text
+api/
+  proto/
+    auth/v1/
+    user/v1/
+  third_party/
+    google/api/
+    protoc-gen-openapiv2/options/
+    validate/
 cmd/
   main.go
-deployments/
+deploy/
   migrations/
   observability/
     alertmanager/
@@ -110,6 +118,7 @@ deployments/
     prometheus/
     promtail/
     tempo/
+  scripts/
 internal/
   adapters/
     database/
@@ -121,9 +130,13 @@ internal/
           profile/
           user/
         interceptor/
+          auth/
       http/
+        diagnostic/
         gateway/
-        metrics/
+          interceptor/
+          middleware/
+        swagger/
   app/
   clients/
     database/
@@ -143,16 +156,8 @@ pkg/
   logger/
   protoutil/
   tracing/
-proto/
-  auth/v1/
-  user/v1/
-scripts/
 tasks/
-third_party/
-  proto/
-    google/api/
-    protoc-gen-openapiv2/options/
-    validate/
+web/
   swagger-ui/
 Taskfile.yaml
 Dockerfile
@@ -161,11 +166,6 @@ go.mod
 go.sum
 
 # generated after `task generate`
-gen/
-  grpc/
-  openapi/
+api/gen/
 build/
-  jwt/
-  tls/
-  tests/
 ```

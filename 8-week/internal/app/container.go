@@ -109,6 +109,7 @@ func (c *Container) initTracer(cfg config.TracingConfig, logger *zap.Logger) err
 	}
 
 	c.Tracer = tracer
+	opentracing.SetGlobalTracer(tracer)
 	c.closers = append(c.closers, closer)
 
 	logger.Info("tracing initialized",

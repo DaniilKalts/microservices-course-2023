@@ -48,6 +48,51 @@ type Deps struct {
 	Registry prometheus.Registerer
 }
 
+var defaultErrorRules = []interceptor.ErrorRule{
+	// Domain errors
+	{
+		Target: domainUser.ErrNotFound,
+		Code:   codes.NotFound,
+	},
+	{
+		Target: domainUser.ErrEmailAlreadyExists,
+		Code:   codes.AlreadyExists,
+	},
+	{
+		Target: domainUser.ErrNoFieldsToUpdate,
+		Code:   codes.InvalidArgument,
+	},
+	{
+		Target: domainUser.ErrWeakPassword,
+		Code:   codes.InvalidArgument,
+	},
+
+	// Auth service errors
+	{
+		Target: authService.ErrInvalidCredentials,
+		Code:   codes.Unauthenticated,
+	},
+	{
+		Target: authService.ErrInvalidRefreshToken,
+		Code:   codes.Unauthenticated,
+	},
+	{
+		Target: authService.ErrAuthentication,
+		Code:   codes.Internal,
+		Message: "authentication failed",
+	},
+	{
+		Target: authService.ErrUserIDEmpty,
+		Code:   codes.Internal,
+		Message: "internal error",
+	},
+	{
+		Target: authService.ErrIssueTokens,
+		Code:   codes.Internal,
+		Message: "internal error",
+	},
+}
+
 func NewServer(deps Deps) (*grpc.Server, error) {
 	logger := deps.Logger
 	if logger == nil {
@@ -68,20 +113,6 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 		return nil, fmt.Errorf("init auth interceptor: %w", err)
 	}
 
-	errorRules := []interceptor.ErrorRule{
-		// Domain errors
-		{Target: domainUser.ErrNotFound, Code: codes.NotFound},
-		{Target: domainUser.ErrEmailAlreadyExists, Code: codes.AlreadyExists},
-		{Target: domainUser.ErrNoFieldsToUpdate, Code: codes.InvalidArgument},
-		{Target: domainUser.ErrWeakPassword, Code: codes.InvalidArgument},
-		// Auth service errors
-		{Target: authService.ErrInvalidCredentials, Code: codes.Unauthenticated},
-		{Target: authService.ErrInvalidRefreshToken, Code: codes.Unauthenticated},
-		{Target: authService.ErrAuthentication, Code: codes.Internal, Message: "authentication failed"},
-		{Target: authService.ErrUserIDEmpty, Code: codes.Internal, Message: "internal error"},
-		{Target: authService.ErrIssueTokens, Code: codes.Internal, Message: "internal error"},
-	}
-
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptor.TimeoutInterceptor(deps.Config.RequestTimeout),
@@ -90,7 +121,7 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),
 			authIntcpt,
 			interceptor.ValidationInterceptor(),
-			interceptor.ErrorMappingInterceptor(logger.Named("interceptor.errors"), errorRules),
+			interceptor.ErrorMappingInterceptor(logger.Named("interceptor.errors"), defaultErrorRules),
 		),
 	}
 

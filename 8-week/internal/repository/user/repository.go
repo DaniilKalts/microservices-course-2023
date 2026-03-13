@@ -11,7 +11,7 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 )
 
-var sb = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 //go:generate minimock -i github.com/DaniilKalts/microservices-course-2023/8-week/internal/repository/user.Repository -o mock.go -n UserRepositoryMock -p user
 
@@ -37,7 +37,7 @@ func NewRepository(client database.Client) Repository {
 func (repo *repository) Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error) {
 	u := toDBUser(user, passwordHash)
 
-	query, args, err := sb.Insert("users").
+	query, args, err := psql.Insert("users").
 		Columns("id", "name", "email", "password_hash", "role").
 		Values(u.ID, u.Name, u.Email, u.PasswordHash, u.Role).
 		Suffix("RETURNING id").
@@ -58,7 +58,7 @@ func (repo *repository) Create(ctx context.Context, user *domainUser.User, passw
 }
 
 func (repo *repository) List(ctx context.Context) ([]domainUser.User, error) {
-	query, args, err := sb.Select(userColumns...).
+	query, args, err := psql.Select(userColumns...).
 		From("users").
 		OrderBy("created_at DESC").
 		ToSql()
@@ -75,7 +75,7 @@ func (repo *repository) List(ctx context.Context) ([]domainUser.User, error) {
 }
 
 func (repo *repository) GetByID(ctx context.Context, id string) (*domainUser.User, error) {
-	query, args, err := sb.Select(userColumns...).
+	query, args, err := psql.Select(userColumns...).
 		From("users").
 		Where(sq.Eq{"id": id}).
 		Limit(1).
@@ -96,7 +96,7 @@ func (repo *repository) GetByID(ctx context.Context, id string) (*domainUser.Use
 }
 
 func (repo *repository) GetCredentialsByEmail(ctx context.Context, email string) (*domainUser.Credentials, error) {
-	query, args, err := sb.Select("id", "password_hash", "role").
+	query, args, err := psql.Select("id", "password_hash", "role").
 		From("users").
 		Where(sq.Eq{"email": email}).
 		Limit(1).
@@ -135,7 +135,7 @@ func (repo *repository) Update(ctx context.Context, input domainUser.UpdateInput
 
 	fields["updated_at"] = time.Now()
 
-	query, args, err := sb.Update("users").
+	query, args, err := psql.Update("users").
 		Where(sq.Eq{"id": input.ID}).
 		SetMap(fields).
 		ToSql()
@@ -159,7 +159,7 @@ func (repo *repository) Update(ctx context.Context, input domainUser.UpdateInput
 }
 
 func (repo *repository) Delete(ctx context.Context, id string) error {
-	query, args, err := sb.Delete("users").
+	query, args, err := psql.Delete("users").
 		Where(sq.Eq{"id": id}).
 		ToSql()
 	if err != nil {

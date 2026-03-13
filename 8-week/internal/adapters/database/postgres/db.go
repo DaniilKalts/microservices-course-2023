@@ -37,11 +37,11 @@ func NewDB(pool *pgxpool.Pool, queryTimeout time.Duration, logger *zap.Logger) (
 	}, nil
 }
 
-func (p *db) ScanOneContext(ctx context.Context, dest any, q database.Query, args ...any) error {
-	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+func (d *db) ScanOneContext(ctx context.Context, dest any, q database.Query, args ...any) error {
+	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
 
-	row, err := p.queryContext(ctx, q, args...)
+	row, err := d.queryContext(ctx, q, args...)
 	if err != nil {
 		return err
 	}
@@ -56,11 +56,11 @@ func (p *db) ScanOneContext(ctx context.Context, dest any, q database.Query, arg
 	return nil
 }
 
-func (p *db) ScanAllContext(ctx context.Context, dest any, q database.Query, args ...any) error {
-	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+func (d *db) ScanAllContext(ctx context.Context, dest any, q database.Query, args ...any) error {
+	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
 
-	rows, err := p.queryContext(ctx, q, args...)
+	rows, err := d.queryContext(ctx, q, args...)
 	if err != nil {
 		return err
 	}
@@ -68,11 +68,11 @@ func (p *db) ScanAllContext(ctx context.Context, dest any, q database.Query, arg
 	return pgxscan.ScanAll(dest, rows)
 }
 
-func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (database.ExecResult, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+func (d *db) ExecContext(ctx context.Context, q database.Query, args ...any) (database.ExecResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
 
-	span, ctx := p.startDBSpan(ctx, "db.exec", q)
+	span, ctx := d.startDBSpan(ctx, "db.exec", q)
 	defer span.Finish()
 
 	startedAt := time.Now()
@@ -82,14 +82,14 @@ func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (da
 		err error
 	)
 
-	tx, ok := ctx.Value(database.TxKey).(pgx.Tx)
-	if ok {
+	tx, hasTx := ctx.Value(database.TxKey).(pgx.Tx)
+	if hasTx {
 		tag.ct, err = tx.Exec(ctx, q.QueryRaw, args...)
 	} else {
-		tag.ct, err = p.pool.Exec(ctx, q.QueryRaw, args...)
+		tag.ct, err = d.pool.Exec(ctx, q.QueryRaw, args...)
 	}
 
-	p.logQuery("exec", q, args, time.Since(startedAt), err)
+	d.logQuery("exec", q, args, time.Since(startedAt), err)
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogKV("event", "error", "message", err.Error())
@@ -99,9 +99,8 @@ func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (da
 	return tag, nil
 }
 
-// queryContext is an internal method used by ScanOneContext and ScanAllContext.
-func (p *db) queryContext(ctx context.Context, q database.Query, args ...any) (pgx.Rows, error) {
-	span, ctx := p.startDBSpan(ctx, "db.query", q)
+func (d *db) queryContext(ctx context.Context, q database.Query, args ...any) (pgx.Rows, error) {
+	span, ctx := d.startDBSpan(ctx, "db.query", q)
 	defer span.Finish()
 
 	startedAt := time.Now()
@@ -111,14 +110,14 @@ func (p *db) queryContext(ctx context.Context, q database.Query, args ...any) (p
 		err  error
 	)
 
-	tx, ok := ctx.Value(database.TxKey).(pgx.Tx)
-	if ok {
+	tx, hasTx := ctx.Value(database.TxKey).(pgx.Tx)
+	if hasTx {
 		rows, err = tx.Query(ctx, q.QueryRaw, args...)
 	} else {
-		rows, err = p.pool.Query(ctx, q.QueryRaw, args...)
+		rows, err = d.pool.Query(ctx, q.QueryRaw, args...)
 	}
 
-	p.logQuery("query", q, args, time.Since(startedAt), err)
+	d.logQuery("query", q, args, time.Since(startedAt), err)
 	if err != nil {
 		ext.Error.Set(span, true)
 		span.LogKV("event", "error", "message", err.Error())
@@ -128,16 +127,16 @@ func (p *db) queryContext(ctx context.Context, q database.Query, args ...any) (p
 	return rows, nil
 }
 
-func (p *db) Ping(ctx context.Context) error {
+func (d *db) Ping(ctx context.Context) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "db.ping")
 	defer span.Finish()
 
 	span.SetTag("component", "database")
 	span.SetTag("db.system", "postgresql")
 
-	err := p.pool.Ping(ctx)
+	err := d.pool.Ping(ctx)
 	if err != nil {
-		p.logger.Error("failed to ping database", zap.Error(err))
+		d.logger.Error("failed to ping database", zap.Error(err))
 		ext.Error.Set(span, true)
 		span.LogKV("event", "error", "message", err.Error())
 	}
@@ -145,8 +144,8 @@ func (p *db) Ping(ctx context.Context) error {
 	return err
 }
 
-func (p *db) BeginTx(ctx context.Context, txOptions database.TxOptions) (database.Tx, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
+func (d *db) BeginTx(ctx context.Context, txOptions database.TxOptions) (database.Tx, error) {
+	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
 
 	span, ctx := opentracing.StartSpanFromContext(ctx, "db.begin_tx")
@@ -157,45 +156,45 @@ func (p *db) BeginTx(ctx context.Context, txOptions database.TxOptions) (databas
 
 	pgxOpts := pgx.TxOptions{IsoLevel: pgx.TxIsoLevel(string(txOptions.IsoLevel))}
 
-	tx, err := p.pool.BeginTx(ctx, pgxOpts)
+	tx, err := d.pool.BeginTx(ctx, pgxOpts)
 	if err != nil {
-		p.logger.Error("failed to begin transaction", zap.String("isolation_level", string(txOptions.IsoLevel)), zap.Error(err))
+		d.logger.Error("failed to begin transaction", zap.String("isolation_level", string(txOptions.IsoLevel)), zap.Error(err))
 		ext.Error.Set(span, true)
 		span.LogKV("event", "error", "message", err.Error())
 		return nil, err
 	}
 
-	p.logger.Debug("transaction started", zap.String("isolation_level", string(txOptions.IsoLevel)))
+	d.logger.Debug("transaction started", zap.String("isolation_level", string(txOptions.IsoLevel)))
 
 	return tx, nil
 }
 
-func (p *db) Close() {
-	p.pool.Close()
+func (d *db) Close() {
+	d.pool.Close()
 }
 
-func (p *db) logQuery(operation string, q database.Query, args []any, duration time.Duration, err error) {
+func (d *db) logQuery(operation string, q database.Query, args []any, duration time.Duration, err error) {
 	fields := []zap.Field{
 		zap.String("operation", operation),
 		zap.String("query_name", q.Name),
 		zap.Int("args_count", len(args)),
-		zap.Float64("duration_ms", float64(duration)/float64(time.Millisecond)),
+		zap.Float64("duration_ms", duration.Seconds()*1000),
 	}
 
-	if p.logger.Core().Enabled(zap.DebugLevel) {
+	if d.logger.Core().Enabled(zap.DebugLevel) {
 		fields = append(fields, zap.String("query", prettier.Pretty(q.QueryRaw, prettier.PlaceholderDollar, args...)))
 	}
 
 	if err != nil {
 		fields = append(fields, zap.Error(err))
-		p.logger.Error("database operation failed", fields...)
+		d.logger.Error("database operation failed", fields...)
 		return
 	}
 
-	p.logger.Debug("database operation completed", fields...)
+	d.logger.Debug("database operation completed", fields...)
 }
 
-func (p *db) startDBSpan(ctx context.Context, operationName string, q database.Query) (opentracing.Span, context.Context) {
+func (d *db) startDBSpan(ctx context.Context, operationName string, q database.Query) (opentracing.Span, context.Context) {
 	span, spanCtx := opentracing.StartSpanFromContext(ctx, operationName)
 	span.SetTag("component", "database")
 	span.SetTag("db.system", "postgresql")
@@ -204,7 +203,6 @@ func (p *db) startDBSpan(ctx context.Context, operationName string, q database.Q
 	return span, spanCtx
 }
 
-// execResult wraps pgconn.CommandTag to satisfy database.ExecResult.
 type execResult struct {
 	ct interface {
 		RowsAffected() int64

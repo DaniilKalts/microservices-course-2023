@@ -38,7 +38,11 @@ func NewService(
 	}
 }
 
-const dummyPasswordHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoO5m6jH9MuNoMNFcQJUO2cMjJ1ytY1/6W"
+// timingSafeHash is a pre-computed bcrypt hash used when the requested user
+// does not exist. Comparing against it ensures the response time is
+// indistinguishable from the valid-user path, preventing user-enumeration
+// timing attacks.
+const timingSafeHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoO5m6jH9MuNoMNFcQJUO2cMjJ1ytY1/6W"
 
 func (s *service) Register(ctx context.Context, input RegisterInput) (domainUser.User, TokenPair, error) {
 	userID, err := s.userService.Create(ctx, domainUser.CreateInput{
@@ -64,7 +68,7 @@ func (s *service) Register(ctx context.Context, input RegisterInput) (domainUser
 func (s *service) Login(ctx context.Context, input LoginInput) (TokenPair, error) {
 	credentials, err := s.userService.GetCredentialsByEmail(ctx, input.Email)
 	if err != nil {
-		_ = bcrypt.CompareHashAndPassword([]byte(dummyPasswordHash), []byte(input.Password))
+		_ = bcrypt.CompareHashAndPassword([]byte(timingSafeHash), []byte(input.Password))
 		if errors.Is(err, domainUser.ErrNotFound) {
 			return TokenPair{}, ErrInvalidCredentials
 		}

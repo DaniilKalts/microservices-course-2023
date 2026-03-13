@@ -145,11 +145,15 @@ func grpcGatewayEndpoint(address string) (string, error) {
 		return "", err
 	}
 
-	if host == "" || host == "0.0.0.0" || host == "::" {
+	if isWildcardHost(host) {
 		host = "localhost"
 	}
 
 	return net.JoinHostPort(host, port), nil
+}
+
+func isWildcardHost(host string) bool {
+	return host == "" || host == "0.0.0.0" || host == "::"
 }
 
 func grpcGatewayDialOptions(tlsCfg appconfig.TLSConfig, tracer opentracing.Tracer) ([]grpc.DialOption, error) {

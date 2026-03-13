@@ -38,7 +38,7 @@ func LoggingInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 			zap.Int("status_code", int(code)),
 			zap.String("remote_addr", remoteAddr),
 			zap.NamedError("error", err),
-			zap.Float64("duration_ms", float64(duration)/float64(time.Millisecond)),
+			zap.Float64("duration_ms", duration.Seconds()*1000),
 		}
 
 		if span := opentracing.SpanFromContext(ctx); span != nil {

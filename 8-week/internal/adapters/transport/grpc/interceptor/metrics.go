@@ -35,6 +35,7 @@ func MetricsInterceptor(registry prometheus.Registerer) grpc.UnaryServerIntercep
 			Subsystem: "grpc",
 			Name:      "duration_seconds",
 			Help:      "gRPC request duration in seconds",
+			// Buckets tuned for gRPC latency: p50 < 50ms, p99 < 1s.
 			Buckets: []float64{
 				0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5,
 			},

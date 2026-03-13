@@ -7,7 +7,6 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
@@ -42,7 +41,7 @@ func (p *db) ScanOneContext(ctx context.Context, dest any, q database.Query, arg
 	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
 	defer cancel()
 
-	row, err := p.QueryContext(ctx, q, args...)
+	row, err := p.queryContext(ctx, q, args...)
 	if err != nil {
 		return err
 	}
@@ -61,7 +60,7 @@ func (p *db) ScanAllContext(ctx context.Context, dest any, q database.Query, arg
 	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
 	defer cancel()
 
-	rows, err := p.QueryContext(ctx, q, args...)
+	rows, err := p.queryContext(ctx, q, args...)
 	if err != nil {
 		return err
 	}
@@ -69,7 +68,7 @@ func (p *db) ScanAllContext(ctx context.Context, dest any, q database.Query, arg
 	return pgxscan.ScanAll(dest, rows)
 }
 
-func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (pgconn.CommandTag, error) {
+func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (database.ExecResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
 	defer cancel()
 
@@ -79,15 +78,15 @@ func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (pg
 	startedAt := time.Now()
 
 	var (
-		tag pgconn.CommandTag
+		tag execResult
 		err error
 	)
 
 	tx, ok := ctx.Value(database.TxKey).(pgx.Tx)
 	if ok {
-		tag, err = tx.Exec(ctx, q.QueryRaw, args...)
+		tag.ct, err = tx.Exec(ctx, q.QueryRaw, args...)
 	} else {
-		tag, err = p.pool.Exec(ctx, q.QueryRaw, args...)
+		tag.ct, err = p.pool.Exec(ctx, q.QueryRaw, args...)
 	}
 
 	p.logQuery("exec", q, args, time.Since(startedAt), err)
@@ -100,7 +99,8 @@ func (p *db) ExecContext(ctx context.Context, q database.Query, args ...any) (pg
 	return tag, nil
 }
 
-func (p *db) QueryContext(ctx context.Context, q database.Query, args ...any) (pgx.Rows, error) {
+// queryContext is an internal method used by ScanOneContext and ScanAllContext.
+func (p *db) queryContext(ctx context.Context, q database.Query, args ...any) (pgx.Rows, error) {
 	span, ctx := p.startDBSpan(ctx, "db.query", q)
 	defer span.Finish()
 
@@ -128,31 +128,6 @@ func (p *db) QueryContext(ctx context.Context, q database.Query, args ...any) (p
 	return rows, nil
 }
 
-func (p *db) QueryRowContext(ctx context.Context, q database.Query, args ...any) pgx.Row {
-	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
-	defer cancel()
-
-	span, ctx := p.startDBSpan(ctx, "db.query_row", q)
-	defer span.Finish()
-
-	startedAt := time.Now()
-
-	var row pgx.Row
-
-	tx, ok := ctx.Value(database.TxKey).(pgx.Tx)
-	if ok {
-		row = tx.QueryRow(ctx, q.QueryRaw, args...)
-	} else {
-		row = p.pool.QueryRow(ctx, q.QueryRaw, args...)
-	}
-
-	// Error is always nil: pgx.Row defers errors to Scan(),
-	// so query-level failures are not observable at this point.
-	p.logQuery("query_row", q, args, time.Since(startedAt), nil)
-
-	return row
-}
-
 func (p *db) Ping(ctx context.Context) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "db.ping")
 	defer span.Finish()
@@ -170,7 +145,7 @@ func (p *db) Ping(ctx context.Context) error {
 	return err
 }
 
-func (p *db) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error) {
+func (p *db) BeginTx(ctx context.Context, txOptions database.TxOptions) (database.Tx, error) {
 	ctx, cancel := context.WithTimeout(ctx, p.queryTimeout)
 	defer cancel()
 
@@ -180,12 +155,14 @@ func (p *db) BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, erro
 	span.SetTag("component", "database")
 	span.SetTag("db.system", "postgresql")
 
-	tx, err := p.pool.BeginTx(ctx, txOptions)
+	pgxOpts := pgx.TxOptions{IsoLevel: pgx.TxIsoLevel(string(txOptions.IsoLevel))}
+
+	tx, err := p.pool.BeginTx(ctx, pgxOpts)
 	if err != nil {
 		p.logger.Error("failed to begin transaction", zap.String("isolation_level", string(txOptions.IsoLevel)), zap.Error(err))
 		ext.Error.Set(span, true)
 		span.LogKV("event", "error", "message", err.Error())
-		return tx, err
+		return nil, err
 	}
 
 	p.logger.Debug("transaction started", zap.String("isolation_level", string(txOptions.IsoLevel)))
@@ -225,4 +202,18 @@ func (p *db) startDBSpan(ctx context.Context, operationName string, q database.Q
 	span.SetTag("db.query_name", q.Name)
 
 	return span, spanCtx
+}
+
+// execResult wraps pgconn.CommandTag to satisfy database.ExecResult.
+type execResult struct {
+	ct interface {
+		RowsAffected() int64
+	}
+}
+
+func (r execResult) RowsAffected() int64 {
+	if r.ct == nil {
+		return 0
+	}
+	return r.ct.RowsAffected()
 }

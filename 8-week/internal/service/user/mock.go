@@ -20,9 +20,9 @@ type UserServiceMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcCreate          func(ctx context.Context, input CreateInput) (s1 string, err error)
+	funcCreate          func(ctx context.Context, input domainUser.CreateInput) (s1 string, err error)
 	funcCreateOrigin    string
-	inspectFuncCreate   func(ctx context.Context, input CreateInput)
+	inspectFuncCreate   func(ctx context.Context, input domainUser.CreateInput)
 	afterCreateCounter  uint64
 	beforeCreateCounter uint64
 	CreateMock          mUserServiceMockCreate
@@ -55,9 +55,9 @@ type UserServiceMock struct {
 	beforeListCounter uint64
 	ListMock          mUserServiceMockList
 
-	funcUpdate          func(ctx context.Context, input UpdateInput) (err error)
+	funcUpdate          func(ctx context.Context, input domainUser.UpdateInput) (err error)
 	funcUpdateOrigin    string
-	inspectFuncUpdate   func(ctx context.Context, input UpdateInput)
+	inspectFuncUpdate   func(ctx context.Context, input domainUser.UpdateInput)
 	afterUpdateCounter  uint64
 	beforeUpdateCounter uint64
 	UpdateMock          mUserServiceMockUpdate
@@ -121,13 +121,13 @@ type UserServiceMockCreateExpectation struct {
 // UserServiceMockCreateParams contains parameters of the Service.Create
 type UserServiceMockCreateParams struct {
 	ctx   context.Context
-	input CreateInput
+	input domainUser.CreateInput
 }
 
 // UserServiceMockCreateParamPtrs contains pointers to parameters of the Service.Create
 type UserServiceMockCreateParamPtrs struct {
 	ctx   *context.Context
-	input *CreateInput
+	input *domainUser.CreateInput
 }
 
 // UserServiceMockCreateResults contains results of the Service.Create
@@ -154,7 +154,7 @@ func (mmCreate *mUserServiceMockCreate) Optional() *mUserServiceMockCreate {
 }
 
 // Expect sets up expected params for Service.Create
-func (mmCreate *mUserServiceMockCreate) Expect(ctx context.Context, input CreateInput) *mUserServiceMockCreate {
+func (mmCreate *mUserServiceMockCreate) Expect(ctx context.Context, input domainUser.CreateInput) *mUserServiceMockCreate {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("UserServiceMock.Create mock is already set by Set")
 	}
@@ -202,7 +202,7 @@ func (mmCreate *mUserServiceMockCreate) ExpectCtxParam1(ctx context.Context) *mU
 }
 
 // ExpectInputParam2 sets up expected param input for Service.Create
-func (mmCreate *mUserServiceMockCreate) ExpectInputParam2(input CreateInput) *mUserServiceMockCreate {
+func (mmCreate *mUserServiceMockCreate) ExpectInputParam2(input domainUser.CreateInput) *mUserServiceMockCreate {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("UserServiceMock.Create mock is already set by Set")
 	}
@@ -225,7 +225,7 @@ func (mmCreate *mUserServiceMockCreate) ExpectInputParam2(input CreateInput) *mU
 }
 
 // Inspect accepts an inspector function that has same arguments as the Service.Create
-func (mmCreate *mUserServiceMockCreate) Inspect(f func(ctx context.Context, input CreateInput)) *mUserServiceMockCreate {
+func (mmCreate *mUserServiceMockCreate) Inspect(f func(ctx context.Context, input domainUser.CreateInput)) *mUserServiceMockCreate {
 	if mmCreate.mock.inspectFuncCreate != nil {
 		mmCreate.mock.t.Fatalf("Inspect function is already set for UserServiceMock.Create")
 	}
@@ -250,7 +250,7 @@ func (mmCreate *mUserServiceMockCreate) Return(s1 string, err error) *UserServic
 }
 
 // Set uses given function f to mock the Service.Create method
-func (mmCreate *mUserServiceMockCreate) Set(f func(ctx context.Context, input CreateInput) (s1 string, err error)) *UserServiceMock {
+func (mmCreate *mUserServiceMockCreate) Set(f func(ctx context.Context, input domainUser.CreateInput) (s1 string, err error)) *UserServiceMock {
 	if mmCreate.defaultExpectation != nil {
 		mmCreate.mock.t.Fatalf("Default expectation is already set for the Service.Create method")
 	}
@@ -266,7 +266,7 @@ func (mmCreate *mUserServiceMockCreate) Set(f func(ctx context.Context, input Cr
 
 // When sets expectation for the Service.Create which will trigger the result defined by the following
 // Then helper
-func (mmCreate *mUserServiceMockCreate) When(ctx context.Context, input CreateInput) *UserServiceMockCreateExpectation {
+func (mmCreate *mUserServiceMockCreate) When(ctx context.Context, input domainUser.CreateInput) *UserServiceMockCreateExpectation {
 	if mmCreate.mock.funcCreate != nil {
 		mmCreate.mock.t.Fatalf("UserServiceMock.Create mock is already set by Set")
 	}
@@ -308,7 +308,7 @@ func (mmCreate *mUserServiceMockCreate) invocationsDone() bool {
 }
 
 // Create implements Service
-func (mmCreate *UserServiceMock) Create(ctx context.Context, input CreateInput) (s1 string, err error) {
+func (mmCreate *UserServiceMock) Create(ctx context.Context, input domainUser.CreateInput) (s1 string, err error) {
 	mm_atomic.AddUint64(&mmCreate.beforeCreateCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreate.afterCreateCounter, 1)
 
@@ -1804,13 +1804,13 @@ type UserServiceMockUpdateExpectation struct {
 // UserServiceMockUpdateParams contains parameters of the Service.Update
 type UserServiceMockUpdateParams struct {
 	ctx   context.Context
-	input UpdateInput
+	input domainUser.UpdateInput
 }
 
 // UserServiceMockUpdateParamPtrs contains pointers to parameters of the Service.Update
 type UserServiceMockUpdateParamPtrs struct {
 	ctx   *context.Context
-	input *UpdateInput
+	input *domainUser.UpdateInput
 }
 
 // UserServiceMockUpdateResults contains results of the Service.Update
@@ -1836,7 +1836,7 @@ func (mmUpdate *mUserServiceMockUpdate) Optional() *mUserServiceMockUpdate {
 }
 
 // Expect sets up expected params for Service.Update
-func (mmUpdate *mUserServiceMockUpdate) Expect(ctx context.Context, input UpdateInput) *mUserServiceMockUpdate {
+func (mmUpdate *mUserServiceMockUpdate) Expect(ctx context.Context, input domainUser.UpdateInput) *mUserServiceMockUpdate {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserServiceMock.Update mock is already set by Set")
 	}
@@ -1884,7 +1884,7 @@ func (mmUpdate *mUserServiceMockUpdate) ExpectCtxParam1(ctx context.Context) *mU
 }
 
 // ExpectInputParam2 sets up expected param input for Service.Update
-func (mmUpdate *mUserServiceMockUpdate) ExpectInputParam2(input UpdateInput) *mUserServiceMockUpdate {
+func (mmUpdate *mUserServiceMockUpdate) ExpectInputParam2(input domainUser.UpdateInput) *mUserServiceMockUpdate {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserServiceMock.Update mock is already set by Set")
 	}
@@ -1907,7 +1907,7 @@ func (mmUpdate *mUserServiceMockUpdate) ExpectInputParam2(input UpdateInput) *mU
 }
 
 // Inspect accepts an inspector function that has same arguments as the Service.Update
-func (mmUpdate *mUserServiceMockUpdate) Inspect(f func(ctx context.Context, input UpdateInput)) *mUserServiceMockUpdate {
+func (mmUpdate *mUserServiceMockUpdate) Inspect(f func(ctx context.Context, input domainUser.UpdateInput)) *mUserServiceMockUpdate {
 	if mmUpdate.mock.inspectFuncUpdate != nil {
 		mmUpdate.mock.t.Fatalf("Inspect function is already set for UserServiceMock.Update")
 	}
@@ -1932,7 +1932,7 @@ func (mmUpdate *mUserServiceMockUpdate) Return(err error) *UserServiceMock {
 }
 
 // Set uses given function f to mock the Service.Update method
-func (mmUpdate *mUserServiceMockUpdate) Set(f func(ctx context.Context, input UpdateInput) (err error)) *UserServiceMock {
+func (mmUpdate *mUserServiceMockUpdate) Set(f func(ctx context.Context, input domainUser.UpdateInput) (err error)) *UserServiceMock {
 	if mmUpdate.defaultExpectation != nil {
 		mmUpdate.mock.t.Fatalf("Default expectation is already set for the Service.Update method")
 	}
@@ -1948,7 +1948,7 @@ func (mmUpdate *mUserServiceMockUpdate) Set(f func(ctx context.Context, input Up
 
 // When sets expectation for the Service.Update which will trigger the result defined by the following
 // Then helper
-func (mmUpdate *mUserServiceMockUpdate) When(ctx context.Context, input UpdateInput) *UserServiceMockUpdateExpectation {
+func (mmUpdate *mUserServiceMockUpdate) When(ctx context.Context, input domainUser.UpdateInput) *UserServiceMockUpdateExpectation {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("UserServiceMock.Update mock is already set by Set")
 	}
@@ -1990,7 +1990,7 @@ func (mmUpdate *mUserServiceMockUpdate) invocationsDone() bool {
 }
 
 // Update implements Service
-func (mmUpdate *UserServiceMock) Update(ctx context.Context, input UpdateInput) (err error) {
+func (mmUpdate *UserServiceMock) Update(ctx context.Context, input domainUser.UpdateInput) (err error) {
 	mm_atomic.AddUint64(&mmUpdate.beforeUpdateCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdate.afterUpdateCounter, 1)
 

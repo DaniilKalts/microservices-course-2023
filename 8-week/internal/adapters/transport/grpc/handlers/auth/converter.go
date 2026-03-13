@@ -6,6 +6,8 @@ import (
 	authService "github.com/DaniilKalts/microservices-course-2023/8-week/internal/service/auth"
 )
 
+// Proto → Domain
+
 func toRegisterInput(req *authv1.RegisterRequest) authService.RegisterInput {
 	return authService.RegisterInput{
 		Name:     req.GetName(),
@@ -28,6 +30,8 @@ func toLogoutInput(req *authv1.LogoutRequest) authService.LogoutInput {
 func toRefreshInput(req *authv1.RefreshRequest) authService.RefreshInput {
 	return authService.RefreshInput{RefreshToken: req.GetRefreshToken()}
 }
+
+// Domain → Proto
 
 func toProtoTokenPair(tokens authService.TokenPair) *authv1.TokenPair {
 	return &authv1.TokenPair{

@@ -7,6 +7,8 @@ import (
 	"io"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"go.uber.org/zap"
 
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/database/postgres"
@@ -19,15 +21,14 @@ import (
 )
 
 type Container struct {
-	DB         database.Client
-	JWTManager jwt.Manager
-	Tracer     opentracing.Tracer
-	Services   service.Services
-}
+	DB       database.Client
+	Tracer   opentracing.Tracer
+	Registry *prometheus.Registry
 
-type tracerCloser struct {
-	opentracing.Tracer
-	io.Closer
+	JWTManager jwt.Manager
+	Services   service.Services
+
+	closers []io.Closer
 }
 
 func NewContainer(ctx context.Context, cfg *config.Config, logger *zap.Logger) (_ *Container, err error) {
@@ -44,6 +45,10 @@ func NewContainer(ctx context.Context, cfg *config.Config, logger *zap.Logger) (
 			_ = c.Close()
 		}
 	}()
+
+	c.Registry = prometheus.NewRegistry()
+	c.Registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	c.Registry.MustRegister(collectors.NewGoCollector())
 
 	if err = c.initTracer(cfg.Tracing, logger); err != nil {
 		return nil, err
@@ -69,9 +74,9 @@ func (c *Container) Close() error {
 		}
 	}
 
-	if closer, ok := c.Tracer.(io.Closer); ok {
-		if err := closer.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("close tracer: %w", err))
+	for _, cl := range c.closers {
+		if err := cl.Close(); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
@@ -103,7 +108,8 @@ func (c *Container) initTracer(cfg config.TracingConfig, logger *zap.Logger) err
 		return fmt.Errorf("init tracer: %w", err)
 	}
 
-	c.Tracer = &tracerCloser{Tracer: tracer, Closer: closer}
+	c.Tracer = tracer
+	c.closers = append(c.closers, closer)
 
 	logger.Info("tracing initialized",
 		zap.String("service_name", cfg.ServiceName),

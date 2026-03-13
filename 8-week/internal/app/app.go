@@ -62,6 +62,7 @@ func (a *App) initGRPC(c *Container) error {
 		Logger:     a.logger.Named("transport.grpc"),
 		Services:   c.Services,
 		Tracer:     c.Tracer,
+		Registry:   c.Registry,
 	})
 	if err != nil {
 		return fmt.Errorf("init grpc server: %w", err)
@@ -95,6 +96,7 @@ func (a *App) initDiagnostic(c *Container) {
 	a.diagnostic = diagnostic.NewServer(diagnostic.Deps{
 		Address:  a.cfg.Diagnostic.Address(),
 		Checkers: checkers,
+		Registry: c.Registry,
 	})
 }
 
@@ -135,7 +137,7 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	case <-ctx.Done():
 		logger.Info("shutting down...")
-		return nil
+		return ctx.Err()
 	}
 }
 
@@ -195,6 +197,7 @@ func (a *App) shutdown() {
 		}
 
 		wg.Wait()
+		a.logger.Info("shutdown complete")
 	})
 }
 

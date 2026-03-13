@@ -33,7 +33,7 @@ func (g AccessGroup) AllowsRole(roleID int32) bool {
 	return false
 }
 
-type MethodGroup struct {
+type AccessRule struct {
 	Group   AccessGroup
 	Methods []string
 }
@@ -42,7 +42,7 @@ type AccessPolicy struct {
 	groupByMethod map[string]AccessGroup
 }
 
-func NewAccessPolicy(groups ...MethodGroup) (AccessPolicy, error) {
+func NewAccessPolicy(groups ...AccessRule) (AccessPolicy, error) {
 	if len(groups) == 0 {
 		return AccessPolicy{}, fmt.Errorf("create access policy: no method groups provided")
 	}

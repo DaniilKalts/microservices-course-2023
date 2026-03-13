@@ -2,15 +2,11 @@ package user
 
 import (
 	"context"
-	"errors"
 
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1"
-	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 	userService "github.com/DaniilKalts/microservices-course-2023/8-week/internal/service/user"
 )
 
@@ -39,7 +35,7 @@ func (h *Handler) Get(ctx context.Context, req *userv1.GetRequest) (*userv1.GetR
 		return nil, h.mapError(err)
 	}
 
-	return &userv1.GetResponse{User: ToProtoUser(user)}, nil
+	return &userv1.GetResponse{User: toProtoUser(user)}, nil
 }
 
 func (h *Handler) List(ctx context.Context, _ *emptypb.Empty) (*userv1.ListResponse, error) {
@@ -65,18 +61,4 @@ func (h *Handler) Delete(ctx context.Context, req *userv1.DeleteRequest) (*empty
 	}
 
 	return &emptypb.Empty{}, nil
-}
-
-func (h *Handler) mapError(err error) error {
-	switch {
-	case errors.Is(err, domainUser.ErrNotFound):
-		return status.Error(codes.NotFound, domainUser.ErrNotFound.Error())
-	case errors.Is(err, domainUser.ErrEmailAlreadyExists):
-		return status.Error(codes.AlreadyExists, domainUser.ErrEmailAlreadyExists.Error())
-	case errors.Is(err, domainUser.ErrNoFieldsToUpdate):
-		return status.Error(codes.InvalidArgument, domainUser.ErrNoFieldsToUpdate.Error())
-	default:
-		h.logger.Error("unhandled user error", zap.Error(err))
-		return status.Error(codes.Internal, "internal error")
-	}
 }

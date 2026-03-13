@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
@@ -21,8 +20,13 @@ import (
 func newTestService(t *testing.T) (*userService.UserServiceMock, *jwt.JWTManagerMock, Service) {
 	t.Helper()
 	userSvc := userService.NewUserServiceMock(t)
+	// Mark methods not used by auth as optional.
+	userSvc.ListMock.Optional()
+	userSvc.GetMock.Optional()
+	userSvc.UpdateMock.Optional()
+	userSvc.DeleteMock.Optional()
 	jwtMgr := jwt.NewJWTManagerMock(t)
-	return userSvc, jwtMgr, NewService(userSvc, jwtMgr, zap.NewNop())
+	return userSvc, jwtMgr, NewService(userSvc, jwtMgr)
 }
 
 func stubTokenGeneration(jwtMgr *jwt.JWTManagerMock, access, refresh string) {
@@ -50,7 +54,7 @@ func TestRegister(t *testing.T) {
 		t.Parallel()
 		userSvc, jwtMgr, svc := newTestService(t)
 
-		userSvc.CreateMock.Set(func(_ context.Context, input userService.CreateInput) (string, error) {
+		userSvc.CreateMock.Set(func(_ context.Context, input domainUser.CreateInput) (string, error) {
 			assert.Equal(t, "John", input.User.Name)
 			assert.Equal(t, "john@example.com", input.User.Email)
 			assert.Equal(t, domainUser.RoleUser, input.User.Role)

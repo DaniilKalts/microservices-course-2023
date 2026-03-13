@@ -12,7 +12,10 @@ type Repositories struct {
 }
 
 func NewRepositories(db database.Client, logger *zap.Logger) Repositories {
-	return Repositories{
-		User: userRepository.NewRepository(db, logger.Named("user")),
-	}
+	// User Repository
+	userRepo := userRepository.NewRepository(db)
+	userRepo = userRepository.WithTracing(userRepo)
+	userRepo = userRepository.WithLogging(userRepo, logger.Named("user"))
+
+	return Repositories{User: userRepo}
 }

@@ -21,12 +21,15 @@ type Deps struct {
 }
 
 func NewServices(deps Deps) Services {
-	userSvc := userService.NewService(deps.Repositories.User, deps.Logger.Named("user"))
-	authSvc := authService.NewService(
-		userSvc,
-		deps.JWTManager,
-		deps.Logger.Named("auth"),
-	)
+	// User Service
+	userSvc := userService.NewService(deps.Repositories.User)
+	userSvc = userService.WithTracing(userSvc)
+	userSvc = userService.WithLogging(userSvc, deps.Logger.Named("user"))
+
+	// Auth Service
+	authSvc := authService.NewService(userSvc, deps.JWTManager)
+	authSvc = authService.WithTracing(authSvc)
+	authSvc = authService.WithLogging(authSvc, deps.Logger.Named("auth"))
 
 	return Services{
 		User: userSvc,

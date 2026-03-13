@@ -4,6 +4,8 @@ import (
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 )
 
+// --- To DB ---
+
 func toDBUser(user *domainUser.User, passwordHash string) dbUser {
 	return dbUser{
 		ID:           user.ID,
@@ -13,6 +15,8 @@ func toDBUser(user *domainUser.User, passwordHash string) dbUser {
 		Role:         int32(user.Role),
 	}
 }
+
+// --- To Domain ---
 
 func toDomainUser(u *dbUser) *domainUser.User {
 	return &domainUser.User{
@@ -33,7 +37,7 @@ func toDomainUsers(users []dbUser) []domainUser.User {
 	return result
 }
 
-func toCredentials(creds *dbCredentials) *domainUser.Credentials {
+func toDomainCredentials(creds *dbCredentials) *domainUser.Credentials {
 	return &domainUser.Credentials{
 		ID:           creds.ID,
 		PasswordHash: creds.PasswordHash,

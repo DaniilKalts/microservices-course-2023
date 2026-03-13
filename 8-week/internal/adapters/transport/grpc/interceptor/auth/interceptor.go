@@ -15,25 +15,18 @@ import (
 )
 
 var (
-	ErrJWTManagerNotConfigured   = errors.New("jwt manager is not configured")
 	ErrAuthorizationTokenMissing = errors.New("authorization token is required")
 	ErrInvalidAccessToken        = errors.New("invalid access token")
 	ErrInsufficientPermissions   = errors.New("insufficient role permissions")
-	ErrAccessPolicyNotConfigured = errors.New("auth access policy is not configured")
 	ErrMethodNotRegistered       = errors.New("method not registered in access policy")
 )
 
-func Interceptor(jwtManager jwt.Manager, policy AccessPolicy, logger *zap.Logger) grpc.UnaryServerInterceptor {
+func NewInterceptor(jwtManager jwt.Manager, policy AccessPolicy, logger *zap.Logger) (grpc.UnaryServerInterceptor, error) {
+	if jwtManager == nil {
+		return nil, errors.New("jwt manager is nil")
+	}
 	if policy.IsEmpty() {
-		logger.Error("auth access policy is not configured")
-		return func(
-			_ context.Context,
-			_ any,
-			_ *grpc.UnaryServerInfo,
-			_ grpc.UnaryHandler,
-		) (any, error) {
-			return nil, status.Error(codes.Internal, ErrAccessPolicyNotConfigured.Error())
-		}
+		return nil, errors.New("access policy is empty")
 	}
 
 	return func(
@@ -42,13 +35,13 @@ func Interceptor(jwtManager jwt.Manager, policy AccessPolicy, logger *zap.Logger
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (any, error) {
-		requiredGroup, ok := policy.GroupForMethod(info.FullMethod)
+		group, ok := policy.GroupForMethod(info.FullMethod)
 		if !ok {
 			logger.Warn("method not registered in access policy", zap.String("method", info.FullMethod))
 			return nil, status.Error(codes.PermissionDenied, ErrMethodNotRegistered.Error())
 		}
 
-		if requiredGroup.IsPublic {
+		if group.IsPublic {
 			return handler(ctx, req)
 		}
 
@@ -58,40 +51,27 @@ func Interceptor(jwtManager jwt.Manager, policy AccessPolicy, logger *zap.Logger
 			return nil, err
 		}
 
-		claims, err := authorize(token, jwtManager, requiredGroup)
-		if err != nil {
+		claims, err := jwtManager.VerifyAccessToken(token)
+		if err != nil || claims == nil {
 			logger.Warn("authorization failed",
 				zap.String("method", info.FullMethod),
 				zap.Error(err),
 			)
-			return nil, err
+			return nil, status.Error(codes.Unauthenticated, ErrInvalidAccessToken.Error())
+		}
+
+		if !group.AllowsRole(claims.RoleID) {
+			logger.Warn("authorization failed",
+				zap.String("method", info.FullMethod),
+				zap.Int32("role_id", claims.RoleID),
+			)
+			return nil, status.Error(codes.PermissionDenied, ErrInsufficientPermissions.Error())
 		}
 
 		ctx = withClaims(ctx, claims)
 
 		return handler(ctx, req)
-	}
-}
-
-func authorize(token string, jwtManager jwt.Manager, requiredGroup AccessGroup) (*jwt.Claims, error) {
-	if jwtManager == nil {
-		return nil, status.Error(codes.Internal, ErrJWTManagerNotConfigured.Error())
-	}
-
-	if strings.TrimSpace(token) == "" {
-		return nil, status.Error(codes.Unauthenticated, ErrAuthorizationTokenMissing.Error())
-	}
-
-	claims, err := jwtManager.VerifyAccessToken(token)
-	if err != nil || claims == nil {
-		return nil, status.Error(codes.Unauthenticated, ErrInvalidAccessToken.Error())
-	}
-
-	if !requiredGroup.AllowsRole(claims.RoleID) {
-		return nil, status.Error(codes.PermissionDenied, ErrInsufficientPermissions.Error())
-	}
-
-	return claims, nil
+	}, nil
 }
 
 // Context helpers for JWT claims.

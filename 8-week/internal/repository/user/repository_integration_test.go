@@ -69,7 +69,7 @@ func newTestRepoWithTimeout(t *testing.T, queryTimeout time.Duration) (Repositor
 
 	require.NoError(t, goose.Up(db, migrationsDir))
 
-	return NewRepository(client, zap.NewNop()), ctx
+	return NewRepository(client), ctx
 }
 
 func newTestRepo(t *testing.T) (Repository, context.Context) {
@@ -184,7 +184,7 @@ func TestUpdate(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		existing := createUser(t, repo, ctx)
 
-		err := repo.Update(ctx, UpdateInput{
+		err := repo.Update(ctx, domainUser.UpdateInput{
 			ID:    existing.ID,
 			Name:  ptr("Jane Doe"),
 			Email: ptr(uuid.New().String() + "@updated.com"),
@@ -198,13 +198,13 @@ func TestUpdate(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		err := repo.Update(ctx, UpdateInput{ID: uuid.New().String(), Name: ptr("Jane")})
+		err := repo.Update(ctx, domainUser.UpdateInput{ID: uuid.New().String(), Name: ptr("Jane")})
 
 		assert.ErrorIs(t, err, domainUser.ErrNotFound)
 	})
 
 	t.Run("no fields", func(t *testing.T) {
-		err := repo.Update(ctx, UpdateInput{ID: uuid.New().String()})
+		err := repo.Update(ctx, domainUser.UpdateInput{ID: uuid.New().String()})
 
 		assert.ErrorIs(t, err, domainUser.ErrNoFieldsToUpdate)
 	})
@@ -213,7 +213,7 @@ func TestUpdate(t *testing.T) {
 		first := createUser(t, repo, ctx)
 		second := createUser(t, repo, ctx)
 
-		err := repo.Update(ctx, UpdateInput{ID: second.ID, Email: &first.Email})
+		err := repo.Update(ctx, domainUser.UpdateInput{ID: second.ID, Email: &first.Email})
 
 		assert.ErrorIs(t, err, domainUser.ErrEmailAlreadyExists)
 	})
@@ -267,7 +267,7 @@ func TestQueryTimeout(t *testing.T) {
 	})
 
 	t.Run("update", func(t *testing.T) {
-		err := repo.Update(ctx, UpdateInput{ID: uuid.New().String(), Name: ptr("Jane")})
+		err := repo.Update(ctx, domainUser.UpdateInput{ID: uuid.New().String(), Name: ptr("Jane")})
 
 		assert.ErrorIs(t, err, database.ErrTimeout)
 	})

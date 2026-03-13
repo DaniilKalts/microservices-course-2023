@@ -12,7 +12,7 @@ func DefaultAccessPolicy() (AccessPolicy, error) {
 	admin := RoleGroup("admin", int32(domainUser.RoleAdmin))
 
 	return NewAccessPolicy(
-		MethodGroup{
+		AccessRule{
 			Group: public,
 			Methods: []string{
 				authv1.AuthV1_Register_FullMethodName,
@@ -24,7 +24,7 @@ func DefaultAccessPolicy() (AccessPolicy, error) {
 				"/grpc.health.v1.Health/Watch",
 			},
 		},
-		MethodGroup{
+		AccessRule{
 			Group: admin,
 			Methods: []string{
 				userv1.UserV1_Create_FullMethodName,
@@ -32,7 +32,7 @@ func DefaultAccessPolicy() (AccessPolicy, error) {
 				userv1.UserV1_Delete_FullMethodName,
 			},
 		},
-		MethodGroup{
+		AccessRule{
 			Group: authenticated,
 			Methods: []string{
 				authv1.AuthV1_Logout_FullMethodName,

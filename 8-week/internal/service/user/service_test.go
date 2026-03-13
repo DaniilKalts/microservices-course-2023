@@ -8,19 +8,18 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
 	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
-	userRepository "github.com/DaniilKalts/microservices-course-2023/8-week/internal/repository/user"
+	userRepo "github.com/DaniilKalts/microservices-course-2023/8-week/internal/repository/user"
 )
 
 // --- Helpers ---
 
-func newTestService(t *testing.T) (*userRepository.UserRepositoryMock, Service) {
+func newTestService(t *testing.T) (*userRepo.UserRepositoryMock, Service) {
 	t.Helper()
-	repo := userRepository.NewUserRepositoryMock(t)
-	return repo, NewService(repo, zap.NewNop())
+	repo := userRepo.NewUserRepositoryMock(t)
+	return repo, NewService(repo)
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -42,7 +41,7 @@ func TestCreate(t *testing.T) {
 			return user.ID, nil
 		})
 
-		id, err := svc.Create(context.Background(), CreateInput{
+		id, err := svc.Create(context.Background(), domainUser.CreateInput{
 			User:     &domainUser.User{Name: "John", Email: "john@example.com"},
 			Password: "P@ssword123",
 		})
@@ -56,7 +55,7 @@ func TestCreate(t *testing.T) {
 		repo, svc := newTestService(t)
 		repo.CreateMock.Optional()
 
-		_, err := svc.Create(context.Background(), CreateInput{
+		_, err := svc.Create(context.Background(), domainUser.CreateInput{
 			User:     &domainUser.User{Name: "John", Email: "john@example.com"},
 			Password: strings.Repeat("a", 73),
 		})
@@ -83,7 +82,7 @@ func TestCreate(t *testing.T) {
 				repo, svc := newTestService(t)
 				repo.CreateMock.Return("", tt.repoErr)
 
-				id, err := svc.Create(context.Background(), CreateInput{
+				id, err := svc.Create(context.Background(), domainUser.CreateInput{
 					User:     &domainUser.User{Name: "John", Email: "john@example.com"},
 					Password: "P@ssword123",
 				})
@@ -249,7 +248,7 @@ func TestUpdate(t *testing.T) {
 		t.Parallel()
 		repo, svc := newTestService(t)
 
-		repo.UpdateMock.Set(func(_ context.Context, input userRepository.UpdateInput) error {
+		repo.UpdateMock.Set(func(_ context.Context, input domainUser.UpdateInput) error {
 			assert.Equal(t, "u-1", input.ID)
 			assert.Equal(t, ptr("Jane"), input.Name)
 			assert.Equal(t, ptr("jane@example.com"), input.Email)
@@ -257,7 +256,7 @@ func TestUpdate(t *testing.T) {
 			return nil
 		})
 
-		err := svc.Update(context.Background(), UpdateInput{
+		err := svc.Update(context.Background(), domainUser.UpdateInput{
 			ID:    "u-1",
 			Name:  ptr("Jane"),
 			Email: ptr("jane@example.com"),
@@ -270,13 +269,13 @@ func TestUpdate(t *testing.T) {
 		t.Parallel()
 		repo, svc := newTestService(t)
 
-		repo.UpdateMock.Set(func(_ context.Context, input userRepository.UpdateInput) error {
+		repo.UpdateMock.Set(func(_ context.Context, input domainUser.UpdateInput) error {
 			require.NotNil(t, input.PasswordHash)
 			assert.NoError(t, bcrypt.CompareHashAndPassword([]byte(*input.PasswordHash), []byte("Secret123")))
 			return nil
 		})
 
-		err := svc.Update(context.Background(), UpdateInput{ID: "u-1", Password: ptr("Secret123")})
+		err := svc.Update(context.Background(), domainUser.UpdateInput{ID: "u-1", Password: ptr("Secret123")})
 
 		require.NoError(t, err)
 	})
@@ -285,14 +284,14 @@ func TestUpdate(t *testing.T) {
 		t.Parallel()
 		repo, svc := newTestService(t)
 
-		repo.UpdateMock.Set(func(_ context.Context, input userRepository.UpdateInput) error {
+		repo.UpdateMock.Set(func(_ context.Context, input domainUser.UpdateInput) error {
 			assert.Equal(t, ptr("OnlyName"), input.Name)
 			assert.Nil(t, input.Email)
 			assert.Nil(t, input.PasswordHash)
 			return nil
 		})
 
-		err := svc.Update(context.Background(), UpdateInput{ID: "u-1", Name: ptr("OnlyName")})
+		err := svc.Update(context.Background(), domainUser.UpdateInput{ID: "u-1", Name: ptr("OnlyName")})
 
 		require.NoError(t, err)
 	})
@@ -302,7 +301,7 @@ func TestUpdate(t *testing.T) {
 		repo, svc := newTestService(t)
 		repo.UpdateMock.Optional()
 
-		err := svc.Update(context.Background(), UpdateInput{
+		err := svc.Update(context.Background(), domainUser.UpdateInput{
 			ID:       "u-1",
 			Password: ptr(strings.Repeat("a", 73)),
 		})
@@ -316,14 +315,14 @@ func TestUpdate(t *testing.T) {
 
 		tests := []struct {
 			name    string
-			input   UpdateInput
+			input   domainUser.UpdateInput
 			repoErr error
 			wantErr error
 		}{
-			{"not found", UpdateInput{ID: "u-1", Name: ptr("Jane")}, domainUser.ErrNotFound, domainUser.ErrNotFound},
-			{"duplicate email", UpdateInput{ID: "u-1", Email: ptr("taken@example.com")}, domainUser.ErrEmailAlreadyExists, domainUser.ErrEmailAlreadyExists},
-			{"no fields", UpdateInput{ID: "u-1", Name: ptr("Jane")}, domainUser.ErrNoFieldsToUpdate, domainUser.ErrNoFieldsToUpdate},
-			{"generic error", UpdateInput{ID: "u-1", Name: ptr("Jane")}, errors.New("connection refused"), nil},
+			{"not found", domainUser.UpdateInput{ID: "u-1", Name: ptr("Jane")}, domainUser.ErrNotFound, domainUser.ErrNotFound},
+			{"duplicate email", domainUser.UpdateInput{ID: "u-1", Email: ptr("taken@example.com")}, domainUser.ErrEmailAlreadyExists, domainUser.ErrEmailAlreadyExists},
+			{"no fields", domainUser.UpdateInput{ID: "u-1", Name: ptr("Jane")}, domainUser.ErrNoFieldsToUpdate, domainUser.ErrNoFieldsToUpdate},
+			{"generic error", domainUser.UpdateInput{ID: "u-1", Name: ptr("Jane")}, errors.New("connection refused"), nil},
 		}
 
 		for _, tt := range tests {

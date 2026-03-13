@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -22,12 +23,17 @@ const (
 type Deps struct {
 	Address  string
 	Checkers []HealthChecker
+	Registry *prometheus.Registry
 }
 
 func NewServer(deps Deps) *http.Server {
 	mux := http.NewServeMux()
 
-	mux.Handle("/metrics", promhttp.Handler())
+	metricsHandler := promhttp.Handler()
+	if deps.Registry != nil {
+		metricsHandler = promhttp.HandlerFor(deps.Registry, promhttp.HandlerOpts{})
+	}
+	mux.Handle("/metrics", metricsHandler)
 
 	mux.HandleFunc("/healthz/liveness", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

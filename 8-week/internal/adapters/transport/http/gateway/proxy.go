@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	authv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/auth/v1"
 	userv1 "github.com/DaniilKalts/microservices-course-2023/8-week/api/gen/go/user/v1"
@@ -80,7 +81,15 @@ func NewProxy(ctx context.Context, cfg Config) (_ *Proxy, err error) {
 		tracer = opentracing.NoopTracer{}
 	}
 
-	gatewayMux := runtime.NewServeMux()
+	gatewayMux := runtime.NewServeMux(
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.HTTPBodyMarshaler{
+			Marshaler: &runtime.JSONPb{
+				MarshalOptions: protojson.MarshalOptions{
+					EmitUnpopulated: false,
+				},
+			},
+		}),
+	)
 
 	grpcEndpoint, err := grpcGatewayEndpoint(cfg.GRPCAddress)
 	if err != nil {

@@ -40,6 +40,10 @@ func NewService(repo Repository) Service {
 }
 
 func (s *service) Create(ctx context.Context, input domainUser.CreateInput) (string, error) {
+	if err := domainUser.ValidatePassword(input.Password); err != nil {
+		return "", err
+	}
+
 	id, err := uuid.NewV7()
 	if err != nil {
 		return "", err
@@ -88,6 +92,10 @@ func (s *service) GetCredentialsByEmail(ctx context.Context, email string) (*dom
 
 func (s *service) Update(ctx context.Context, input domainUser.UpdateInput) error {
 	if input.Password != nil {
+		if err := domainUser.ValidatePassword(*input.Password); err != nil {
+			return err
+		}
+
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return err

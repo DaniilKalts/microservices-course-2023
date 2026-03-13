@@ -241,17 +241,6 @@ func (m *RegisterRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if !_RegisterRequest_Password_Pattern.MatchString(m.GetPassword()) {
-		err := RegisterRequestValidationError{
-			field:  "Password",
-			reason: "value does not match regex pattern \"^(.*[A-Z].*[a-z].*[0-9].*[^A-Za-z0-9].*|.*[A-Z].*[a-z].*[^A-Za-z0-9].*[0-9].*|.*[A-Z].*[0-9].*[a-z].*[^A-Za-z0-9].*|.*[A-Z].*[0-9].*[^A-Za-z0-9].*[a-z].*|.*[A-Z].*[^A-Za-z0-9].*[a-z].*[0-9].*|.*[A-Z].*[^A-Za-z0-9].*[0-9].*[a-z].*|.*[a-z].*[A-Z].*[0-9].*[^A-Za-z0-9].*|.*[a-z].*[A-Z].*[^A-Za-z0-9].*[0-9].*|.*[a-z].*[0-9].*[A-Z].*[^A-Za-z0-9].*|.*[a-z].*[0-9].*[^A-Za-z0-9].*[A-Z].*|.*[a-z].*[^A-Za-z0-9].*[A-Z].*[0-9].*|.*[a-z].*[^A-Za-z0-9].*[0-9].*[A-Z].*|.*[0-9].*[A-Z].*[a-z].*[^A-Za-z0-9].*|.*[0-9].*[A-Z].*[^A-Za-z0-9].*[a-z].*|.*[0-9].*[a-z].*[A-Z].*[^A-Za-z0-9].*|.*[0-9].*[a-z].*[^A-Za-z0-9].*[A-Z].*|.*[0-9].*[^A-Za-z0-9].*[A-Z].*[a-z].*|.*[0-9].*[^A-Za-z0-9].*[a-z].*[A-Z].*|.*[^A-Za-z0-9].*[A-Z].*[a-z].*[0-9].*|.*[^A-Za-z0-9].*[A-Z].*[0-9].*[a-z].*|.*[^A-Za-z0-9].*[a-z].*[A-Z].*[0-9].*|.*[^A-Za-z0-9].*[a-z].*[0-9].*[A-Z].*|.*[^A-Za-z0-9].*[0-9].*[A-Z].*[a-z].*|.*[^A-Za-z0-9].*[0-9].*[a-z].*[A-Z].*)$\"",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
 	if len(errors) > 0 {
 		return RegisterRequestMultiError(errors)
 	}
@@ -381,8 +370,6 @@ var _ interface {
 } = RegisterRequestValidationError{}
 
 var _RegisterRequest_Name_Pattern = regexp.MustCompile("^[^\\x00-\\x1F\\x7F]+$")
-
-var _RegisterRequest_Password_Pattern = regexp.MustCompile("^(.*[A-Z].*[a-z].*[0-9].*[^A-Za-z0-9].*|.*[A-Z].*[a-z].*[^A-Za-z0-9].*[0-9].*|.*[A-Z].*[0-9].*[a-z].*[^A-Za-z0-9].*|.*[A-Z].*[0-9].*[^A-Za-z0-9].*[a-z].*|.*[A-Z].*[^A-Za-z0-9].*[a-z].*[0-9].*|.*[A-Z].*[^A-Za-z0-9].*[0-9].*[a-z].*|.*[a-z].*[A-Z].*[0-9].*[^A-Za-z0-9].*|.*[a-z].*[A-Z].*[^A-Za-z0-9].*[0-9].*|.*[a-z].*[0-9].*[A-Z].*[^A-Za-z0-9].*|.*[a-z].*[0-9].*[^A-Za-z0-9].*[A-Z].*|.*[a-z].*[^A-Za-z0-9].*[A-Z].*[0-9].*|.*[a-z].*[^A-Za-z0-9].*[0-9].*[A-Z].*|.*[0-9].*[A-Z].*[a-z].*[^A-Za-z0-9].*|.*[0-9].*[A-Z].*[^A-Za-z0-9].*[a-z].*|.*[0-9].*[a-z].*[A-Z].*[^A-Za-z0-9].*|.*[0-9].*[a-z].*[^A-Za-z0-9].*[A-Z].*|.*[0-9].*[^A-Za-z0-9].*[A-Z].*[a-z].*|.*[0-9].*[^A-Za-z0-9].*[a-z].*[A-Z].*|.*[^A-Za-z0-9].*[A-Z].*[a-z].*[0-9].*|.*[^A-Za-z0-9].*[A-Z].*[0-9].*[a-z].*|.*[^A-Za-z0-9].*[a-z].*[A-Z].*[0-9].*|.*[^A-Za-z0-9].*[a-z].*[0-9].*[A-Z].*|.*[^A-Za-z0-9].*[0-9].*[A-Z].*[a-z].*|.*[^A-Za-z0-9].*[0-9].*[a-z].*[A-Z].*)$")
 
 // Validate checks the field values on RegisterResponse with the rules defined
 // in the proto definition for this message. If any rules are violated, the

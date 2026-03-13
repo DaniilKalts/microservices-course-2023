@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -21,7 +22,9 @@ import (
 	userHandler "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/handlers/user"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/interceptor"
 	authInterceptor "github.com/DaniilKalts/microservices-course-2023/8-week/internal/adapters/transport/grpc/interceptor/auth"
+	domainUser "github.com/DaniilKalts/microservices-course-2023/8-week/internal/domain/user"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/internal/service"
+	authService "github.com/DaniilKalts/microservices-course-2023/8-week/internal/service/auth"
 	"github.com/DaniilKalts/microservices-course-2023/8-week/pkg/jwt"
 )
 
@@ -65,6 +68,20 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 		return nil, fmt.Errorf("init auth interceptor: %w", err)
 	}
 
+	errorRules := []interceptor.ErrorRule{
+		// Domain errors
+		{Target: domainUser.ErrNotFound, Code: codes.NotFound},
+		{Target: domainUser.ErrEmailAlreadyExists, Code: codes.AlreadyExists},
+		{Target: domainUser.ErrNoFieldsToUpdate, Code: codes.InvalidArgument},
+		{Target: domainUser.ErrWeakPassword, Code: codes.InvalidArgument},
+		// Auth service errors
+		{Target: authService.ErrInvalidCredentials, Code: codes.Unauthenticated},
+		{Target: authService.ErrInvalidRefreshToken, Code: codes.Unauthenticated},
+		{Target: authService.ErrAuthentication, Code: codes.Internal, Message: "authentication failed"},
+		{Target: authService.ErrUserIDEmpty, Code: codes.Internal, Message: "internal error"},
+		{Target: authService.ErrIssueTokens, Code: codes.Internal, Message: "internal error"},
+	}
+
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptor.TimeoutInterceptor(deps.Config.RequestTimeout),
@@ -73,6 +90,7 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 			interceptor.LoggingInterceptor(logger.Named("interceptor.logging")),
 			authIntcpt,
 			interceptor.ValidationInterceptor(),
+			interceptor.ErrorMappingInterceptor(logger.Named("interceptor.errors"), errorRules),
 		),
 	}
 
@@ -93,10 +111,9 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 
 	server := grpc.NewServer(grpcOpts...)
 
-	handlerLogger := logger.Named("handler")
-	userv1.RegisterUserV1Server(server, userHandler.NewHandler(deps.Services.User, handlerLogger.Named("user")))
-	userv1.RegisterProfileV1Server(server, profileHandler.NewHandler(deps.Services.User, handlerLogger.Named("profile")))
-	authv1.RegisterAuthV1Server(server, authHandler.NewHandler(deps.Services.Auth, handlerLogger.Named("auth")))
+	userv1.RegisterUserV1Server(server, userHandler.NewHandler(deps.Services.User))
+	userv1.RegisterProfileV1Server(server, profileHandler.NewHandler(deps.Services.User))
+	authv1.RegisterAuthV1Server(server, authHandler.NewHandler(deps.Services.Auth))
 
 	healthServer := health.NewServer()
 	grpc_health_v1.RegisterHealthServer(server, healthServer)

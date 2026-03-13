@@ -117,7 +117,6 @@ message UpdateProfileRequest {
     google.protobuf.StringValue password = 3 [(validate.rules).string = {
         min_len: 8,
         max_len: 64,
-        pattern: "^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$",
         ignore_empty: true
     }];
 }

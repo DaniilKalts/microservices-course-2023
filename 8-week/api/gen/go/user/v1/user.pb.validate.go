@@ -400,17 +400,6 @@ func (m *CreateRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if !_CreateRequest_Password_Pattern.MatchString(m.GetPassword()) {
-		err := CreateRequestValidationError{
-			field:  "Password",
-			reason: "value does not match regex pattern \"^([A-Za-z].*\\\\d|\\\\d.*[A-Za-z]).*$\"",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
 	if l := utf8.RuneCountInString(m.GetPasswordConfirm()); l < 8 || l > 64 {
 		err := CreateRequestValidationError{
 			field:  "PasswordConfirm",
@@ -551,8 +540,6 @@ var _ interface {
 } = CreateRequestValidationError{}
 
 var _CreateRequest_Name_Pattern = regexp.MustCompile("^[^\\x00-\\x1F\\x7F]+$")
-
-var _CreateRequest_Password_Pattern = regexp.MustCompile("^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$")
 
 // Validate checks the field values on CreateResponse with the rules defined in
 // the proto definition for this message. If any rules are violated, the first

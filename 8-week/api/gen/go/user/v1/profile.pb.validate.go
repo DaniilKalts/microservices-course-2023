@@ -275,17 +275,6 @@ func (m *UpdateProfileRequest) validate(all bool) error {
 				errors = append(errors, err)
 			}
 
-			if !_UpdateProfileRequest_Password_Pattern.MatchString(wrapper.GetValue()) {
-				err := UpdateProfileRequestValidationError{
-					field:  "Password",
-					reason: "value does not match regex pattern \"^([A-Za-z].*\\\\d|\\\\d.*[A-Za-z]).*$\"",
-				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
-			}
-
 		}
 
 	}
@@ -421,5 +410,3 @@ var _ interface {
 } = UpdateProfileRequestValidationError{}
 
 var _UpdateProfileRequest_Name_Pattern = regexp.MustCompile("^[^\\x00-\\x1F\\x7F]+$")
-
-var _UpdateProfileRequest_Password_Pattern = regexp.MustCompile("^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$")

@@ -3,7 +3,6 @@ package profile
 import (
 	"context"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -16,11 +15,10 @@ import (
 type Handler struct {
 	userv1.UnimplementedProfileV1Server
 	userService userService.Service
-	logger      *zap.Logger
 }
 
-func NewHandler(userService userService.Service, logger *zap.Logger) *Handler {
-	return &Handler{userService: userService, logger: logger}
+func NewHandler(userService userService.Service) *Handler {
+	return &Handler{userService: userService}
 }
 
 func (h *Handler) GetProfile(ctx context.Context, _ *emptypb.Empty) (*userv1.GetProfileResponse, error) {
@@ -31,7 +29,7 @@ func (h *Handler) GetProfile(ctx context.Context, _ *emptypb.Empty) (*userv1.Get
 
 	user, err := h.userService.Get(ctx, userID)
 	if err != nil {
-		return nil, h.mapError(err)
+		return nil, err
 	}
 
 	return &userv1.GetProfileResponse{User: toProtoUser(user)}, nil
@@ -44,7 +42,7 @@ func (h *Handler) UpdateProfile(ctx context.Context, req *userv1.UpdateProfileRe
 	}
 
 	if err = h.userService.Update(ctx, toUpdateProfileInput(userID, req)); err != nil {
-		return nil, h.mapError(err)
+		return nil, err
 	}
 
 	return &emptypb.Empty{}, nil
@@ -57,7 +55,7 @@ func (h *Handler) DeleteProfile(ctx context.Context, _ *emptypb.Empty) (*emptypb
 	}
 
 	if err = h.userService.Delete(ctx, userID); err != nil {
-		return nil, h.mapError(err)
+		return nil, err
 	}
 
 	return &emptypb.Empty{}, nil

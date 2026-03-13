@@ -7,10 +7,6 @@
 package userv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
@@ -18,6 +14,9 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -137,12 +136,12 @@ const file_user_v1_profile_proto_rawDesc = "" +
 	"\n" +
 	"\x15user/v1/profile.proto\x12\auser.v1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\x1a\x12user/v1/user.proto\x1a\x17validate/validate.proto\"A\n" +
 	"\x12GetProfileResponse\x12+\n" +
-	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04user\"\x97\x02\n" +
+	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04user\"\xf6\x01\n" +
 	"\x14UpdateProfileRequest\x12S\n" +
 	"\x04name\x18\x01 \x01(\v2\x1c.google.protobuf.StringValueB!\xfaB\x1er\x1c\x10\x02\x1822\x13^[^\\x00-\\x1F\\x7F]+$\xd0\x01\x01R\x04name\x12A\n" +
 	"\x05email\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueB\r\xfaB\n" +
-	"r\b\x18\xfe\x01\xd0\x01\x01`\x01R\x05email\x12g\n" +
-	"\bpassword\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueB-\xfaB*r(\x10\b\x18@2\x1f^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$\xd0\x01\x01R\bpassword2\x98\x06\n" +
+	"r\b\x18\xfe\x01\xd0\x01\x01`\x01R\x05email\x12F\n" +
+	"\bpassword\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueB\f\xfaB\tr\a\x10\b\x18@\xd0\x01\x01R\bpassword2\x98\x06\n" +
 	"\tProfileV1\x12\xd9\x01\n" +
 	"\n" +
 	"GetProfile\x12\x16.google.protobuf.Empty\x1a\x1b.user.v1.GetProfileResponse\"\x95\x01\x92Az\n" +

@@ -7,16 +7,15 @@
 package authv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -513,12 +512,12 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\rrefresh_token\x18\x02 \x01(\tB\n" +
 	"\xfaB\ar\x05\x10\x01\x18\x80 R\frefreshToken\x125\n" +
 	"\x17access_token_expires_in\x18\x03 \x01(\x03R\x14accessTokenExpiresIn\x127\n" +
-	"\x18refresh_token_expires_in\x18\x04 \x01(\x03R\x15refreshTokenExpiresIn\"\xa8\b\n" +
+	"\x18refresh_token_expires_in\x18\x04 \x01(\x03R\x15refreshTokenExpiresIn\"\x8e\x01\n" +
 	"\x0fRegisterRequest\x122\n" +
 	"\x04name\x18\x01 \x01(\tB\x1e\xfaB\x1br\x19\x10\x02\x1822\x13^[^\\x00-\\x1F\\x7F]+$R\x04name\x12 \n" +
 	"\x05email\x18\x02 \x01(\tB\n" +
-	"\xfaB\ar\x05\x18\xfe\x01`\x01R\x05email\x12\xbe\a\n" +
-	"\bpassword\x18\x03 \x01(\tB\xa1\a\xfaB\x9d\ar\x9a\a\x10\b\x18@2\x93\a^(.*[A-Z].*[a-z].*[0-9].*[^A-Za-z0-9].*|.*[A-Z].*[a-z].*[^A-Za-z0-9].*[0-9].*|.*[A-Z].*[0-9].*[a-z].*[^A-Za-z0-9].*|.*[A-Z].*[0-9].*[^A-Za-z0-9].*[a-z].*|.*[A-Z].*[^A-Za-z0-9].*[a-z].*[0-9].*|.*[A-Z].*[^A-Za-z0-9].*[0-9].*[a-z].*|.*[a-z].*[A-Z].*[0-9].*[^A-Za-z0-9].*|.*[a-z].*[A-Z].*[^A-Za-z0-9].*[0-9].*|.*[a-z].*[0-9].*[A-Z].*[^A-Za-z0-9].*|.*[a-z].*[0-9].*[^A-Za-z0-9].*[A-Z].*|.*[a-z].*[^A-Za-z0-9].*[A-Z].*[0-9].*|.*[a-z].*[^A-Za-z0-9].*[0-9].*[A-Z].*|.*[0-9].*[A-Z].*[a-z].*[^A-Za-z0-9].*|.*[0-9].*[A-Z].*[^A-Za-z0-9].*[a-z].*|.*[0-9].*[a-z].*[A-Z].*[^A-Za-z0-9].*|.*[0-9].*[a-z].*[^A-Za-z0-9].*[A-Z].*|.*[0-9].*[^A-Za-z0-9].*[A-Z].*[a-z].*|.*[0-9].*[^A-Za-z0-9].*[a-z].*[A-Z].*|.*[^A-Za-z0-9].*[A-Z].*[a-z].*[0-9].*|.*[^A-Za-z0-9].*[A-Z].*[0-9].*[a-z].*|.*[^A-Za-z0-9].*[a-z].*[A-Z].*[0-9].*|.*[^A-Za-z0-9].*[a-z].*[0-9].*[A-Z].*|.*[^A-Za-z0-9].*[0-9].*[A-Z].*[a-z].*|.*[^A-Za-z0-9].*[0-9].*[a-z].*[A-Z].*)$R\bpassword\"\xd2\x01\n" +
+	"\xfaB\ar\x05\x18\xfe\x01`\x01R\x05email\x12%\n" +
+	"\bpassword\x18\x03 \x01(\tB\t\xfaB\x06r\x04\x10\b\x18@R\bpassword\"\xd2\x01\n" +
 	"\x10RegisterResponse\x12<\n" +
 	"\x04user\x18\x01 \x01(\v2\x1e.auth.v1.RegisterResponse.UserB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04user\x124\n" +
 	"\x06tokens\x18\x02 \x01(\v2\x12.auth.v1.TokenPairB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x06tokens\x1aJ\n" +

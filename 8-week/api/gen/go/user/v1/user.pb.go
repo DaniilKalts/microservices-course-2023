@@ -7,10 +7,6 @@
 package userv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
@@ -19,6 +15,9 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -525,12 +524,12 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xe3\x01\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xc2\x01\n" +
 	"\rCreateRequest\x122\n" +
 	"\x04name\x18\x01 \x01(\tB\x1e\xfaB\x1br\x19\x10\x02\x1822\x13^[^\\x00-\\x1F\\x7F]+$R\x04name\x12 \n" +
 	"\x05email\x18\x02 \x01(\tB\n" +
-	"\xfaB\ar\x05\x18\xfe\x01`\x01R\x05email\x12F\n" +
-	"\bpassword\x18\x03 \x01(\tB*\xfaB'r%\x10\b\x18@2\x1f^([A-Za-z].*\\d|\\d.*[A-Za-z]).*$R\bpassword\x124\n" +
+	"\xfaB\ar\x05\x18\xfe\x01`\x01R\x05email\x12%\n" +
+	"\bpassword\x18\x03 \x01(\tB\t\xfaB\x06r\x04\x10\b\x18@R\bpassword\x124\n" +
 	"\x10password_confirm\x18\x04 \x01(\tB\t\xfaB\x06r\x04\x10\b\x18@R\x0fpasswordConfirm\" \n" +
 	"\x0eCreateResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"3\n" +

@@ -18,6 +18,8 @@ type Repository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+//go:generate minimock -i github.com/DaniilKalts/microservices-course-2023/8-week/internal/service/user.Service -o mock.go -n UserServiceMock -p user
+
 type Service interface {
 	Create(ctx context.Context, input domainUser.CreateInput) (string, error)
 	List(ctx context.Context) ([]domainUser.User, error)

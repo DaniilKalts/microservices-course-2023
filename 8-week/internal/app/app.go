@@ -164,15 +164,13 @@ func (a *App) shutdown() {
 		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 
-		grpcTimeout := shutdownTimeout - grpcGracefulStopHeadroom
-
 		var wg sync.WaitGroup
 
 		if a.grpc != nil {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				a.gracefulStopGRPC(grpcTimeout)
+				a.gracefulStopGRPC(shutdownTimeout - grpcGracefulStopHeadroom)
 			}()
 		}
 
@@ -214,8 +212,7 @@ func (a *App) gracefulStopGRPC(timeout time.Duration) {
 	select {
 	case <-done:
 	case <-timer.C:
-		a.logger.Warn("grpc graceful stop timeout, forcing",
-			zap.Duration("timeout", timeout))
+		a.logger.Warn("grpc graceful stop timeout, forcing", zap.Duration("timeout", timeout))
 		a.grpc.Stop()
 	}
 }

@@ -13,6 +13,8 @@ import (
 
 var sb = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+//go:generate minimock -i github.com/DaniilKalts/microservices-course-2023/8-week/internal/repository/user.Repository -o mock.go -n UserRepositoryMock -p user
+
 type Repository interface {
 	Create(ctx context.Context, user *domainUser.User, passwordHash string) (string, error)
 	List(ctx context.Context) ([]domainUser.User, error)
@@ -115,31 +117,28 @@ func (repo *repository) GetCredentialsByEmail(ctx context.Context, email string)
 }
 
 func (repo *repository) Update(ctx context.Context, input domainUser.UpdateInput) error {
-	builder := sb.Update("users").
-		Where(sq.Eq{"id": input.ID})
-
-	hasFields := false
+	fields := make(map[string]interface{})
 
 	if input.Name != nil {
-		builder = builder.Set("name", *input.Name)
-		hasFields = true
+		fields["name"] = *input.Name
 	}
 	if input.Email != nil {
-		builder = builder.Set("email", *input.Email)
-		hasFields = true
+		fields["email"] = *input.Email
 	}
 	if input.PasswordHash != nil {
-		builder = builder.Set("password_hash", *input.PasswordHash)
-		hasFields = true
+		fields["password_hash"] = *input.PasswordHash
 	}
 
-	if !hasFields {
+	if len(fields) == 0 {
 		return domainUser.ErrNoFieldsToUpdate
 	}
 
-	builder = builder.Set("updated_at", time.Now())
+	fields["updated_at"] = time.Now()
 
-	query, args, err := builder.ToSql()
+	query, args, err := sb.Update("users").
+		Where(sq.Eq{"id": input.ID}).
+		SetMap(fields).
+		ToSql()
 	if err != nil {
 		return err
 	}

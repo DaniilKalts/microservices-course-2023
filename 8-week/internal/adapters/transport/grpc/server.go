@@ -34,6 +34,12 @@ type ServerConfig struct {
 	KeyFile   string
 
 	RequestTimeout time.Duration
+
+	RateLimitRPS   float64
+	RateLimitBurst int
+
+	RateLimitAuthRPS   float64
+	RateLimitAuthBurst int
 }
 
 type Deps struct {
@@ -115,6 +121,12 @@ func NewServer(deps Deps) (*grpc.Server, error) {
 
 	grpcOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
+			interceptor.RateLimitInterceptor(interceptor.RateLimitConfig{
+				RPS:       deps.Config.RateLimitRPS,
+				Burst:     deps.Config.RateLimitBurst,
+				AuthRPS:   deps.Config.RateLimitAuthRPS,
+				AuthBurst: deps.Config.RateLimitAuthBurst,
+			}),
 			interceptor.TimeoutInterceptor(deps.Config.RequestTimeout),
 			interceptor.MetricsInterceptor(deps.Registry),
 			interceptor.TracingInterceptor(deps.Tracer),

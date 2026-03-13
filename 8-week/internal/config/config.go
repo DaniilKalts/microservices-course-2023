@@ -27,6 +27,12 @@ type GRPCConfig struct {
 	Port string `env:"PORT,required"`
 
 	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT,required"`
+
+	RateLimitRPS   float64 `env:"RATE_LIMIT_RPS"   envDefault:"100"`
+	RateLimitBurst int     `env:"RATE_LIMIT_BURST"  envDefault:"20"`
+
+	RateLimitAuthRPS   float64 `env:"RATE_LIMIT_AUTH_RPS"   envDefault:"5"`
+	RateLimitAuthBurst int     `env:"RATE_LIMIT_AUTH_BURST"  envDefault:"10"`
 }
 
 func (cfg *GRPCConfig) Address() string {
